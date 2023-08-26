@@ -1,10 +1,12 @@
+## CoCLIP Analysis:
 ## Custom Peak Annotation
 ## Original script by Dr. Joseph M. Luna.
 ## Edited by Soon Yi
-## Las edit: 2023-08-24
+## Last edit: 2023-08-24
 
 ## Load necessary libraries
 ## diffloop is deprecated in higher version of bioconductor, so will need to install from sources, including some of the dependencies.
+library(stringr)
 library(dplyr)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(GenomicFeatures)
@@ -140,8 +142,8 @@ colnames(genes.bed.ext) = c("chr", "start", "end", "name", "score", "strand")
 genes.ext.gr = GRanges(seqnames=genes.bed.ext$chr, ranges=IRanges(start=genes.bed.ext$start, end=genes.bed.ext$end, names=genes.bed.ext$name), strand=genes.bed.ext$strand) 
 
 ## Use biomaRt to import ensembl necessary attributes:
-mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset="hsapiens_gene_ensembl")
-# mart.hs = useMart("ensembl", dataset="hsapiens_gene_ensembl")
+# mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset="hsapiens_gene_ensembl")
+mart.hs = useMart("ensembl", dataset="hsapiens_gene_ensembl")
 ensembl.tx = getBM(attributes=c("ensembl_gene_id", "external_gene_name", "hgnc_symbol"), mart = mart.hs) 
 
 ## Load peak file:
