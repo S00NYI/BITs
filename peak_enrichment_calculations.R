@@ -5,11 +5,12 @@
 
 library(stringr)
 library(readr)
+library(ggplot2)
 library(dplyr)
 
 ## Make initial peak enrichment table:
-# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'  ## Use this for windows machine
-peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'  ## Use this for windows machine
+# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peakMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -75,90 +76,145 @@ write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FIL
 
 
 ## snoRNA Comparison ##
+####################################################################################################################
 snoRNA_Enrichment = peakEnrichment %>% filter(finalized_annotation == 'snoRNA')
-snoRNA_Enrichment = snoRNA_Enrichment %>% filter(Nuc_F_M_BC >= 1, Cyto_F_M_BC >= 1, NLS_E_M_BC >= 1, NES_E_M_BC >= 1)
+snoRNA_Enrichment = snoRNA_Enrichment %>% filter(Nuc_F_M_BC >= 1, 
+                                                 Cyto_F_M_BC >= 1, 
+                                                 NLS_E_M_BC >= 1, 
+                                                 NES_E_M_BC >= 1)
 
-xlims = c(-5, 10)
-ylims = xlims
+snoRNA_E_M_NvC = snoRNA_Enrichment$NLS_E_M / snoRNA_Enrichment$NES_E_M
+snoRNA_F_M_NvC = snoRNA_Enrichment$Nuc_F_M / snoRNA_Enrichment$Cyto_F_M
+data = data.frame(log_snoRNA_E_M_NvC = log2(snoRNA_E_M_NvC), log_snoRNA_F_M_NvC = log2(snoRNA_F_M_NvC))
 
-snoRNA_F_M_NvC = log(snoRNA_Enrichment$Nuc_F_M / snoRNA_Enrichment$Cyto_F_M, 2)
-snoRNA_E_M_NvC = log(snoRNA_Enrichment$NLS_E_M / snoRNA_Enrichment$NES_E_M, 2)
-# snoRNA_F_M_NvC = (snoRNA_Enrichment$Nuc_F_M) / (snoRNA_Enrichment$Cyto_F_M)
-# snoRNA_E_M_NvC = (snoRNA_Enrichment$NLS_E_M) / (snoRNA_Enrichment$NES_E_M)
-plot(snoRNA_E_M_NvC, snoRNA_F_M_NvC, xlim = xlims, ylim = ylims, xlab = "LOG2(CoCLIP NLS/NES Mock)", ylab = "LOG2(FractionCLIP Nuc/Cyto Mock)", pch = 16, col = "blue",)
-cor(snoRNA_E_M_NvC, snoRNA_F_M_NvC)
+ggplot(data, aes(x = log_snoRNA_E_M_NvC, y = log_snoRNA_F_M_NvC)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP NLS/NES Mock)', y = 'log2(FractionCLIP Nuc/Cyto Mock)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle('snoRNA HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm in Mock')
 
-snoRNA_F_S_NvC = log(snoRNA_Enrichment$Nuc_F_S / snoRNA_Enrichment$Cyto_F_S, 2)
-snoRNA_E_S_NvC = log(snoRNA_Enrichment$NLS_E_S / snoRNA_Enrichment$NES_E_S, 2)
-# snoRNA_F_S_NvC = (snoRNA_Enrichment$Nuc_F_S) / (snoRNA_Enrichment$Cyto_F_S)
-# snoRNA_E_S_NvC = (snoRNA_Enrichment$NLS_E_S) / (snoRNA_Enrichment$NES_E_S)
-points(snoRNA_E_S_NvC, snoRNA_F_S_NvC, xlim = xlims, ylim = ylims, xlab = "LOG2(CoCLIP NLS/NES Stress)", ylab = "LOG2(FractionCLIP Nuc/Cyto Stress)", pch = 16, col = "red",)
-cor(snoRNA_E_S_NvC, snoRNA_F_S_NvC)
+
+snoRNA_E_S_NvC = snoRNA_Enrichment$NLS_E_S / snoRNA_Enrichment$NES_E_S
+snoRNA_F_S_NvC = snoRNA_Enrichment$Nuc_F_S / snoRNA_Enrichment$Cyto_F_S
+data = data.frame(log_snoRNA_E_S_NvC = log2(snoRNA_E_S_NvC), log_snoRNA_F_S_NvC = log2(snoRNA_F_S_NvC))
+
+ggplot(data, aes(x = log_snoRNA_E_S_NvC, y = log_snoRNA_F_S_NvC)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP NLS/NES Stress)', y = 'log2(FractionCLIP Nuc/Cyto Stress)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle('snoRNA HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm in Stress')
+
+####################################################################################################################
+
+
+Input_BC_Threshold = 1 # out of 2
+CoCLIP_BC_Threshold = 2 # out of 4
+
+SG_Input_BC_Threshold = 2 # out of 4
+SG_CoCLIP_BC_Threshold = 3 # out of 6/7
 
 ## Nuclear Comparison 
-NuclearPeaks_Filtered= peakEnrichment %>% filter(NLS_I_M_BC >= 1, NLS_I_S_BC >= 1, NLS_E_M_BC >= 2, NLS_E_S_BC >= 2)
+####################################################################################################################
+NuclearPeaks_Filtered = peakEnrichment %>% filter(NLS_I_M_BC >= Input_BC_Threshold, 
+                                                  NLS_I_S_BC >= Input_BC_Threshold, 
+                                                  NLS_E_M_BC >= CoCLIP_BC_Threshold, 
+                                                  NLS_E_S_BC >= CoCLIP_BC_Threshold)
 
-# Input vs CoCLIP
+# Mock vs Stress of Enriched/Input
 Nu_M_IvE = NuclearPeaks_Filtered$NLS_E_M / NuclearPeaks_Filtered$NLS_I_M
 Nu_S_IvE = NuclearPeaks_Filtered$NLS_E_S / NuclearPeaks_Filtered$NLS_I_S
-plot(log(Nu_M_IvE, 2), log(Nu_S_IvE, 2), col = 'black', pch = 16,
-     xlab = 'log2(mock Enriched/Input)',
-     ylab = 'log2(stress Enriched/Input)',
-     xlim = c(-4, 4), ylim = c(-4, 4))
+data = data.frame(log_Nu_M_IvE = log2(Nu_M_IvE), log_Nu_S_IvE = log2(Nu_S_IvE))
 
-# Mock vs Stress
-Nu_I_MvS = NuclearPeaks_Filtered$NLS_I_M / NuclearPeaks_Filtered$NLS_I_S
+ggplot(data, aes(x = log_Nu_M_IvE, y = log_Nu_S_IvE)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-5, 5)) +
+  ylim(c(-5, 5)) +
+  ggtitle('Nuclear HuR Peaks: Mock vs Stress of Enriched/Input')
+
+
+# CoCLIP vs Input of Mock/Stress
 Nu_E_MvS = NuclearPeaks_Filtered$NLS_E_M / NuclearPeaks_Filtered$NLS_E_S
-plot(log(Nu_E_MvS, 2), log(Nu_I_MvS, 2), col = 'black', pch = 16,
-     xlab = 'log2(CoCLIP Mock/Stress)',
-     ylab = 'log2(Input Mock/Stress)',
-     xlim = c(-4, 4), ylim = c(-4, 4))
+Nu_I_MvS = NuclearPeaks_Filtered$NLS_I_M / NuclearPeaks_Filtered$NLS_I_S
+data = data.frame(log_Nu_E_MvS = log2(Nu_E_MvS), log_Nu_I_MvS = log2(Nu_I_MvS))
+
+ggplot(data, aes(x = log_Nu_E_MvS, y = log_Nu_I_MvS)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Mock/Stress)', y = 'log2(Input Mock/Stress)') +
+  xlim(c(-5, 5)) +
+  ylim(c(-5, 5)) +
+  ggtitle('Nuclear HuR Peaks: CoCLIP vs Input of Mock/Stress')
+
+####################################################################################################################
 
 ## Cytoplasm Comparison 
-CytopPeaks_Filtered= peakEnrichment %>% filter(NES_I_M_BC >= 1, NES_I_S_BC >= 1, NES_E_M_BC >= 2, NES_E_S_BC >= 2)
+####################################################################################################################
+CytoPeaks_Filtered= peakEnrichment %>% filter(NES_I_M_BC >= Input_BC_Threshold, 
+                                              NES_I_S_BC >= Input_BC_Threshold, 
+                                              NES_E_M_BC >= CoCLIP_BC_Threshold, 
+                                              NES_E_S_BC >= CoCLIP_BC_Threshold)
 
-# Input vs CoCLIP
-Cy_M_IvE = CytopPeaks_Filtered$NES_E_M / CytopPeaks_Filtered$NES_I_M
-Cy_S_IvE = CytopPeaks_Filtered$NES_E_S / CytopPeaks_Filtered$NES_I_S
-plot(log(Cy_M_IvE, 2), log(Cy_S_IvE, 2), col = 'black', pch = 16,
-     xlab = 'log2(Mock Enriched/Input)',
-     ylab = 'log2(Stress Enriched/Input)',
-     xlim = c(-10, 10), ylim = c(-10, 10))
-title('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input')
+# Mock vs Stress of Enriched/Input
+Cy_M_IvE = CytoPeaks_Filtered$NES_E_M / CytoPeaks_Filtered$NES_I_M
+Cy_S_IvE = CytoPeaks_Filtered$NES_E_S / CytoPeaks_Filtered$NES_I_S
+data = data.frame(log_Cy_M_IvE = log2(Cy_M_IvE), log_Cy_S_IvE = log2(Cy_S_IvE))
 
-# Mock vs Stress
-Cy_I_MvS = CytopPeaks_Filtered$NES_I_M / CytopPeaks_Filtered$NES_I_S
-Cy_E_MvS = CytopPeaks_Filtered$NES_E_M / CytopPeaks_Filtered$NES_E_S
-plot(log(Cy_E_MvS, 2), log(Cy_I_MvS), col = 'black', pch = 16,
-     xlab = 'log2(CoCLIP Mock/Stress)',
-     ylab = 'log2(Input Mock/Stress)',
-     xlim = c(-4, 4), ylim = c(-4, 4))
-title('Cytoplasm HuR Peaks: CoCLIP vs Input of Mock/Stress')
+ggplot(data, aes(x = log_Cy_M_IvE, y = log_Cy_S_IvE)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-5, 5)) +
+  ylim(c(-5, 5)) +
+  ggtitle('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input')
 
 
-Cy_M_IvE = peakEnrichment$NES_E_M / peakEnrichment$NES_I_M
-Cy_S_IvE = peakEnrichment$NES_E_S / peakEnrichment$NES_I_S
+# CoCLIP vs Input of Mock/Stress
+Cy_E_MvS = CytoPeaks_Filtered$NES_E_M / CytoPeaks_Filtered$NES_E_S
+Cy_I_MvS = CytoPeaks_Filtered$NES_I_M / CytoPeaks_Filtered$NES_I_S
+data = data.frame(log_Cy_E_MvS = log2(Cy_E_MvS), log_Cy_I_MvS = log2(Cy_I_MvS))
 
-SG_M_IvE = peakEnrichment$G3BP_E_M / peakEnrichment$G3BP_I_M
-SG_S_IvE = peakEnrichment$G3BP_E_S / peakEnrichment$G3BP_I_S
+ggplot(data, aes(x = log_Cy_E_MvS, y = log_Cy_I_MvS)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Mock/Stress)', y = 'log2(Input Mock/Stress)') +
+  xlim(c(-5, 5)) +
+  ylim(c(-5, 5)) +
+  ggtitle('Cytoplasm HuR Peaks: CoCLIP vs Input of Mock/Stress')
+
+####################################################################################################################
+
+## Stress Granule Comparison 
+####################################################################################################################
+SGPeaks_Filtered= peakEnrichment %>% filter(G3BP_I_M_BC >= SG_Input_BC_Threshold, 
+                                            G3BP_I_S_BC >= SG_Input_BC_Threshold, 
+                                            G3BP_E_M_BC >= SG_CoCLIP_BC_Threshold, 
+                                            G3BP_E_S_BC >= SG_CoCLIP_BC_Threshold)
+
+# Mock vs Stress of Enriched/Input
+SG_M_IvE = SGPeaks_Filtered$G3BP_E_M / SGPeaks_Filtered$G3BP_I_M
+SG_S_IvE = SGPeaks_Filtered$G3BP_E_S / SGPeaks_Filtered$G3BP_I_S
+data = data.frame(log_SG_M_IvE = log2(SG_M_IvE), log_SG_S_IvE = log2(SG_S_IvE))
+
+ggplot(data, aes(x = log_SG_M_IvE, y = log_SG_S_IvE)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-10, 10)) +
+  ylim(c(-10, 10)) +
+  ggtitle('Stress Granule HuR Peaks: Mock vs Stress of Enriched/Input')
 
 
-plot(log(Cy_M_IvE, 2), log(Cy_S_IvE, 2), col = 'black', pch = 16)
-plot(log(SG_M_IvE, 2), log(SG_S_IvE, 2), col = 'black', pch = 16)
+# CoCLIP vs Input of Mock/Stress
+SG_E_MvS = SGPeaks_Filtered$G3BP_E_M / SGPeaks_Filtered$G3BP_E_S
+SG_I_MvS = SGPeaks_Filtered$G3BP_I_M / SGPeaks_Filtered$G3BP_I_S
+data = data.frame(log_SG_E_MvS = log2(SG_E_MvS), log_SG_I_MvS = log2(SG_I_MvS))
 
+ggplot(data, aes(x = log_SG_E_MvS, y = log_SG_I_MvS)) +
+  geom_point(col = 'black', pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Mock/Stress)', y = 'log2(Input Mock/Stress)') +
+  xlim(c(-10, 10)) +
+  ylim(c(-10, 10)) +
+  ggtitle('Stress Granule HuR Peaks: CoCLIP vs Input of Mock/Stress')
 
-## Mock vs Stress Comparison ## 
-
-
-Cy_I_MvS = peakEnrichment$NES_I_M / peakEnrichment$NES_I_S
-Cy_E_MvS = peakEnrichment$NES_E_M / peakEnrichment$NES_E_S
-
-SG_I_MvS = peakEnrichment$G3BP_I_M / peakEnrichment$G3BP_I_S
-SG_E_MvS = peakEnrichment$G3BP_E_M / peakEnrichment$G3BP_E_S
-
-plot(log(Nu_E_MvS, 2), log(Nu_I_MvS, 2), col = 'black', pch = 16)
-plot(log(Cy_E_MvS, 2), log(Cy_I_MvS, 2), col = 'black', pch = 16)
-plot(log(SG_E_MvS, 2), log(SG_I_MvS, 2), col = 'black', pch = 16)
-
+####################################################################################################################
 
 
