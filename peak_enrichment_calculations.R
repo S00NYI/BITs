@@ -7,18 +7,19 @@ library(stringr)
 library(readr)
 library(dplyr)
 
-peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'  ## Use this for windows machine
-# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+## Make initial peak enrichment table:
+# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'  ## Use this for windows machine
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peakMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
 peakMatrix = peakMatrix %>% mutate_at('TOTAL_BC', as.numeric)
 
-peakCount_median = median(peakMatrix[, colnames(peakMatrix)[6:63]][peakMatrix[, colnames(peakMatrix)[6:63]] != 0], na.rm = TRUE)
-peakMatrix = peakMatrix %>% filter(if_any(all_of(comparison_vector), ~ . > peakCount_median ))
+# peakCount_median = median(peakMatrix[, colnames(peakMatrix)[6:63]][peakMatrix[, colnames(peakMatrix)[6:63]] != 0], na.rm = TRUE)
+# peakMatrix = peakMatrix %>% filter(if_any(all_of(comparison_vector), ~ . > peakCount_median ))
 
-# pseudoCount = min(peakMatrix[, colnames(peakMatrix)[6:63]][peakMatrix[, colnames(peakMatrix)[6:63]] != 0], na.rm = TRUE)
-# peakMatrix[, colnames(peakMatrix)[6:63]] = peakMatrix[, colnames(peakMatrix)[6:63]] + pseudoCount
+pseudoCount = min(peakMatrix[, colnames(peakMatrix)[6:63]][peakMatrix[, colnames(peakMatrix)[6:63]] != 0], na.rm = TRUE)
+peakMatrix[, colnames(peakMatrix)[6:63]] = peakMatrix[, colnames(peakMatrix)[6:63]] + pseudoCount
 
 inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
                   "gene", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count")
@@ -94,12 +95,46 @@ snoRNA_E_S_NvC = log(snoRNA_Enrichment$NLS_E_S / snoRNA_Enrichment$NES_E_S, 2)
 points(snoRNA_E_S_NvC, snoRNA_F_S_NvC, xlim = xlims, ylim = ylims, xlab = "LOG2(CoCLIP NLS/NES Stress)", ylab = "LOG2(FractionCLIP Nuc/Cyto Stress)", pch = 16, col = "red",)
 cor(snoRNA_E_S_NvC, snoRNA_F_S_NvC)
 
+## Nuclear Comparison 
+NuclearPeaks_Filtered= peakEnrichment %>% filter(NLS_I_M_BC >= 1, NLS_I_S_BC >= 1, NLS_E_M_BC >= 2, NLS_E_S_BC >= 2)
 
+# Input vs CoCLIP
+Nu_M_IvE = NuclearPeaks_Filtered$NLS_E_M / NuclearPeaks_Filtered$NLS_I_M
+Nu_S_IvE = NuclearPeaks_Filtered$NLS_E_S / NuclearPeaks_Filtered$NLS_I_S
+plot(log(Nu_M_IvE, 2), log(Nu_S_IvE, 2), col = 'black', pch = 16,
+     xlab = 'log2(mock Enriched/Input)',
+     ylab = 'log2(stress Enriched/Input)',
+     xlim = c(-4, 4), ylim = c(-4, 4))
 
-## Input vs Enrich Comparison ## 
+# Mock vs Stress
+Nu_I_MvS = NuclearPeaks_Filtered$NLS_I_M / NuclearPeaks_Filtered$NLS_I_S
+Nu_E_MvS = NuclearPeaks_Filtered$NLS_E_M / NuclearPeaks_Filtered$NLS_E_S
+plot(log(Nu_E_MvS, 2), log(Nu_I_MvS, 2), col = 'black', pch = 16,
+     xlab = 'log2(CoCLIP Mock/Stress)',
+     ylab = 'log2(Input Mock/Stress)',
+     xlim = c(-4, 4), ylim = c(-4, 4))
 
-Nu_M_IvE = peakEnrichment$NLS_E_M / peakEnrichment$NLS_I_M
-Nu_S_IvE = peakEnrichment$NLS_E_S / peakEnrichment$NLS_I_S
+## Cytoplasm Comparison 
+CytopPeaks_Filtered= peakEnrichment %>% filter(NES_I_M_BC >= 1, NES_I_S_BC >= 1, NES_E_M_BC >= 2, NES_E_S_BC >= 2)
+
+# Input vs CoCLIP
+Cy_M_IvE = CytopPeaks_Filtered$NES_E_M / CytopPeaks_Filtered$NES_I_M
+Cy_S_IvE = CytopPeaks_Filtered$NES_E_S / CytopPeaks_Filtered$NES_I_S
+plot(log(Cy_M_IvE, 2), log(Cy_S_IvE, 2), col = 'black', pch = 16,
+     xlab = 'log2(Mock Enriched/Input)',
+     ylab = 'log2(Stress Enriched/Input)',
+     xlim = c(-10, 10), ylim = c(-10, 10))
+title('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input')
+
+# Mock vs Stress
+Cy_I_MvS = CytopPeaks_Filtered$NES_I_M / CytopPeaks_Filtered$NES_I_S
+Cy_E_MvS = CytopPeaks_Filtered$NES_E_M / CytopPeaks_Filtered$NES_E_S
+plot(log(Cy_E_MvS, 2), log(Cy_I_MvS), col = 'black', pch = 16,
+     xlab = 'log2(CoCLIP Mock/Stress)',
+     ylab = 'log2(Input Mock/Stress)',
+     xlim = c(-4, 4), ylim = c(-4, 4))
+title('Cytoplasm HuR Peaks: CoCLIP vs Input of Mock/Stress')
+
 
 Cy_M_IvE = peakEnrichment$NES_E_M / peakEnrichment$NES_I_M
 Cy_S_IvE = peakEnrichment$NES_E_S / peakEnrichment$NES_I_S
@@ -107,14 +142,13 @@ Cy_S_IvE = peakEnrichment$NES_E_S / peakEnrichment$NES_I_S
 SG_M_IvE = peakEnrichment$G3BP_E_M / peakEnrichment$G3BP_I_M
 SG_S_IvE = peakEnrichment$G3BP_E_S / peakEnrichment$G3BP_I_S
 
-plot(log(Nu_M_IvE, 2), log(Nu_S_IvE, 2), col = 'black', pch = 16, xlim = c(-6, 6), ylim = c(-6, 6))
+
 plot(log(Cy_M_IvE, 2), log(Cy_S_IvE, 2), col = 'black', pch = 16)
 plot(log(SG_M_IvE, 2), log(SG_S_IvE, 2), col = 'black', pch = 16)
 
 
 ## Mock vs Stress Comparison ## 
-Nu_I_MvS = peakEnrichment$NLS_I_M / peakEnrichment$NLS_I_S
-Nu_E_MvS = peakEnrichment$NLS_E_M / peakEnrichment$NLS_E_S
+
 
 Cy_I_MvS = peakEnrichment$NES_I_M / peakEnrichment$NES_I_S
 Cy_E_MvS = peakEnrichment$NES_E_M / peakEnrichment$NES_E_S
