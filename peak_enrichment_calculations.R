@@ -9,9 +9,11 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 
+
+
 ## Load peak matrix and clean up:
 ####################################################################################################################
-# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'  ## Use this for windows machine
+# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
@@ -57,30 +59,106 @@ G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
 ####################################################################################################################
 
+## Subset of Peaks for downstream analysis:
+####################################################################################################################
+BC_Threshold_Fraction = 2
+BC_Threshold_Input = 1
+BC_Threshold_Input_SG = 2
+BC_Threshold_CoCLIP = 2
+BC_Threshold_CoCLIP_SG = 3
+
+Peak_all_M = (peakMatrix[, c(inert_columns, Nuc_F_M, Cyto_F_M, NLS_I_M, NES_I_M, G3BP_I_M, NLS_E_M, NES_E_M, G3BP_E_M, BC_columns)] 
+              %>% filter((Nuc_F_M_BC >= BC_Threshold_Fraction & Cyto_F_M_BC >= BC_Threshold_Fraction) | 
+                           (NLS_I_M_BC >= BC_Threshold_Input & NES_I_M_BC >= BC_Threshold_Input & G3BP_I_M_BC >= BC_Threshold_Input_SG) |
+                           (NLS_E_M_BC >= BC_Threshold_CoCLIP & NES_E_M_BC >= BC_Threshold_CoCLIP & G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)))
+
+Peak_all_S = (peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, NLS_I_S, NES_I_S, G3BP_I_S, NLS_E_S, NES_E_S, G3BP_E_S, BC_columns)] 
+              %>% filter((Nuc_F_S_BC >= BC_Threshold_Fraction & Cyto_F_S_BC >= BC_Threshold_Fraction) |
+                           (NLS_I_S_BC >= BC_Threshold_Input & NES_I_S_BC >= BC_Threshold_Input & G3BP_I_S_BC >= BC_Threshold_CoCLIP_SG) | 
+                           (NLS_E_S_BC >= BC_Threshold_CoCLIP & NES_E_S_BC >= BC_Threshold_CoCLIP & G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)))
+
+Peak_all = (peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, NLS_I_S, NES_I_S, G3BP_I_S, NLS_E_S, NES_E_S, G3BP_E_S, BC_columns)] 
+            %>% filter(((Nuc_F_M_BC >= BC_Threshold_Fraction & Cyto_F_M_BC >= BC_Threshold_Fraction) | 
+                          (NLS_I_M_BC >= BC_Threshold_Input & NES_I_M_BC >= BC_Threshold_Input & G3BP_I_M_BC >= BC_Threshold_CoCLIP_SG) | 
+                          (NLS_E_M_BC >= BC_Threshold_CoCLIP & NES_E_M_BC >= BC_Threshold_CoCLIP & G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) | 
+                         ((Nuc_F_S_BC >= BC_Threshold_Fraction & Cyto_F_S_BC >= BC_Threshold_Fraction) | 
+                            (NLS_I_S_BC >= BC_Threshold_Input & NES_I_S_BC >= BC_Threshold_Input & G3BP_I_S_BC >= BC_Threshold_CoCLIP_SG) | 
+                            NLS_E_S_BC >= BC_Threshold_CoCLIP & NES_E_S_BC >= BC_Threshold_CoCLIP & G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)))
+
+
+Peak_F_Nuc_M = (peakMatrix[, c(inert_columns, Nuc_F_M, BC_columns)] 
+                %>% filter(Nuc_F_M_BC >= BC_Threshold_Fraction))
+
+Peak_F_Nuc_S = (peakMatrix[, c(inert_columns, Nuc_F_S, BC_columns)] 
+                %>% filter(Nuc_F_S_BC >= BC_Threshold_Fraction))
+
+Peak_F_Cyt_M = (peakMatrix[, c(inert_columns, Cyto_F_M, BC_columns)] 
+                %>% filter(Cyto_F_M_BC >= BC_Threshold_Fraction))
+
+Peak_F_Cyt_S = (peakMatrix[, c(inert_columns, Cyto_F_S, BC_columns)] 
+                %>% filter(Cyto_F_S_BC >= BC_Threshold_Fraction))
+
+Peak_F_all_M = (peakMatrix[, c(inert_columns, Nuc_F_M, Cyto_F_M, BC_columns)] 
+                %>% filter(Nuc_F_M_BC >= BC_Threshold_Fraction & Cyto_F_M_BC >= BC_Threshold_Fraction))
+
+Peak_F_all_S = (peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, BC_columns)] 
+                %>% filter(Nuc_F_S_BC >= BC_Threshold_Fraction & Cyto_F_S_BC >= BC_Threshold_Fraction))
+
+
+Peak_Co_Input_M = (peakMatrix[, c(inert_columns, NLS_I_M, NES_I_M, G3BP_I_M, BC_columns)] 
+                   %>% filter(NLS_I_M_BC >= BC_Threshold_Input & NES_I_M_BC >= BC_Threshold_Input & G3BP_I_M_BC >= BC_Threshold_Input_SG))
+
+Peak_Co_Input_S = (peakMatrix[, c(inert_columns, NLS_I_S, NES_I_S, G3BP_I_S, BC_columns)] 
+                   %>% filter(NLS_I_S_BC >= BC_Threshold_Input & NES_I_S_BC >= BC_Threshold_Input & G3BP_I_S_BC >= BC_Threshold_Input_SG))
+
+Peak_Co_NLS_M = (peakMatrix[, c(inert_columns, NLS_E_M, BC_columns)] 
+                 %>% filter(NLS_E_M_BC >= BC_Threshold_CoCLIP))
+
+Peak_Co_NLS_S = (peakMatrix[, c(inert_columns, NLS_E_S, BC_columns)] 
+                 %>% filter(NLS_E_S_BC >= BC_Threshold_CoCLIP))
+
+Peak_Co_NES_M = (peakMatrix[, c(inert_columns, NES_E_M, BC_columns)] 
+                 %>% filter(NES_E_M_BC >= BC_Threshold_CoCLIP))
+
+Peak_Co_NES_S = (peakMatrix[, c(inert_columns, NES_E_S, BC_columns)] 
+                %>% filter(NES_E_S_BC >= BC_Threshold_CoCLIP))
+
+Peak_Co_G3BP_M = (peakMatrix[, c(inert_columns, G3BP_E_M, BC_columns)] 
+                  %>% filter(G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG))
+
+Peak_Co_G3BP_S = (peakMatrix[, c(inert_columns, G3BP_E_S, BC_columns)] 
+                  %>% filter(G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG))
+
+# These outputs are in peaks format suitable for Homer motif analysis:
+write.table(Peak_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_all[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+
+write.table(Peak_F_Nuc_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_F_Nuc_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_F_Cyt_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_F_Cyt_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_F_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_F_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+
+write.table(Peak_Co_Input_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_Input_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_NLS_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_NLS_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_NES_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_NES_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_G3BP_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+write.table(Peak_Co_G3BP_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+
+####################################################################################################################
+
+
 ## Exploratory Stacked Bar Plots Across All Samples:
 ####################################################################################################################
 ## Mock vs Stress:
-PeakDistribution_all_M = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_M, Cyto_F_M, NLS_I_M, NES_I_M, G3BP_I_M, NLS_E_M, NES_E_M, G3BP_E_M, BC_columns)] 
-                                           %>% filter((Nuc_F_M_BC >= 2 & Cyto_F_M_BC >= 2) |  
-                                                      (NLS_I_M_BC >= 2 & NES_I_M_BC >= 2 & G3BP_I_M_BC >= 3) |
-                                                      NLS_E_M_BC >= 2 & NES_E_M_BC >= 2 & G3BP_E_M_BC >= 3))
-                                          $grouped_annotation), row.names = 1)
-
-
-PeakDistribution_all_S = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, NLS_I_S, NES_I_S, G3BP_I_S, NLS_E_S, NES_E_S, G3BP_E_S, BC_columns)] 
-                                           %>% filter((Nuc_F_S_BC >= 2 & Cyto_F_S_BC >= 2) |
-                                                      (NLS_I_S_BC >= 2 & NES_I_S_BC >= 2 & G3BP_I_S_BC >= 3) | 
-                                                      (NLS_E_S_BC >= 2 & NES_E_S_BC >= 2 & G3BP_E_S_BC >= 3)))
-                                          $grouped_annotation), row.names = 1)
-
-PeakDistribution_all = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, NLS_I_S, NES_I_S, G3BP_I_S, NLS_E_S, NES_E_S, G3BP_E_S, BC_columns)] 
-                                         %>% filter(((Nuc_F_M_BC >= 2 & Cyto_F_M_BC >= 2) | 
-                                                       (NLS_I_M_BC >= 2 & NES_I_M_BC >= 2 & G3BP_I_M_BC >= 3) | 
-                                                       (NLS_E_M_BC >= 2 & NES_E_M_BC >= 2 & G3BP_E_M_BC >= 3)) | 
-                                                      ((Nuc_F_S_BC >= 2 & Cyto_F_S_BC >= 2) | 
-                                                         (NLS_I_S_BC >= 2 & NES_I_S_BC >= 2 & G3BP_I_S_BC >= 3) | 
-                                                         NLS_E_S_BC >= 2 & NES_E_S_BC >= 2 & G3BP_E_S_BC >= 3)))
-                                        $grouped_annotation), row.names = 1)
+PeakDistribution_all_M = data.frame(table(Peak_all_M$grouped_annotation), row.names = 1)
+PeakDistribution_all_S = data.frame(table(Peak_all_S$grouped_annotation), row.names = 1)
+PeakDistribution_all = data.frame(table(Peak_all$grouped_annotation), row.names = 1)
 
 colnames(PeakDistribution_all_M) = c('All_M')
 colnames(PeakDistribution_all_S) = c('All_S')
@@ -130,29 +208,14 @@ ggplot(PeakDistribution_all_combined, aes(fill = Annotation, y=Freq, x=Source)) 
 ## Exploratory Stacked Bar Plots For Fractionation CLIP Samples:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
-PeakDistribution_F_Nuc_M = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_M, BC_columns)] 
-                                             %>% filter(Nuc_F_M_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
+PeakDistribution_F_Nuc_M = data.frame(table(Peak_F_Nuc_M$grouped_annotation), row.names = 1)
+PeakDistribution_F_Nuc_S = data.frame(table(Peak_F_Nuc_S$grouped_annotation), row.names = 1)
 
-PeakDistribution_F_Nuc_S = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_S, BC_columns)] 
-                                             %>% filter(Nuc_F_S_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
+PeakDistribution_F_Cyt_M = data.frame(table(Peak_F_Cyt_M$grouped_annotation), row.names = 1)
+PeakDistribution_F_Cyt_S = data.frame(table(Peak_F_Cyt_S$grouped_annotation), row.names = 1)
 
-PeakDistribution_F_Cyt_M = data.frame(table((peakMatrix[, c(inert_columns, Cyto_F_M, BC_columns)] 
-                                             %>% filter(Cyto_F_M_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
-
-PeakDistribution_F_Cyt_S = data.frame(table((peakMatrix[, c(inert_columns, Cyto_F_S, BC_columns)] 
-                                             %>% filter(Cyto_F_S_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
-
-PeakDistribution_F_all_M = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_M, Cyto_F_M, BC_columns)] 
-                                             %>% filter(Nuc_F_M_BC >= 3 & Cyto_F_M_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
-
-PeakDistribution_F_all_S = data.frame(table((peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, BC_columns)] 
-                                             %>% filter(Nuc_F_S_BC >= 3 & Cyto_F_S_BC >= 3))
-                                            $grouped_annotation), row.names = 1)
+PeakDistribution_F_all_M = data.frame(table(Peak_F_all_M$grouped_annotation), row.names = 1)
+PeakDistribution_F_all_S = data.frame(table(Peak_F_all_S$grouped_annotation), row.names = 1)
 
 colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
 colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
@@ -205,41 +268,22 @@ ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) +
 ## Exploratory Stacked Bar Plots For CoCLIP Samples:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
-PeakDistribution_Co_Input_M = data.frame(table((peakMatrix[, c(inert_columns, NLS_I_M, NES_I_M, G3BP_I_M, BC_columns)] 
-                                                %>% filter(NLS_I_M_BC >= 1 & NES_I_M_BC >= 1 & G3BP_I_M_BC >= 2))
-                                               $grouped_annotation), row.names = 1)
+PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M$grouped_annotation), row.names = 1)
+PeakDistribution_Co_Input_S = data.frame(table(Peak_Co_Input_S$grouped_annotation), row.names = 1)
 
-PeakDistribution_Co_Input_S = data.frame(table((peakMatrix[, c(inert_columns, NLS_I_S, NES_I_S, G3BP_I_S, BC_columns)] 
-                                                %>% filter(NLS_I_S_BC >= 1 & NES_I_S_BC >= 1 & G3BP_I_S_BC >= 2))
-                                               $grouped_annotation), row.names = 1)
+PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M$grouped_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S$grouped_annotation), row.names = 1)
 
-PeakDistribution_Co_NLS_M = data.frame(table((peakMatrix[, c(inert_columns, NLS_E_M, BC_columns)] 
-                                              %>% filter(NLS_E_M_BC >= 2))
-                                             $grouped_annotation), row.names = 1)
-
-PeakDistribution_Co_NLS_S = data.frame(table((peakMatrix[, c(inert_columns, NLS_E_S, BC_columns)] 
-                                              %>% filter(NLS_E_S_BC >= 2))
-                                             $grouped_annotation), row.names = 1)
-
-PeakDistribution_Co_NES_M = data.frame(table((peakMatrix[, c(inert_columns, NES_E_M, BC_columns)] 
-                                              %>% filter(NES_E_M_BC >= 2))
-                                             $grouped_annotation), row.names = 1)
+PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M$grouped_annotation), row.names = 1)
 # Use this when we are filtering to peaks with only a single annotation:
 # PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0))
 # row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:7], 'CDS', 'TE')
 # PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
 
-PeakDistribution_Co_NES_S = data.frame(table((peakMatrix[, c(inert_columns, NES_E_S, BC_columns)] 
-                                              %>% filter(NES_E_S_BC >= 2))
-                                             $grouped_annotation), row.names = 1)
+PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S$grouped_annotation), row.names = 1)
 
-PeakDistribution_Co_G3BP_M = data.frame(table((peakMatrix[, c(inert_columns, G3BP_E_M, BC_columns)] 
-                                               %>% filter(G3BP_E_M_BC >= 2))
-                                              $grouped_annotation), row.names = 1)
-
-PeakDistribution_Co_G3BP_S = data.frame(table((peakMatrix[, c(inert_columns, G3BP_E_S, BC_columns)] 
-                                               %>% filter(G3BP_E_S_BC >= 2))
-                                              $grouped_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M$grouped_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_S = data.frame(table(Peak_Co_G3BP_S$grouped_annotation), row.names = 1)
 
 colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
 colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
@@ -354,19 +398,12 @@ ggplot(data, aes(x = log_snoRNA_E_S_NvC, y = log_snoRNA_F_S_NvC)) +
 
 ####################################################################################################################
 
-
-Input_BC_Threshold = 1 # out of 2
-CoCLIP_BC_Threshold = 2 # out of 4
-
-SG_Input_BC_Threshold = 2 # out of 4
-SG_CoCLIP_BC_Threshold = 3 # out of 6/7
-
 ## Nuclear Comparison 
 ####################################################################################################################
-NuclearPeaks_Filtered = peakEnrichment %>% filter(NLS_I_M_BC >= Input_BC_Threshold, 
-                                                  NLS_I_S_BC >= Input_BC_Threshold, 
-                                                  NLS_E_M_BC >= CoCLIP_BC_Threshold, 
-                                                  NLS_E_S_BC >= CoCLIP_BC_Threshold)
+NuclearPeaks_Filtered = peakEnrichment %>% filter(NLS_I_M_BC >= BC_Threshold_Input, 
+                                                  NLS_I_S_BC >= BC_Threshold_Input, 
+                                                  NLS_E_M_BC >= BC_Threshold_CoCLIP, 
+                                                  NLS_E_S_BC >= BC_Threshold_CoCLIP)
 
 # Mock vs Stress of Enriched/Input
 Nu_M_IvE = NuclearPeaks_Filtered$NLS_E_M / NuclearPeaks_Filtered$NLS_I_M
@@ -397,10 +434,10 @@ ggplot(data, aes(x = log_Nu_E_MvS, y = log_Nu_I_MvS)) +
 
 ## Cytoplasm Comparison 
 ####################################################################################################################
-CytoPeaks_Filtered= peakEnrichment %>% filter(NES_I_M_BC >= Input_BC_Threshold, 
-                                              NES_I_S_BC >= Input_BC_Threshold, 
-                                              NES_E_M_BC >= CoCLIP_BC_Threshold, 
-                                              NES_E_S_BC >= CoCLIP_BC_Threshold)
+CytoPeaks_Filtered= peakEnrichment %>% filter(NES_I_M_BC >= BC_Threshold_Input, 
+                                              NES_I_S_BC >= BC_Threshold_Input, 
+                                              NES_E_M_BC >= BC_Threshold_CoCLIP, 
+                                              NES_E_S_BC >= BC_Threshold_CoCLIP)
 
 # Mock vs Stress of Enriched/Input
 Cy_M_IvE = CytoPeaks_Filtered$NES_E_M / CytoPeaks_Filtered$NES_I_M
@@ -431,10 +468,10 @@ ggplot(data, aes(x = log_Cy_E_MvS, y = log_Cy_I_MvS)) +
 
 ## Stress Granule Comparison 
 ####################################################################################################################
-SGPeaks_Filtered= peakEnrichment %>% filter(G3BP_I_M_BC >= SG_Input_BC_Threshold, 
-                                            G3BP_I_S_BC >= SG_Input_BC_Threshold, 
-                                            G3BP_E_M_BC >= SG_CoCLIP_BC_Threshold, 
-                                            G3BP_E_S_BC >= SG_CoCLIP_BC_Threshold)
+SGPeaks_Filtered= peakEnrichment %>% filter(G3BP_I_M_BC >= BC_Threshold_Input_SG, 
+                                            G3BP_I_S_BC >= BC_Threshold_Input_SG, 
+                                            G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG, 
+                                            G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)
 
 # Mock vs Stress of Enriched/Input
 SG_M_IvE = SGPeaks_Filtered$G3BP_E_M / SGPeaks_Filtered$G3BP_I_M
