@@ -1,7 +1,7 @@
 # BITs
 Collection of custom <ins>**B**</ins>io<ins>**I**</ins>nformatics <ins>**T**</ins>ools and <ins>**S**</ins>cripts.
 
-Last Update: 2023-08-24
+Last Update: 2023-08-28
 
 ----
 #### check_barcode_mismatches.py:
@@ -17,3 +17,6 @@ Last Update: 2023-08-24
   - R script to annotate peak matrix from CLIPittyClip pipeline.
   - Requires gtf files.
 
+#### peak_enrichment_calculations.R
+  - Main R script for CoCLIP analysis.
+  - Requires peak matrix from the peak_custom_annotation.R.
