@@ -141,11 +141,6 @@ genes.bed.ext = genes.bed.ext[,c("chr", "new.start", "new.end", "name", "score",
 colnames(genes.bed.ext) = c("chr", "start", "end", "name", "score", "strand")
 genes.ext.gr = GRanges(seqnames=genes.bed.ext$chr, ranges=IRanges(start=genes.bed.ext$start, end=genes.bed.ext$end, names=genes.bed.ext$name), strand=genes.bed.ext$strand) 
 
-## Use biomaRt to import ensembl necessary attributes:
-# mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset="hsapiens_gene_ensembl")
-mart.hs = useMart("ensembl", dataset="hsapiens_gene_ensembl")
-ensembl.tx = getBM(attributes=c("ensembl_gene_id", "external_gene_name", "hgnc_symbol"), mart = mart.hs) 
-
 ## Load peak file:
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 # peaksMatrix_FILE = 'Combined_peakCoverage_groomed.txt'
@@ -197,6 +192,7 @@ peaksMatrix$DNS10K = DNS10K.CombinedCoCLIP[,1]
 peaksMatrix$introns = introns.CombinedCoCLIP[,1]
 peaksMatrix$tx_ext = tx_ext.CombinedCoCLIP[,1]
 peaksMatrix$gene = genes.bed[genes.CombinedCoCLIP[,1], "name"]
+
 ## For the above regions, I am only interested in if a peak overlaps ANY 3'UTR (or intron or CDS, etc).  
 
 ## For the below queries, I am interested in knowing WHICH genes they overlap, so I use the returned indexes to extract that info from the appropriate BED files.
@@ -291,9 +287,9 @@ peaksMatrix = peaksMatrix %>%
 
 # Map terms to grouped_annotation
 peaksMatrix = peaksMatrix %>%
-  mutate(grouped_annotation = ifelse(finalized_annotation %in% c("5'UTR", "CDS", "3'UTR", "TE", "Other", "downstream 10K", "deep intergenic"), finalized_annotation,
-                                     ifelse(finalized_annotation %in% c("miRNA", "lncRNA", "rRNA", "snoRNA", "scaRNA", "snRNA", "miscRNA", "tRNA"), "ncRNA",
-                                            ifelse(finalized_annotation %in% c("CDS_Retained_intron", "ncRNA_Retained_intron", "intron"), "intron", NA))),
+  mutate(grouped_annotation = ifelse(finalized_annotation %in% c("5'UTR", "CDS", "3'UTR", "TE", "Other", "downstream 10K", "deep intergenic", "snoRNA"), finalized_annotation,
+                                     ifelse(finalized_annotation %in% c("miRNA", "lncRNA", "rRNA", "scaRNA", "snRNA", "miscRNA", "tRNA"), "ncRNA",
+                                            ifelse(finalized_annotation %in% c("CDS_Retained_intron", "ncRNA_Retained_intron", "intron"), "intron", "deep intergenic"))),
   annotation_count = sapply(strsplit(annotation, "\\|"), length))  # Count elements after splitting
 
 #########################################################################################################
@@ -306,6 +302,17 @@ drops = c('fiveUTRs', 'threeUTRs', 'CDS', 'DNS10K', 'introns', 'tx_ext',
 peaksMatrix = peaksMatrix[ , -which(names(peaksMatrix) %in% drops)]
 
 peaksMatrix$peak_names = row.names(peaksMatrix)
+
+## Use biomaRt to import ensembl necessary attributes:
+mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset="hsapiens_gene_ensembl")
+# mart.hs = useMart("ensembl", dataset="hsapiens_gene_ensembl")
+gene_names = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
+                    filters = "ensembl_gene_id",
+                    values = peaksMatrix$gene,
+                    mart = mart.hs)
+
+peaksMatrix = peaksMatrix %>% left_join(gene_names, by = c("gene" = "ensembl_gene_id"), relationship = "many-to-many")
+
 
 write.table(apply(peaksMatrix,2,as.character), paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_annotated.txt")), 
             quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
