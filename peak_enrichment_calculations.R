@@ -708,6 +708,117 @@ ggplot(data, aes(x = log_NES_EvI_S, y = log_G3BP_EvI_S, color = annotation)) +
 
 ####################################################################################################################
 
+## Fractionation Compartment Comparison
+####################################################################################################################
+# Mock Nuclear vs Cytoplasm:
+Mock_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_M_BC >= BC_Threshold_Fraction & 
+                                                  NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                 (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                  NLS_E_M_BC >= BC_Threshold_CoCLIP)) &
+                                                 (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_F_M / Mock_Peaks_Filtered$NLS_I_M
+Cyt_EvI_M = Mock_Peaks_Filtered$Cyto_F_M /Mock_Peaks_Filtered$NES_I_M
+
+data = data.frame(log_Nuc_EvI_M = log2(Nuc_EvI_M), log_Cyt_EvI_M = log2(Cyt_EvI_M))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log_Nuc_EvI_M, y = log_Cyt_EvI_M, color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Nuclear vs Cytoplasm:
+Stress_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_S_BC >= BC_Threshold_Fraction & 
+                                                    NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                   (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                    NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                   (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                    I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_F_S / Stress_Peaks_Filtered$NLS_I_S
+Cyt_EvI_S = Stress_Peaks_Filtered$Cyto_F_S /Stress_Peaks_Filtered$NES_I_S
+
+data = data.frame(log_Nuc_EvI_S = log2(Nuc_EvI_S), log_Cyt_EvI_S = log2(Cyt_EvI_S))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log_Nuc_EvI_S, y = log_Cyt_EvI_S, color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+####################################################################################################################
+
+## Fractionation and CoCLIP comparison
+####################################################################################################################
+# Mock Comparison
+Mock_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
+                                                  NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                 (Nuc_F_M >= BC_Threshold_Fraction & 
+                                                  Cyto_F_M >= BC_Threshold_Fraction)) &
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2)
+
+E_NvC_M = Mock_Peaks_Filtered$NLS_E_M / Mock_Peaks_Filtered$NES_E_M
+F_NvC_M = Mock_Peaks_Filtered$Nuc_F_M / Mock_Peaks_Filtered$Cyto_F_M
+
+data = data.frame(log_E_NvC_M = log2(E_NvC_M), log_F_NvC_M = log2(F_NvC_M))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log_E_NvC_M, y = log_F_NvC_M, color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle(paste0('Mock HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+
+# Stress Comparison
+Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
+                                                    NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                   (Nuc_F_S >= BC_Threshold_Fraction & 
+                                                    Cyto_F_S >= BC_Threshold_Fraction)) &
+                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2)
+
+E_NvC_S = Stress_Peaks_Filtered$NLS_E_S / Stress_Peaks_Filtered$NES_E_S
+F_NvC_S = Stress_Peaks_Filtered$Nuc_F_S / Stress_Peaks_Filtered$Cyto_F_S
+
+data = data.frame(log_E_NvC_S= log2(E_NvC_S), log_F_NvC_S = log2(F_NvC_S))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log_E_NvC_S, y = log_F_NvC_S, color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle(paste0('Stress HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+####################################################################################################################
+
 ## Input and CoCLIP comparison
 ####################################################################################################################
 # Nuclear Mock:
