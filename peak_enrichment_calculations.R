@@ -14,8 +14,8 @@ library(pheatmap)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
-peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
-# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peakMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -34,7 +34,7 @@ peakMatrix[, colnames(peakMatrix)[6:63]] = peakMatrix[, colnames(peakMatrix)[6:6
 
 ## Column organization:
 inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
-                  "gene", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count")
+                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count")
 BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
                "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
                "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
@@ -62,8 +62,15 @@ G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5
 ## Add row sum columns for further filtering:
 peakMatrix$F_rowSum = rowSums(peakMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
 peakMatrix$I_rowSum = rowSums(peakMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
+peakMatrix$E_rowSum = rowSums(peakMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
 
-rowSum_columns = c('F_rowSum', 'I_rowSum')
+rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
+
+## per Gene information:
+tagCounts_perGene = peakMatrix %>% group_by(gene, external_gene_name) %>% summarise(tagCounts = sum(TOTAL_TagCount))
+peakCounts_perGene = peakMatrix %>% group_by(gene, external_gene_name) %>% summarise(peakCounts = n())
+Counts_perGene = peakMatrix %>% group_by(gene, external_gene_name) %>% summarise(tagCounts = sum(TOTAL_TagCount), peakCounts = n())
+Counts_perGene = Counts_perGene %>% mutate(tagDensity = tagCounts/peakCounts)
 
 ####################################################################################################################
 
@@ -188,48 +195,54 @@ Peak_Co_Input_S = (peakMatrix[, c(inert_columns, NLS_I_S, NES_I_S, G3BP_I_S, BC_
                               G3BP_I_S_BC >= BC_Threshold_Input_SG &
                               I_rowSum >= median(peakMatrix$I_rowSum)))
 
-Peak_Co_NLS_M = (peakMatrix[, c(inert_columns, NLS_E_M, BC_columns)] 
-                 %>% filter(NLS_E_M_BC >= BC_Threshold_CoCLIP))
+Peak_Co_NLS_M = (peakMatrix[, c(inert_columns, NLS_E_M, BC_columns, rowSum_columns)] 
+                 %>% filter(NLS_E_M_BC >= BC_Threshold_CoCLIP & 
+                              E_rowSum >- median(peakMatrix$E_rowSum)))
 
-Peak_Co_NLS_S = (peakMatrix[, c(inert_columns, NLS_E_S, BC_columns)] 
-                 %>% filter(NLS_E_S_BC >= BC_Threshold_CoCLIP))
+Peak_Co_NLS_S = (peakMatrix[, c(inert_columns, NLS_E_S, BC_columns, rowSum_columns)] 
+                 %>% filter(NLS_E_S_BC >= BC_Threshold_CoCLIP & 
+                              E_rowSum >- median(peakMatrix$E_rowSum)))
 
-Peak_Co_NES_M = (peakMatrix[, c(inert_columns, NES_E_M, BC_columns)] 
-                 %>% filter(NES_E_M_BC >= BC_Threshold_CoCLIP))
+Peak_Co_NES_M = (peakMatrix[, c(inert_columns, NES_E_M, BC_columns, rowSum_columns)] 
+                 %>% filter(NES_E_M_BC >= BC_Threshold_CoCLIP & 
+                              E_rowSum >- median(peakMatrix$E_rowSum)))
 
-Peak_Co_NES_S = (peakMatrix[, c(inert_columns, NES_E_S, BC_columns)] 
-                 %>% filter(NES_E_S_BC >= BC_Threshold_CoCLIP))
+Peak_Co_NES_S = (peakMatrix[, c(inert_columns, NES_E_S, BC_columns, rowSum_columns)] 
+                 %>% filter(NES_E_S_BC >= BC_Threshold_CoCLIP & 
+                              E_rowSum >- median(peakMatrix$E_rowSum)))
 
-Peak_Co_G3BP_M = (peakMatrix[, c(inert_columns, G3BP_E_M, BC_columns)] 
-                  %>% filter(G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG))
+Peak_Co_G3BP_M = (peakMatrix[, c(inert_columns, G3BP_E_M, BC_columns, rowSum_columns)] 
+                  %>% filter(G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG & 
+                               E_rowSum >- median(peakMatrix$E_rowSum)))
 
-Peak_Co_G3BP_S = (peakMatrix[, c(inert_columns, G3BP_E_S, BC_columns)] 
-                  %>% filter(G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG))
+Peak_Co_G3BP_S = (peakMatrix[, c(inert_columns, G3BP_E_S, BC_columns, rowSum_columns)] 
+                  %>% filter(G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG & 
+                               E_rowSum >- median(peakMatrix$E_rowSum)))
 
 # These outputs are in peaks format suitable for Homer motif analysis:
-write.table(Peak_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_all[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-
-write.table(Peak_F_Nuc_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_F_Nuc_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_F_Cyt_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_F_Cyt_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_F_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_F_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-
-write.table(Peak_Co_Input_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_Input_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_NLS_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_NLS_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_NES_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_NES_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_G3BP_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
-write.table(Peak_Co_G3BP_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_all[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_all.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# 
+# write.table(Peak_F_Nuc_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_F_Nuc_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Nuc_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_F_Cyt_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_F_Cyt_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_Cyt_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_F_all_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_F_all_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_F_all_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# 
+# write.table(Peak_Co_Input_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_Input_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_Input_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_NLS_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_NLS_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NLS_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_NES_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_NES_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_NES_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_G3BP_M[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_M.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+# write.table(Peak_Co_G3BP_S[, c('peak_names', 'chrom', 'start', 'end', 'strand')], paste0(peaksMatrix_PATH, '/Peak_Subsets/Peak_Co_G3BP_S.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
 
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots Across All Samples:
+## Exploratory Stacked Bar Plots Across All Peaks:
 ####################################################################################################################
 ## Mock vs Stress:
 PeakDistribution_all_M = data.frame(table(Peak_all_M$grouped_annotation), row.names = 1)
@@ -240,7 +253,7 @@ colnames(PeakDistribution_all_M) = c('All_M')
 colnames(PeakDistribution_all_S) = c('All_S')
 colnames(PeakDistribution_all) = c('All_M+S')
 
-## Raw Counts Distribution Stacked Bar Graph
+## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_all_combined = cbind(PeakDistribution_all_M, 
                                       PeakDistribution_all_S, 
                                       PeakDistribution_all)
@@ -281,7 +294,7 @@ ggplot(PeakDistribution_all_combined, aes(fill = Annotation, y=Freq, x=Source)) 
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots For Fractionation CLIP Samples:
+## Exploratory Stacked Bar Plots For Fractionation CLIP Peaks:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
 PeakDistribution_F_Nuc_M = data.frame(table(Peak_F_Nuc_M$grouped_annotation), row.names = 1)
@@ -300,7 +313,7 @@ colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
 colnames(PeakDistribution_F_all_M) = c('F_M_Nuc+Cyt')
 colnames(PeakDistribution_F_all_S) = c('F_S_Nuc+Cyt')
 
-## Raw Counts Distribution Stacked Bar Graph
+## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Nuc_S, 
                                     PeakDistribution_F_Cyt_M, PeakDistribution_F_Cyt_S, 
                                     PeakDistribution_F_all_M, PeakDistribution_F_all_S)
@@ -311,7 +324,7 @@ PeakDistribution_F_combined = PeakDistribution_F_combined %>%
   select(Source, Freq, Annotation)
 
 PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
-PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
@@ -331,7 +344,7 @@ PeakDistribution_F_combined = PeakDistribution_F_combined %>%
   select(Source, Freq, Annotation)
 
 PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
-PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
@@ -341,7 +354,7 @@ ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots For CoCLIP Samples:
+## Exploratory Stacked Bar Plots For CoCLIP Peaks:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
 PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M$grouped_annotation), row.names = 1)
@@ -370,7 +383,7 @@ colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
 colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
 
-## Raw Counts Distribution Stacked Bar Graph
+## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
                                      PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
                                      PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
@@ -382,7 +395,7 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
   select(Source, Freq, Annotation)
 
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
-PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
@@ -403,7 +416,7 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
   select(Source, Freq, Annotation)
 
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
-PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
@@ -481,7 +494,8 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Inpu
                                                   NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (NLS_I_S_BC >= BC_Threshold_Input & 
                                                  NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
-                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NLS_EvI_M = NLS_Peaks_Filtered$NLS_E_M / NLS_Peaks_Filtered$NLS_I_M
 NLS_EVI_S = NLS_Peaks_Filtered$NLS_E_S / NLS_Peaks_Filtered$NLS_I_S
@@ -506,7 +520,8 @@ NES_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Inpu
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (NES_I_S_BC >= BC_Threshold_Input & 
                                                  NES_E_S_BC >= BC_Threshold_CoCLIP)) &
-                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NES_EvI_M = NES_Peaks_Filtered$NES_E_M / NES_Peaks_Filtered$NES_I_M
 NES_EvI_S = NES_Peaks_Filtered$NES_E_S / NES_Peaks_Filtered$NES_I_S
@@ -531,7 +546,8 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_In
                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
                                                   (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                   G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
-                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_E_M / G3BP_Peaks_Filtered$G3BP_I_M
 G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_E_S / G3BP_Peaks_Filtered$G3BP_I_S
@@ -560,7 +576,8 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_
                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                      (NES_I_M_BC >= BC_Threshold_Input & 
                                                      NES_E_M_BC >= BC_Threshold_CoCLIP)) &
-                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_E_M / NLS_NES_Peaks_Filtered$NLS_I_M
 NES_EvI_M = NLS_NES_Peaks_Filtered$NES_E_M / NLS_NES_Peaks_Filtered$NES_I_M
@@ -585,7 +602,8 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold
                                                        NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_E_M / NLS_G3BP_Peaks_Filtered$NLS_I_M
 G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_E_M / NLS_G3BP_Peaks_Filtered$G3BP_I_M
@@ -610,7 +628,8 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold
                                                        NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_E_M / NES_G3BP_Peaks_Filtered$NES_I_M
 G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_E_M / NES_G3BP_Peaks_Filtered$G3BP_I_M
@@ -636,7 +655,8 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_
                                                       NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                      (NES_I_S_BC >= BC_Threshold_Input & 
                                                      NES_E_S_BC >= BC_Threshold_CoCLIP)) &
-                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_E_S / NLS_NES_Peaks_Filtered$NLS_I_S
 NES_EvI_S = NLS_NES_Peaks_Filtered$NES_E_S / NLS_NES_Peaks_Filtered$NES_I_S
@@ -661,7 +681,8 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold
                                                        NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_E_S / NLS_G3BP_Peaks_Filtered$NLS_I_S
 G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_E_S / NLS_G3BP_Peaks_Filtered$G3BP_I_S
@@ -686,7 +707,8 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_S_BC >= BC_Threshold
                                                        NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_E_S / NES_G3BP_Peaks_Filtered$NES_I_S
 G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_E_S / NES_G3BP_Peaks_Filtered$G3BP_I_S
@@ -712,9 +734,9 @@ ggplot(data, aes(x = log_NES_EvI_S, y = log_G3BP_EvI_S, color = annotation)) +
 ####################################################################################################################
 # Mock Nuclear vs Cytoplasm:
 Mock_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_M_BC >= BC_Threshold_Fraction & 
-                                                  NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                  NES_I_M_BC >= BC_Threshold_Input) | 
                                                  (Nuc_F_M_BC >= BC_Threshold_Fraction & 
-                                                  NLS_E_M_BC >= BC_Threshold_CoCLIP)) &
+                                                  NLS_I_M_BC >= BC_Threshold_Input)) &
                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                   I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
@@ -738,9 +760,9 @@ ggplot(data, aes(x = log_Nuc_EvI_M, y = log_Cyt_EvI_M, color = annotation)) +
 
 # Stress Nuclear vs Cytoplasm:
 Stress_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_S_BC >= BC_Threshold_Fraction & 
-                                                    NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                    NES_I_S_BC >= BC_Threshold_Input) | 
                                                    (Nuc_F_S_BC >= BC_Threshold_Fraction & 
-                                                    NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                    NLS_I_S_BC >= BC_Threshold_Input)) &
                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
@@ -771,7 +793,8 @@ Mock_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_M_BC >= BC_Threshold_CoC
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (Nuc_F_M >= BC_Threshold_Fraction & 
                                                   Cyto_F_M >= BC_Threshold_Fraction)) &
-                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2)
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 E_NvC_M = Mock_Peaks_Filtered$NLS_E_M / Mock_Peaks_Filtered$NES_E_M
 F_NvC_M = Mock_Peaks_Filtered$Nuc_F_M / Mock_Peaks_Filtered$Cyto_F_M
@@ -780,7 +803,7 @@ data = data.frame(log_E_NvC_M = log2(E_NvC_M), log_F_NvC_M = log2(F_NvC_M))
 data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log_E_NvC_M, y = log_F_NvC_M, color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  geom_point(pch = 16, size = 3, alpha = 0.1) +
   labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
   xlim(c(-6, 6)) +
   ylim(c(-6, 6)) +
@@ -797,7 +820,8 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_C
                                                     NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                    (Nuc_F_S >= BC_Threshold_Fraction & 
                                                     Cyto_F_S >= BC_Threshold_Fraction)) &
-                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2)
+                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                    E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 E_NvC_S = Stress_Peaks_Filtered$NLS_E_S / Stress_Peaks_Filtered$NES_E_S
 F_NvC_S = Stress_Peaks_Filtered$Nuc_F_S / Stress_Peaks_Filtered$Cyto_F_S
@@ -806,7 +830,7 @@ data = data.frame(log_E_NvC_S= log2(E_NvC_S), log_F_NvC_S = log2(F_NvC_S))
 data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log_E_NvC_S, y = log_F_NvC_S, color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  geom_point(pch = 16, size = 3, alpha = 0.2) +
   labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
   xlim(c(-6, 6)) +
   ylim(c(-6, 6)) +
