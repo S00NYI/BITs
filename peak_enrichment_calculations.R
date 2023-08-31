@@ -15,7 +15,7 @@ library(pheatmap)
 ## Load peak matrix and clean up:
 ####################################################################################################################
 peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
-# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peakMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -455,7 +455,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -476,7 +476,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
