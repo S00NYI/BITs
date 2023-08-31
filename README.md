@@ -1,7 +1,9 @@
 # BITs
 Collection of custom <ins>**B**</ins>io<ins>**I**</ins>nformatics <ins>**T**</ins>ools and <ins>**S**</ins>cripts.
 
-Last Update: 2023-08-28
+Mostly for Post-CLIPittyClip pipeline analysis, but not always. 
+
+Last Update: 2023-08-30
 
 ----
 #### check_barcode_mismatches.py:
