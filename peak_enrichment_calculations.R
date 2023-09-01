@@ -15,7 +15,7 @@ library(pheatmap)
 ## Load peak matrix and clean up:
 ####################################################################################################################
 peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
-peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peakMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -65,6 +65,11 @@ peakMatrix$I_rowSum = rowSums(peakMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S,
 peakMatrix$E_rowSum = rowSums(peakMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
 
 rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
+
+## Add deep intergenic to the finalized annotations:
+peakMatrix = peakMatrix %>% mutate(annotation = ifelse(is.na(annotation), 'deep intergenic', annotation))
+peakMatrix = peakMatrix %>% mutate(finalized_annotation = ifelse(is.na(finalized_annotation), 'deep intergenic', finalized_annotation))
+
 ####################################################################################################################
 
 ## PCA of Normalized Peaks:
@@ -125,7 +130,7 @@ pheatmap(CorrMatrix)
 BC_Threshold_Fraction = 2
 BC_Threshold_Input = 1
 BC_Threshold_Input_SG = 2
-BC_Threshold_CoCLIP = 3
+BC_Threshold_CoCLIP = 2
 BC_Threshold_CoCLIP_SG = 3
 
 ## Subset of Peaks for downstream analysis:
@@ -151,8 +156,6 @@ Peak_all = (peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, NLS_I_S, NES_I_S, G
 
 Peak_F_Nuc_M = (peakMatrix[, c(inert_columns, Nuc_F_M, BC_columns, rowSum_columns)] 
                 %>% filter(Nuc_F_M_BC >= BC_Threshold_Fraction))
-# &
-#   F_rowSum >= median(peakMatrix$F_rowSum)*2
 
 Peak_F_Nuc_S = (peakMatrix[, c(inert_columns, Nuc_F_S, BC_columns, rowSum_columns)] 
                 %>% filter(Nuc_F_S_BC >= BC_Threshold_Fraction))
@@ -171,13 +174,10 @@ Peak_F_all_S = (peakMatrix[, c(inert_columns, Nuc_F_S, Cyto_F_S, BC_columns, row
                 %>% filter(Nuc_F_S_BC >= BC_Threshold_Fraction & 
                            Cyto_F_S_BC >= BC_Threshold_Fraction))
 
-
 Peak_Co_Input_M = (peakMatrix[, c(inert_columns, NLS_I_M, NES_I_M, G3BP_I_M, BC_columns, rowSum_columns)] 
                    %>% filter(NLS_I_M_BC >= BC_Threshold_Input & 
                               NES_I_M_BC >= BC_Threshold_Input & 
                               G3BP_I_M_BC >= BC_Threshold_Input_SG))
-# &
-#   I_rowSum >= median(peakMatrix$I_rowSum)*2
 
 Peak_Co_Input_S = (peakMatrix[, c(inert_columns, NLS_I_S, NES_I_S, G3BP_I_S, BC_columns, rowSum_columns)] 
                    %>% filter(NLS_I_S_BC >= BC_Threshold_Input & 
@@ -186,8 +186,6 @@ Peak_Co_Input_S = (peakMatrix[, c(inert_columns, NLS_I_S, NES_I_S, G3BP_I_S, BC_
 
 Peak_Co_NLS_M = (peakMatrix[, c(inert_columns, NLS_E_M, BC_columns, rowSum_columns)] 
                  %>% filter(NLS_E_M_BC >= BC_Threshold_CoCLIP))
-# & 
-#   E_rowSum >- median(peakMatrix$E_rowSum)*2
 
 Peak_Co_NLS_S = (peakMatrix[, c(inert_columns, NLS_E_S, BC_columns, rowSum_columns)] 
                  %>% filter(NLS_E_S_BC >= BC_Threshold_CoCLIP))
@@ -663,37 +661,822 @@ ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Build Enrichment Table:
+## Exploratory Stacked Bar Plots For Fractionation CLIP Peaks: Specific RNA biotypes ONLY
 ####################################################################################################################
-peakEnrichment = peakMatrix[, c(inert_columns, rowSum_columns)]
+## mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_F_Nuc_M_mRNA = Peak_F_Nuc_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_Nuc_S_mRNA = Peak_F_Nuc_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
 
-peakEnrichment = peakEnrichment %>% mutate(Nuc_F_M = rowSums(peakMatrix[, Nuc_F_M])/length(Nuc_F_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(Nuc_F_S = rowSums(peakMatrix[, Nuc_F_S])/length(Nuc_F_S) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(Cyto_F_M = rowSums(peakMatrix[, Cyto_F_M])/length(Cyto_F_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(Cyto_F_S = rowSums(peakMatrix[, Cyto_F_S])/length(Cyto_F_S) * 1e6)
+Peak_F_Cyt_M_mRNA = Peak_F_Cyt_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_Cyt_S_mRNA = Peak_F_Cyt_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
 
-peakEnrichment = peakEnrichment %>% mutate(NLS_I_M = rowSums(peakMatrix[, NLS_I_M])/length(NLS_I_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NLS_I_S = rowSums(peakMatrix[, NLS_I_S])/length(NLS_I_S) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NES_I_M = rowSums(peakMatrix[, NES_I_M])/length(NES_I_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NES_I_S = rowSums(peakMatrix[, NES_I_S])/length(NES_I_S) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_I_M = rowSums(peakMatrix[, G3BP_I_M])/length(G3BP_I_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_I_S = rowSums(peakMatrix[, G3BP_I_S])/length(G3BP_I_S) * 1e6)
+Peak_F_all_M_mRNA = Peak_F_all_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_all_S_mRNA = Peak_F_all_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
 
-peakEnrichment = peakEnrichment %>% mutate(NLS_E_M = rowSums(peakMatrix[, NLS_E_M])/length(NLS_E_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NLS_E_S = rowSums(peakMatrix[, NLS_E_S])/length(NLS_E_S) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NES_E_M = rowSums(peakMatrix[, NES_E_M])/length(NES_E_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(NES_E_S = rowSums(peakMatrix[, NES_E_S])/length(NES_E_S) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_E_M = rowSums(peakMatrix[, G3BP_E_M])/length(G3BP_E_M) * 1e6)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_E_S = rowSums(peakMatrix[, G3BP_E_S])/length(G3BP_E_S) * 1e6)
+PeakDistribution_F_Nuc_M = data.frame(table(Peak_F_Nuc_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_Nuc_S = data.frame(table(Peak_F_Nuc_S_mRNA$finalized_annotation), row.names = 1)
 
-peakEnrichment = cbind(peakEnrichment, peakMatrix[, BC_columns])
-# write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_enrichment.txt")), 
-# quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
+PeakDistribution_F_Cyt_M = data.frame(table(Peak_F_Cyt_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_Cyt_S = data.frame(table(Peak_F_Cyt_S_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_F_all_M = data.frame(table(Peak_F_all_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_all_S = data.frame(table(Peak_F_all_S_mRNA$finalized_annotation), row.names = 1)
+
+colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
+colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
+colnames(PeakDistribution_F_Cyt_M) = c('F_M_Cyt')
+colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
+colnames(PeakDistribution_F_all_M) = c('F_M_Nuc+Cyt')
+colnames(PeakDistribution_F_all_S) = c('F_S_Nuc+Cyt')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Nuc_S, 
+                                    PeakDistribution_F_Cyt_M, PeakDistribution_F_Cyt_S, 
+                                    PeakDistribution_F_all_M, PeakDistribution_F_all_S)
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M/sum(PeakDistribution_F_Nuc_M), PeakDistribution_F_Nuc_S/sum(PeakDistribution_F_Nuc_S), 
+                                    PeakDistribution_F_Cyt_M/sum(PeakDistribution_F_Cyt_M), PeakDistribution_F_Cyt_S/sum(PeakDistribution_F_Cyt_S), 
+                                    PeakDistribution_F_all_M/sum(PeakDistribution_F_all_M), PeakDistribution_F_all_S/sum(PeakDistribution_F_all_S))
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## non-mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_F_Nuc_M_Not_mRNA = Peak_F_Nuc_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_Nuc_S_Not_mRNA = Peak_F_Nuc_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+Peak_F_Cyt_M_Not_mRNA = Peak_F_Cyt_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_Cyt_S_Not_mRNA = Peak_F_Cyt_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+Peak_F_all_M_Not_mRNA = Peak_F_all_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_all_S_Not_mRNA = Peak_F_all_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+PeakDistribution_F_Nuc_M = data.frame(table(Peak_F_Nuc_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_Nuc_S = data.frame(table(Peak_F_Nuc_S_Not_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_F_Cyt_M = data.frame(table(Peak_F_Cyt_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_Cyt_S = data.frame(table(Peak_F_Cyt_S_Not_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_F_all_M = data.frame(table(Peak_F_all_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_F_all_S = data.frame(table(Peak_F_all_S_Not_mRNA$finalized_annotation), row.names = 1)
+
+colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
+colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
+colnames(PeakDistribution_F_Cyt_M) = c('F_M_Cyt')
+colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
+colnames(PeakDistribution_F_all_M) = c('F_M_Nuc+Cyt')
+colnames(PeakDistribution_F_all_S) = c('F_S_Nuc+Cyt')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Nuc_S, 
+                                    PeakDistribution_F_Cyt_M, PeakDistribution_F_Cyt_S, 
+                                    PeakDistribution_F_all_M, PeakDistribution_F_all_S)
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M/sum(PeakDistribution_F_Nuc_M), PeakDistribution_F_Nuc_S/sum(PeakDistribution_F_Nuc_S), 
+                                    PeakDistribution_F_Cyt_M/sum(PeakDistribution_F_Cyt_M), PeakDistribution_F_Cyt_S/sum(PeakDistribution_F_Cyt_S), 
+                                    PeakDistribution_F_all_M/sum(PeakDistribution_F_all_M), PeakDistribution_F_all_S/sum(PeakDistribution_F_all_S))
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+####################################################################################################################
+
+## Exploratory Stacked Bar Plots For CoCLIP Peaks: Specific RNA biotypes ONLY
+####################################################################################################################
+## mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_mRNA = Peak_Co_Input_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_Input_S_mRNA = Peak_Co_Input_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_NLS_M_mRNA = Peak_Co_NLS_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_NLS_S_mRNA = Peak_Co_NLS_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_NES_M_mRNA = Peak_Co_NES_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_NES_S_mRNA = Peak_Co_NES_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_G3BP_M_mRNA = Peak_Co_G3BP_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_G3BP_S_mRNA = Peak_Co_G3BP_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_S = data.frame(table(Peak_Co_Input_S_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0))
+row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0))
+row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0))
+row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(table(Peak_Co_G3BP_S_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0))
+row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## non-mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_Not_mRNA = Peak_Co_Input_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_Input_S_Not_mRNA = Peak_Co_Input_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_NLS_M_Not_mRNA = Peak_Co_NLS_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_NLS_S_Not_mRNA = Peak_Co_NLS_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_NES_M_Not_mRNA = Peak_Co_NES_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_NES_S_Not_mRNA = Peak_Co_NES_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_G3BP_M_Not_mRNA = Peak_Co_G3BP_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_G3BP_S_Not_mRNA = Peak_Co_G3BP_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = rbind(PeakDistribution_Co_NLS_S, c(0))
+row.names(PeakDistribution_Co_NLS_S) = c(row.names(PeakDistribution_Co_NLS_S)[1:10], 'scaRNA')
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_M = rbind(PeakDistribution_Co_Input_M, c(0))
+row.names(PeakDistribution_Co_Input_M) = c(row.names(PeakDistribution_Co_Input_M)[1:10], 'scaRNA')
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_Input_S = data.frame(table(Peak_Co_Input_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_S = rbind(PeakDistribution_Co_Input_S, c(0))
+row.names(PeakDistribution_Co_Input_S) = c(row.names(PeakDistribution_Co_Input_S)[1:10], 'scaRNA')
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0))
+row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:10], 'scaRNA')
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(table(Peak_Co_G3BP_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+####################################################################################################################
+
+## Exploratory Stacked Bar Plots For Fractionation CLIP Tags: Specific RNA biotypes ONLY
+####################################################################################################################
+## mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_F_Nuc_M_mRNA = Peak_F_Nuc_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_Nuc_S_mRNA = Peak_F_Nuc_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_F_Cyt_M_mRNA = Peak_F_Cyt_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_Cyt_S_mRNA = Peak_F_Cyt_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_F_all_M_mRNA = Peak_F_all_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_F_all_S_mRNA = Peak_F_all_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = Peak_F_Nuc_M_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Nuc_M_mRNA[, Nuc_F_M])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = Peak_F_Nuc_S_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Nuc_S_mRNA[, Nuc_F_S])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = Peak_F_Cyt_M_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Cyt_M_mRNA[, Cyto_F_M])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = Peak_F_Cyt_S_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Cyt_S_mRNA[, Cyto_F_S])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_all_M = data.frame(data.frame(annotation = Peak_F_all_M_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_all_M_mRNA[, c(Nuc_F_M, Cyto_F_M)])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_all_S = data.frame(data.frame(annotation = Peak_F_all_S_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_all_S_mRNA[, c(Nuc_F_S, Cyto_F_S)])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
+colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
+colnames(PeakDistribution_F_Cyt_M) = c('F_M_Cyt')
+colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
+colnames(PeakDistribution_F_all_M) = c('F_M_Nuc+Cyt')
+colnames(PeakDistribution_F_all_S) = c('F_S_Nuc+Cyt')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Nuc_S, 
+                                    PeakDistribution_F_Cyt_M, PeakDistribution_F_Cyt_S, 
+                                    PeakDistribution_F_all_M, PeakDistribution_F_all_S)
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M/sum(PeakDistribution_F_Nuc_M), PeakDistribution_F_Nuc_S/sum(PeakDistribution_F_Nuc_S), 
+                                    PeakDistribution_F_Cyt_M/sum(PeakDistribution_F_Cyt_M), PeakDistribution_F_Cyt_S/sum(PeakDistribution_F_Cyt_S), 
+                                    PeakDistribution_F_all_M/sum(PeakDistribution_F_all_M), PeakDistribution_F_all_S/sum(PeakDistribution_F_all_S))
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## non-mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_F_Nuc_M_Not_mRNA = Peak_F_Nuc_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_Nuc_S_Not_mRNA = Peak_F_Nuc_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+Peak_F_Cyt_M_Not_mRNA = Peak_F_Cyt_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_Cyt_S_Not_mRNA = Peak_F_Cyt_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+Peak_F_all_M_Not_mRNA = Peak_F_all_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+Peak_F_all_S_Not_mRNA = Peak_F_all_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != "downstream 10K")
+
+PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = Peak_F_Nuc_M_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Nuc_M_Not_mRNA[, Nuc_F_M])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = Peak_F_Nuc_S_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Nuc_S_Not_mRNA[, Nuc_F_S])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = Peak_F_Cyt_M_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Cyt_M_Not_mRNA[, Cyto_F_M])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = Peak_F_Cyt_S_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_Cyt_S_Not_mRNA[, Cyto_F_S])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_all_M = data.frame(data.frame(annotation = Peak_F_all_M_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_all_M_Not_mRNA[, c(Nuc_F_M, Cyto_F_M)])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_F_all_S = data.frame(data.frame(annotation = Peak_F_all_S_Not_mRNA$finalized_annotation, 
+                                                 tagSum = rowSums(Peak_F_all_S_Not_mRNA[, c(Nuc_F_S, Cyto_F_S)])) 
+                                      %>% group_by(annotation) 
+                                      %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
+colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
+colnames(PeakDistribution_F_Cyt_M) = c('F_M_Cyt')
+colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
+colnames(PeakDistribution_F_all_M) = c('F_M_Nuc+Cyt')
+colnames(PeakDistribution_F_all_S) = c('F_S_Nuc+Cyt')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Nuc_S, 
+                                    PeakDistribution_F_Cyt_M, PeakDistribution_F_Cyt_S, 
+                                    PeakDistribution_F_all_M, PeakDistribution_F_all_S)
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_F_combined = cbind(PeakDistribution_F_Nuc_M/sum(PeakDistribution_F_Nuc_M), PeakDistribution_F_Nuc_S/sum(PeakDistribution_F_Nuc_S), 
+                                    PeakDistribution_F_Cyt_M/sum(PeakDistribution_F_Cyt_M), PeakDistribution_F_Cyt_S/sum(PeakDistribution_F_Cyt_S), 
+                                    PeakDistribution_F_all_M/sum(PeakDistribution_F_all_M), PeakDistribution_F_all_S/sum(PeakDistribution_F_all_S))
+PeakDistribution_F_combined$Annotation = rownames(PeakDistribution_F_combined)
+
+PeakDistribution_F_combined = PeakDistribution_F_combined %>%
+  gather(key = "Source", value = "Freq", 'F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_F_combined$Source = factor(PeakDistribution_F_combined$Source, levels = c('F_M_Nuc', 'F_S_Nuc', 'F_M_Cyt', 'F_S_Cyt', 'F_M_Nuc+Cyt', 'F_S_Nuc+Cyt'))
+PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+####################################################################################################################
+
+## Exploratory Stacked Bar Plots For CoCLIP Tags: Specific RNA biotypes ONLY
+####################################################################################################################
+## mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_mRNA = Peak_Co_Input_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_Input_S_mRNA = Peak_Co_Input_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_NLS_M_mRNA = Peak_Co_NLS_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_NLS_S_mRNA = Peak_Co_NLS_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_NES_M_mRNA = Peak_Co_NES_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_NES_S_mRNA = Peak_Co_NES_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+Peak_Co_G3BP_M_mRNA = Peak_Co_G3BP_M %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+Peak_Co_G3BP_S_mRNA = Peak_Co_G3BP_S %>% filter(grouped_annotation == "3'UTR" | grouped_annotation == "CDS" | grouped_annotation == "5'UTR" | grouped_annotation == "intron" | grouped_annotation == 'downstream 10K')
+
+PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = Peak_Co_Input_M_mRNA$finalized_annotation, 
+                                                    tagSum = rowSums(Peak_Co_Input_M_mRNA[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) 
+                                         %>% group_by(annotation) 
+                                         %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = Peak_Co_Input_S_mRNA$finalized_annotation, 
+                                                    tagSum = rowSums(Peak_Co_Input_S_mRNA[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) 
+                                         %>% group_by(annotation) 
+                                         %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = Peak_Co_NLS_M_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NLS_M_mRNA[, c(NLS_E_M)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = Peak_Co_NLS_S_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NLS_S_mRNA[, c(NLS_E_S)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = Peak_Co_NES_M_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NES_M_mRNA[, c(NES_E_M)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0))
+row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = Peak_Co_NES_S_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NES_S_mRNA[, c(NES_E_S)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0))
+row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = Peak_Co_G3BP_M_mRNA$finalized_annotation, 
+                                                   tagSum = rowSums(Peak_Co_G3BP_M_mRNA[, c(G3BP_E_M)])) 
+                                        %>% group_by(annotation) 
+                                        %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0))
+row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = Peak_Co_G3BP_S_mRNA$finalized_annotation, 
+                                                   tagSum = rowSums(Peak_Co_G3BP_S_mRNA[, c(G3BP_E_S)])) 
+                                        %>% group_by(annotation) 
+                                        %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0))
+row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:6], 'ncRNA_Retained_intron')
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", "ncRNA_Retained_intron", 'downstream 10K'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## non-mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_Not_mRNA = Peak_Co_Input_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_Input_S_Not_mRNA = Peak_Co_Input_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_NLS_M_Not_mRNA = Peak_Co_NLS_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_NLS_S_Not_mRNA = Peak_Co_NLS_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_NES_M_Not_mRNA = Peak_Co_NES_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_NES_S_Not_mRNA = Peak_Co_NES_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+Peak_Co_G3BP_M_Not_mRNA = Peak_Co_G3BP_M %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+Peak_Co_G3BP_S_Not_mRNA = Peak_Co_G3BP_S %>% filter(grouped_annotation != "3'UTR" & grouped_annotation != "CDS" & grouped_annotation != "5'UTR" & grouped_annotation != "intron" & grouped_annotation != 'downstream 10K')
+
+PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = Peak_Co_NLS_M_Not_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NLS_M_Not_mRNA[, c(NLS_E_M)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+
+PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = Peak_Co_NLS_S_Not_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NLS_S_Not_mRNA[, c(NLS_E_S)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_NLS_S = rbind(PeakDistribution_Co_NLS_S, c(0))
+row.names(PeakDistribution_Co_NLS_S) = c(row.names(PeakDistribution_Co_NLS_S)[1:10], 'scaRNA')
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
+
+
+PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = Peak_Co_Input_M_Not_mRNA$finalized_annotation, 
+                                                    tagSum = rowSums(Peak_Co_Input_M_Not_mRNA[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) 
+                                         %>% group_by(annotation) 
+                                         %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_Input_M = rbind(PeakDistribution_Co_Input_M, c(0))
+row.names(PeakDistribution_Co_Input_M) = c(row.names(PeakDistribution_Co_Input_M)[1:10], 'scaRNA')
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
+
+PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = Peak_Co_Input_S_Not_mRNA$finalized_annotation, 
+                                                    tagSum = rowSums(Peak_Co_Input_S_Not_mRNA[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) 
+                                         %>% group_by(annotation) 
+                                         %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_Input_S = rbind(PeakDistribution_Co_Input_S, c(0))
+row.names(PeakDistribution_Co_Input_S) = c(row.names(PeakDistribution_Co_Input_S)[1:10], 'scaRNA')
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
+
+PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = Peak_Co_NES_M_Not_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NES_M_Not_mRNA[, c(NES_E_M)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = Peak_Co_NES_S_Not_mRNA$finalized_annotation, 
+                                                  tagSum = rowSums(Peak_Co_NES_S_Not_mRNA[, c(NES_E_S)])) 
+                                       %>% group_by(annotation) 
+                                       %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0))
+row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:10], 'scaRNA')
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = Peak_Co_G3BP_M_Not_mRNA$finalized_annotation, 
+                                                   tagSum = rowSums(Peak_Co_G3BP_M_Not_mRNA[, c(G3BP_E_M)])) 
+                                        %>% group_by(annotation) 
+                                        %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = Peak_Co_G3BP_S_Not_mRNA$finalized_annotation, 
+                                                   tagSum = rowSums(Peak_Co_G3BP_S_Not_mRNA[, c(G3BP_E_S)])) 
+                                        %>% group_by(annotation) 
+                                        %>% summarise(tags = sum(tagSum)), row.names = 1)
+PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:8], 'miRNA', 'miscRNA', 'scaRNA')
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'tags', drop = FALSE]
+
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Raw Peak Counts Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  ggtitle('All Peak Fractions Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3")
+####################################################################################################################
+
+## Start Building Enrichment Table:
+####################################################################################################################
+peakRowSum = peakMatrix[, c(inert_columns, rowSum_columns)]
+
+peakRowSum = peakRowSum %>% mutate(Nuc_F_M = rowSums(peakMatrix[, Nuc_F_M])/length(Nuc_F_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(Nuc_F_S = rowSums(peakMatrix[, Nuc_F_S])/length(Nuc_F_S) * 1e6)
+peakRowSum = peakRowSum %>% mutate(Cyto_F_M = rowSums(peakMatrix[, Cyto_F_M])/length(Cyto_F_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(Cyto_F_S = rowSums(peakMatrix[, Cyto_F_S])/length(Cyto_F_S) * 1e6)
+
+peakRowSum = peakRowSum %>% mutate(NLS_I_M = rowSums(peakMatrix[, NLS_I_M])/length(NLS_I_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(NES_I_M = rowSums(peakMatrix[, NES_I_M])/length(NES_I_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(G3BP_I_M = rowSums(peakMatrix[, G3BP_I_M])/length(G3BP_I_M) * 1e6)
+temp = rowSums(peakMatrix[, c(NLS_I_M, NES_I_M, G3BP_I_M)])/length(c(NLS_I_M, NES_I_M, G3BP_I_M)) * 1e6
+peakRowSum = peakRowSum %>% mutate(I_M = temp)
+
+peakRowSum = peakRowSum %>% mutate(NLS_I_S = rowSums(peakMatrix[, NLS_I_S])/length(NLS_I_S) * 1e6)
+peakRowSum = peakRowSum %>% mutate(NES_I_S = rowSums(peakMatrix[, NES_I_S])/length(NES_I_S) * 1e6)
+peakRowSum = peakRowSum %>% mutate(G3BP_I_S = rowSums(peakMatrix[, G3BP_I_S])/length(G3BP_I_S) * 1e6)
+temp = rowSums(peakMatrix[, c(NLS_I_S, NES_I_S, G3BP_I_S)])/length(c(NLS_I_S, NES_I_S, G3BP_I_S)) * 1e6
+peakRowSum = peakRowSum %>% mutate(I_S = temp)
+
+peakRowSum = peakRowSum %>% mutate(NLS_E_M = rowSums(peakMatrix[, NLS_E_M])/length(NLS_E_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(NLS_E_S = rowSums(peakMatrix[, NLS_E_S])/length(NLS_E_S) * 1e6)
+peakRowSum = peakRowSum %>% mutate(NES_E_M = rowSums(peakMatrix[, NES_E_M])/length(NES_E_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(NES_E_S = rowSums(peakMatrix[, NES_E_S])/length(NES_E_S) * 1e6)
+peakRowSum = peakRowSum %>% mutate(G3BP_E_M = rowSums(peakMatrix[, G3BP_E_M])/length(G3BP_E_M) * 1e6)
+peakRowSum = peakRowSum %>% mutate(G3BP_E_S = rowSums(peakMatrix[, G3BP_E_S])/length(G3BP_E_S) * 1e6)
+
+peakRowSum = cbind(peakRowSum, peakMatrix[, BC_columns])
+
+# write.table(peakRowSum, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_rowSum.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
+
+peakEnrichment = peakMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
+
+peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$I_M)
+peakEnrichment = peakEnrichment %>% mutate(NES_EvI_M = peakRowSum$NES_E_M / peakRowSum$I_M)
+peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_M = peakRowSum$G3BP_E_M / peakRowSum$I_M)
+peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_S = peakRowSum$NLS_E_S / peakRowSum$I_S)
+peakEnrichment = peakEnrichment %>% mutate(NES_EvI_S = peakRowSum$NES_E_S / peakRowSum$I_S)
+peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_S = peakRowSum$G3BP_E_S / peakRowSum$I_S)
+
+peakEnrichment = peakEnrichment %>% mutate(Nuc_EvI_M = peakRowSum$Nuc_F_M / peakRowSum$I_M)
+peakEnrichment = peakEnrichment %>% mutate(Cyto_EvI_M = peakRowSum$Cyto_F_M / peakRowSum$I_M)
+peakEnrichment = peakEnrichment %>% mutate(Nuc_EvI_S = peakRowSum$Nuc_F_S / peakRowSum$I_S)
+peakEnrichment = peakEnrichment %>% mutate(Cyto_EvI_S = peakRowSum$Cyto_F_S / peakRowSum$I_S)
+
+peakEnrichment = peakEnrichment %>% mutate(E_NvC_M = peakRowSum$NLS_E_M / peakRowSum$NES_E_M)
+peakEnrichment = peakEnrichment %>% mutate(F_NvC_M = peakRowSum$Nuc_F_M / peakRowSum$Cyto_F_M)
+peakEnrichment = peakEnrichment %>% mutate(E_NvC_S = peakRowSum$NLS_E_S / peakRowSum$NES_E_S)
+peakEnrichment = peakEnrichment %>% mutate(F_NvC_S = peakRowSum$Nuc_F_S / peakRowSum$Cyto_F_S)
+
+write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_Enrichment.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
 ####################################################################################################################
 
 ## snoRNA Comparison
 ####################################################################################################################
-snoRNA_Enrichment = peakEnrichment %>% filter(finalized_annotation == 'snoRNA')
+snoRNA_Enrichment = peakRowSum %>% filter(finalized_annotation == 'snoRNA')
 snoRNA_Enrichment = snoRNA_Enrichment %>% filter(Nuc_F_M_BC >= 1, 
                                                  Cyto_F_M_BC >= 1, 
                                                  NLS_E_M_BC >= 1, 
@@ -734,13 +1517,10 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Inpu
                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NLS_EvI_M = NLS_Peaks_Filtered$NLS_E_M / NLS_Peaks_Filtered$NLS_I_M
-NLS_EVI_S = NLS_Peaks_Filtered$NLS_E_S / NLS_Peaks_Filtered$NLS_I_S
-data = data.frame(log_NLS_EvI_M = log2(NLS_EvI_M), log_NLS_EVI_S = log2(NLS_EVI_S))
+data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
 data$annotation = factor(NLS_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
-# data$annotation2 = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NLS_EvI_M, y = log_NLS_EVI_S, color = annotation)) +
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -760,12 +1540,10 @@ NES_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Inpu
                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NES_EvI_M = NES_Peaks_Filtered$NES_E_M / NES_Peaks_Filtered$NES_I_M
-NES_EvI_S = NES_Peaks_Filtered$NES_E_S / NES_Peaks_Filtered$NES_I_S
-data = data.frame(log_NES_EvI_M = log2(NES_EvI_M), log_NES_EvI_S = log2(NES_EvI_S))
+data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
 data$annotation = factor(NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NES_EvI_M, y = log_NES_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -786,12 +1564,10 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_In
                                                   I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_E_M / G3BP_Peaks_Filtered$G3BP_I_M
-G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_E_S / G3BP_Peaks_Filtered$G3BP_I_S
-data = data.frame(log_G3BP_EvI_M = log2(G3BP_EvI_M), log_G3BP_EvI_S = log2(G3BP_EvI_S))
+data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
 data$annotation = factor(G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_G3BP_EvI_M, y = log_G3BP_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -802,7 +1578,6 @@ ggplot(data, aes(x = log_G3BP_EvI_M, y = log_G3BP_EvI_S, color = annotation)) +
   theme(axis.text = element_text(size=14), 
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
-
 
 ####################################################################################################################
 
@@ -816,13 +1591,10 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_
                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_E_M / NLS_NES_Peaks_Filtered$NLS_I_M
-NES_EvI_M = NLS_NES_Peaks_Filtered$NES_E_M / NLS_NES_Peaks_Filtered$NES_I_M
-
-data = data.frame(log_NLS_EvI_M = log2(NLS_EvI_M), log_NES_EvI_M = log2(NES_EvI_M))
+data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
 data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NLS_EvI_M, y = log_NES_EvI_M, color = annotation)) +
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -842,13 +1614,10 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold
                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_E_M / NLS_G3BP_Peaks_Filtered$NLS_I_M
-G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_E_M / NLS_G3BP_Peaks_Filtered$G3BP_I_M
-
-data = data.frame(log_NLS_EvI_M = log2(NLS_EvI_M), log_G3BP_EvI_M = log2(G3BP_EvI_M))
+data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
 data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NLS_EvI_M, y = log_G3BP_EvI_M, color = annotation)) +
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -868,13 +1637,10 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold
                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_E_M / NES_G3BP_Peaks_Filtered$NES_I_M
-G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_E_M / NES_G3BP_Peaks_Filtered$G3BP_I_M
-
-data = data.frame(log_NES_EvI_M = log2(NES_EvI_M), log_G3BP_EvI_M = log2(G3BP_EvI_M))
+data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
 data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NES_EvI_M, y = log_G3BP_EvI_M, color = annotation)) +
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -895,13 +1661,10 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_
                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_E_S / NLS_NES_Peaks_Filtered$NLS_I_S
-NES_EvI_S = NLS_NES_Peaks_Filtered$NES_E_S / NLS_NES_Peaks_Filtered$NES_I_S
-
-data = data.frame(log_NLS_EvI_S = log2(NLS_EvI_S), log_NES_EvI_S = log2(NES_EvI_S))
+data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
 data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NLS_EvI_S, y = log_NES_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -921,13 +1684,10 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold
                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_E_S / NLS_G3BP_Peaks_Filtered$NLS_I_S
-G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_E_S / NLS_G3BP_Peaks_Filtered$G3BP_I_S
-
-data = data.frame(log_NLS_EvI_S = log2(NLS_EvI_S), log_G3BP_EvI_S = log2(G3BP_EvI_S))
+data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
 data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NLS_EvI_S, y = log_G3BP_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
   # xlim(c(-6, 6)) +
@@ -947,13 +1707,10 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_S_BC >= BC_Threshold
                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_E_S / NES_G3BP_Peaks_Filtered$NES_I_S
-G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_E_S / NES_G3BP_Peaks_Filtered$G3BP_I_S
-
-data = data.frame(log_NES_EvI_S = log2(NES_EvI_S), log_G3BP_EvI_S = log2(G3BP_EvI_S))
+data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
 data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_NES_EvI_S, y = log_G3BP_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
   xlim(c(-6, 6)) +
@@ -977,13 +1734,10 @@ Mock_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_M_BC >= BC_Threshold_Fr
                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                   I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
-Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_F_M / Mock_Peaks_Filtered$NLS_I_M
-Cyt_EvI_M = Mock_Peaks_Filtered$Cyto_F_M /Mock_Peaks_Filtered$NES_I_M
-
-data = data.frame(log_Nuc_EvI_M = log2(Nuc_EvI_M), log_Cyt_EvI_M = log2(Cyt_EvI_M))
+data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
 data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_Nuc_EvI_M, y = log_Cyt_EvI_M, color = annotation)) +
+ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
   xlim(c(-8, 8)) +
@@ -1003,13 +1757,10 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_S_BC >= BC_Threshold_
                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
-Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_F_S / Stress_Peaks_Filtered$NLS_I_S
-Cyt_EvI_S = Stress_Peaks_Filtered$Cyto_F_S /Stress_Peaks_Filtered$NES_I_S
-
-data = data.frame(log_Nuc_EvI_S = log2(Nuc_EvI_S), log_Cyt_EvI_S = log2(Cyt_EvI_S))
+data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
 data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_Nuc_EvI_S, y = log_Cyt_EvI_S, color = annotation)) +
+ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
   xlim(c(-8, 8)) +
@@ -1028,19 +1779,16 @@ ggplot(data, aes(x = log_Nuc_EvI_S, y = log_Cyt_EvI_S, color = annotation)) +
 # Mock Comparison
 Mock_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
-                                                 (Nuc_F_M >= BC_Threshold_Fraction & 
-                                                  Cyto_F_M >= BC_Threshold_Fraction)) &
+                                                 (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                  Cyto_F_M_BC >= BC_Threshold_Fraction)) &
                                                   F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-E_NvC_M = Mock_Peaks_Filtered$NLS_E_M / Mock_Peaks_Filtered$NES_E_M
-F_NvC_M = Mock_Peaks_Filtered$Nuc_F_M / Mock_Peaks_Filtered$Cyto_F_M
-
-data = data.frame(log_E_NvC_M = log2(E_NvC_M), log_F_NvC_M = log2(F_NvC_M))
+data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
 data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_E_NvC_M, y = log_F_NvC_M, color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.1) +
+ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
   xlim(c(-6, 6)) +
   ylim(c(-6, 6)) +
@@ -1055,19 +1803,16 @@ ggplot(data, aes(x = log_E_NvC_M, y = log_F_NvC_M, color = annotation)) +
 # Stress Comparison
 Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
                                                     NES_E_S_BC >= BC_Threshold_CoCLIP) | 
-                                                   (Nuc_F_S >= BC_Threshold_Fraction & 
-                                                    Cyto_F_S >= BC_Threshold_Fraction)) &
+                                                   (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                    Cyto_F_S_BC >= BC_Threshold_Fraction)) &
                                                     F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
-E_NvC_S = Stress_Peaks_Filtered$NLS_E_S / Stress_Peaks_Filtered$NES_E_S
-F_NvC_S = Stress_Peaks_Filtered$Nuc_F_S / Stress_Peaks_Filtered$Cyto_F_S
-
-data = data.frame(log_E_NvC_S= log2(E_NvC_S), log_F_NvC_S = log2(F_NvC_S))
+data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
 data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
-ggplot(data, aes(x = log_E_NvC_S, y = log_F_NvC_S, color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.2) +
+ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
   xlim(c(-6, 6)) +
   ylim(c(-6, 6)) +
@@ -1083,11 +1828,11 @@ ggplot(data, aes(x = log_E_NvC_S, y = log_F_NvC_S, color = annotation)) +
 ## Input and CoCLIP comparison
 ####################################################################################################################
 # Nuclear Mock:
-NLS_Mock_Peaks_Filtered = peakEnrichment %>% filter(NLS_I_M_BC >= BC_Threshold_Input & 
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter(NLS_I_M_BC >= BC_Threshold_Input & 
                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP  &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(NLS_I_M), color = grouped_annotation)) +
+ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NLS Enrich', y = 'Input') + 
   xlim(c(0, 3)) +
@@ -1100,11 +1845,11 @@ ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(NLS_I_M), colo
         legend.text = element_text(size=14))
 
 # Cytoplasm Mock:
-NES_Mock_Peaks_Filtered = peakEnrichment %>% filter(NES_I_M_BC >= BC_Threshold_Input & 
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter(NES_I_M_BC >= BC_Threshold_Input & 
                                                       NES_E_M_BC >= BC_Threshold_CoCLIP &
-                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                      I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(NES_I_M), color = grouped_annotation)) +
+ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NES Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1117,11 +1862,11 @@ ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(NES_I_M), colo
         legend.text = element_text(size=14))
 
 # Stress Granule Mock:
-G3BP_Mock_Peaks_Filtered = peakEnrichment %>% filter(G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                        G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
-                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                       I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(G3BP_I_M), color = grouped_annotation)) +
+ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'G3BP Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1134,11 +1879,11 @@ ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(G3BP_I_M), c
         legend.text = element_text(size=14))
 
 # Nuclear Stress:
-NLS_Stress_Peaks_Filtered = peakEnrichment %>% filter(NLS_I_S_BC >= BC_Threshold_Input & 
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter(NLS_I_S_BC >= BC_Threshold_Input & 
                                                         NLS_E_S_BC >= BC_Threshold_CoCLIP &
-                                                        I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                        I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(NLS_I_S), color = grouped_annotation)) +
+ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NLS Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1151,11 +1896,11 @@ ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(NLS_I_S), co
         legend.text = element_text(size=14))
 
 # Cytoplasm Stress:
-NES_Stress_Peaks_Filtered = peakEnrichment %>% filter(NES_I_S_BC >= BC_Threshold_Input & 
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter(NES_I_S_BC >= BC_Threshold_Input & 
                                                         NES_E_S_BC >= BC_Threshold_CoCLIP &
-                                                        I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                        I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(NES_I_S), color = grouped_annotation)) +
+ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NES Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1168,11 +1913,11 @@ ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(NES_I_S), co
         legend.text = element_text(size=14))
 
 # Stress Granule Stress:
-G3BP_Stress_Peaks_Filtered = peakEnrichment %>% filter(G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                          G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
-                                                         I_rowSum >= median(peakEnrichment$I_rowSum)*2)
+                                                         I_rowSum >= median(peakRowSum$I_rowSum)*2)
 
-ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(G3BP_I_S), color = grouped_annotation)) +
+ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'G3BP Enrich', y = 'Input') +
   xlim(c(0, 3)) +
