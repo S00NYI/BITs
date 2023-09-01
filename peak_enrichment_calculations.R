@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Enrichment Calculation
 ## Written by Soon Yi
-## Last Edit: 2023-08-30
+## Last Edit: 2023-08-31
 
 library(stringr)
 library(readr)
@@ -417,11 +417,6 @@ PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M$grouped_annotation), 
 PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S$grouped_annotation), row.names = 1)
 
 PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M$grouped_annotation), row.names = 1)
-# Use this when we are filtering to peaks with only a single annotation:
-# PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0))
-# row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:7], 'CDS', 'TE')
-# PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
-
 PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S$grouped_annotation), row.names = 1)
 
 PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M$grouped_annotation), row.names = 1)
@@ -535,7 +530,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -555,7 +550,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -593,11 +588,6 @@ PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = Peak_Co_NES_S$gro
                                                   tagSum = rowSums(Peak_Co_NES_S[, c(NES_E_S)])) 
                                        %>% group_by(annotation) 
                                        %>% summarise(tags = sum(tagSum)), row.names = 1)
-
-# Use this when we are filtering to peaks with only a single annotation:
-# PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0))
-# row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:7], 'CDS', 'TE')
-# PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
 
 PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = Peak_Co_G3BP_M$grouped_annotation, 
                                                   tagSum = rowSums(Peak_Co_G3BP_M[, c(G3BP_E_M)])) 
@@ -656,7 +646,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Tag Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
@@ -1059,7 +1049,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1079,7 +1069,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1147,7 +1137,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1167,7 +1157,7 @@ PeakDistribution_F_combined$Annotation = factor(PeakDistribution_F_combined$Anno
 ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Nuclear Mock', 'Nuclear Stress', 'Cyto Mock', 'Cyto Stress', 'Both Fractions Mock','Both Fractions Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
@@ -1266,7 +1256,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1287,7 +1277,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1394,7 +1384,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Raw Peak Counts Distributions') +
+  ggtitle('All Normalized Tag Counts Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 
@@ -1415,7 +1405,7 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) + 
   geom_bar(position='stack', stat='identity') +
   scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
-  ggtitle('All Peak Fractions Distributions') +
+  ggtitle('All Normalized Tag Fractions Distributions') +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
@@ -1471,7 +1461,7 @@ peakEnrichment = peakEnrichment %>% mutate(F_NvC_M = peakRowSum$Nuc_F_M / peakRo
 peakEnrichment = peakEnrichment %>% mutate(E_NvC_S = peakRowSum$NLS_E_S / peakRowSum$NES_E_S)
 peakEnrichment = peakEnrichment %>% mutate(F_NvC_S = peakRowSum$Nuc_F_S / peakRowSum$Cyto_F_S)
 
-write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_Enrichment.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
+# write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_Enrichment.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
 ####################################################################################################################
 
 ## snoRNA Comparison
@@ -1518,13 +1508,69 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Inpu
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
-data$annotation = factor(NLS_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Nuclear HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Nuclear - mRNA specific:
+NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                  grouped_annotation == "3'UTR" | 
+                                                  grouped_annotation == "CDS" | 
+                                                  grouped_annotation == "intron" |
+                                                  grouped_annotation == "downstream 10K") & 
+                                                 ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                   NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                  (NLS_I_S_BC >= BC_Threshold_Input & 
+                                                     NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
+data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Nuclear HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Nuclear - non-mRNA specific:
+NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                  grouped_annotation != "3'UTR" & 
+                                                  grouped_annotation != "CDS" & 
+                                                  grouped_annotation != "intron" & 
+                                                  grouped_annotation != "downstream 10K") & 
+                                                 ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                     NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                    (NLS_I_S_BC >= BC_Threshold_Input & 
+                                                       NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
+data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Nuclear HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1541,13 +1587,13 @@ NES_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Inpu
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1555,6 +1601,61 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) 
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
 
+## Cytoplasm - mRNA specific:
+NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                  grouped_annotation == "3'UTR" | 
+                                                  grouped_annotation == "CDS" | 
+                                                  grouped_annotation == "intron" |
+                                                  grouped_annotation == "downstream 10K") &
+                                                 ((NES_I_M_BC >= BC_Threshold_Input & 
+                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                  (NES_I_S_BC >= BC_Threshold_Input & 
+                                                     NES_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
+data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Cytoplasm - non-mRNA specific:
+NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                  grouped_annotation != "3'UTR" & 
+                                                  grouped_annotation != "CDS" & 
+                                                  grouped_annotation != "intron" & 
+                                                  grouped_annotation != "downstream 10K") &
+                                                 ((NES_I_M_BC >= BC_Threshold_Input & 
+                                                     NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                    (NES_I_S_BC >= BC_Threshold_Input & 
+                                                       NES_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                 I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                 E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
+data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Cytoplasm HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
 
 ## Stress Granule:
 G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
@@ -1565,13 +1666,69 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_In
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress Granule HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Stress Granule - mRNA specific:
+G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                   grouped_annotation == "3'UTR" | 
+                                                   grouped_annotation == "CDS" | 
+                                                   grouped_annotation == "intron" |
+                                                   grouped_annotation == "downstream 10K") &
+                                                  ((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
+                                                   (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                      G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress Granule HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Stress Granule - non-mRNA specific:
+G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                   grouped_annotation != "3'UTR" & 
+                                                   grouped_annotation != "CDS" & 
+                                                   grouped_annotation != "intron" & 
+                                                   grouped_annotation != "downstream 10K") &
+                                                  ((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
+                                                   (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                      G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Mock Enriched/Input)', y = 'log2(Stress Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Stress Granule HuR Peaks: Mock vs Stress of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1592,13 +1749,69 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
-data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock NLS vs NES - mRNA specific:
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                      grouped_annotation == "3'UTR" | 
+                                                      grouped_annotation == "CDS" | 
+                                                      grouped_annotation == "intron" |
+                                                      grouped_annotation == "downstream 10K") &
+                                                     ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                      (NES_I_M_BC >= BC_Threshold_Input & 
+                                                         NES_E_M_BC >= BC_Threshold_CoCLIP)) &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock NLS vs NES - non-mRNA specific:
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                      grouped_annotation != "3'UTR" & 
+                                                      grouped_annotation != "CDS" & 
+                                                      grouped_annotation != "intron" & 
+                                                      grouped_annotation != "downstream 10K") &
+                                                     ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                         NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                        (NES_I_M_BC >= BC_Threshold_Input & 
+                                                           NES_E_M_BC >= BC_Threshold_CoCLIP)) &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1615,19 +1828,76 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Mock HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
   theme(axis.text = element_text(size=14), 
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
+
+# Mock NLS vs G3BP - mRNA specific:
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                       grouped_annotation == "3'UTR" | 
+                                                       grouped_annotation == "CDS" | 
+                                                       grouped_annotation == "intron" |
+                                                       grouped_annotation == "downstream 10K") &
+                                                      ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                        NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                          G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock NLS vs G3BP - non-mRNA specific:
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                       grouped_annotation != "3'UTR" & 
+                                                       grouped_annotation != "CDS" & 
+                                                       grouped_annotation != "intron" & 
+                                                       grouped_annotation != "downstream 10K") &
+                                                      ((NLS_I_M_BC >= BC_Threshold_Input & 
+                                                          NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                         (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                            G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
 
 # Mock NES vs G3BP:
 NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Input & 
@@ -1638,13 +1908,13 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Mock HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1652,6 +1922,61 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
 
+# Mock NES vs G3BP - mRNA specific:
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                       grouped_annotation == "3'UTR" | 
+                                                       grouped_annotation == "CDS" | 
+                                                       grouped_annotation == "intron" |
+                                                       grouped_annotation == "downstream 10K") &
+                                                      ((NES_I_M_BC >= BC_Threshold_Input & 
+                                                        NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                          G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock NES vs G3BP - non-mRNA specific:
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                       grouped_annotation != "3'UTR" & 
+                                                       grouped_annotation != "CDS" & 
+                                                       grouped_annotation != "intron" & 
+                                                       grouped_annotation != "downstream 10K") &
+                                                      ((NES_I_M_BC >= BC_Threshold_Input & 
+                                                          NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                         (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                            G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
 
 # Stress NLS vs NES:
 NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_Input & 
@@ -1662,13 +1987,69 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NLS vs NES - mRNA specific:
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                      grouped_annotation == "3'UTR" | 
+                                                      grouped_annotation == "CDS" | 
+                                                      grouped_annotation == "intron" |
+                                                      grouped_annotation == "downstream 10K") &
+                                                     ((NLS_I_S_BC >= BC_Threshold_Input & 
+                                                       NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                      (NES_I_S_BC >= BC_Threshold_Input & 
+                                                         NES_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NLS vs NES - non-mRNA specific:
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                      grouped_annotation != "3'UTR" & 
+                                                      grouped_annotation != "CDS" & 
+                                                      grouped_annotation != "intron" & 
+                                                      grouped_annotation != "downstream 10K") &
+                                                     ((NLS_I_S_BC >= BC_Threshold_Input & 
+                                                         NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                        (NES_I_S_BC >= BC_Threshold_Input & 
+                                                           NES_E_S_BC >= BC_Threshold_CoCLIP)) &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1685,13 +2066,69 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
-  # xlim(c(-6, 6)) +
-  # ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NLS vs G3BP - mRNA specific:
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                       grouped_annotation == "3'UTR" | 
+                                                       grouped_annotation == "CDS" | 
+                                                       grouped_annotation == "intron" |
+                                                       grouped_annotation == "downstream 10K") &
+                                                      ((NLS_I_S_BC >= BC_Threshold_Input & 
+                                                        NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                          G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NLS vs G3BP - non-mRNA specific:
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                       grouped_annotation != "3'UTR" & 
+                                                       grouped_annotation != "CDS" & 
+                                                       grouped_annotation != "intron" & 
+                                                       grouped_annotation != "downstream 10K") &
+                                                      ((NLS_I_S_BC >= BC_Threshold_Input & 
+                                                          NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                         (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                            G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Stress HuR Peaks: Nuclear vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1708,13 +2145,69 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_S_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
-  xlim(c(-6, 6)) +
-  ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NES vs G3BP - mRNA specific:
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                       grouped_annotation == "3'UTR" | 
+                                                       grouped_annotation == "CDS" | 
+                                                       grouped_annotation == "intron" |
+                                                       grouped_annotation == "downstream 10K") &
+                                                      ((NES_I_S_BC >= BC_Threshold_Input & 
+                                                        NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                          G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress NES vs G3BP - non-mRNA specific:
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                       grouped_annotation != "3'UTR" & 
+                                                       grouped_annotation != "CDS" & 
+                                                       grouped_annotation != "intron" & 
+                                                       grouped_annotation != "downstream 10K") &
+                                                      ((NES_I_S_BC >= BC_Threshold_Input & 
+                                                          NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                         (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                            G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
+                                                      I_rowSum >= median(peakEnrichment$I_rowSum)*2 &
+                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Stress HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1735,7 +2228,63 @@ Mock_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_M_BC >= BC_Threshold_Fr
                                                   I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
 data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
-data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock Nuclear vs Cytoplasm - mRNA specific:
+Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                   grouped_annotation == "3'UTR" | 
+                                                   grouped_annotation == "CDS" | 
+                                                   grouped_annotation == "intron" |
+                                                   grouped_annotation == "downstream 10K") &
+                                                  ((Cyto_F_M_BC >= BC_Threshold_Fraction & 
+                                                    NES_I_M_BC >= BC_Threshold_Input) | 
+                                                   (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                      NLS_I_M_BC >= BC_Threshold_Input)) &
+                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock Nuclear vs Cytoplasm - non-mRNA specific:
+Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                   grouped_annotation != "3'UTR" & 
+                                                   grouped_annotation != "CDS" & 
+                                                   grouped_annotation != "intron" & 
+                                                   grouped_annotation != "downstream 10K") &
+                                                  ((Cyto_F_M_BC >= BC_Threshold_Fraction & 
+                                                      NES_I_M_BC >= BC_Threshold_Input) | 
+                                                     (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                        NLS_I_M_BC >= BC_Threshold_Input)) &
+                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -1758,7 +2307,63 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_S_BC >= BC_Threshold_
                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
 
 data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
-data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K")))
+
+ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Nuclear vs Cytoplasm - mRNA specific:
+Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                     grouped_annotation == "3'UTR" | 
+                                                     grouped_annotation == "CDS" | 
+                                                     grouped_annotation == "intron" |
+                                                     grouped_annotation == "downstream 10K") &
+                                                    ((Cyto_F_S_BC >= BC_Threshold_Fraction & 
+                                                      NES_I_S_BC >= BC_Threshold_Input) | 
+                                                     (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                        NLS_I_S_BC >= BC_Threshold_Input)) &
+                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Fraction/Input (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Nuclear vs Cytoplasm - non-mRNA specific:
+Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                     grouped_annotation != "3'UTR" & 
+                                                     grouped_annotation != "CDS" & 
+                                                     grouped_annotation != "intron" & 
+                                                     grouped_annotation != "downstream 10K") &
+                                                    ((Cyto_F_S_BC >= BC_Threshold_Fraction & 
+                                                        NES_I_S_BC >= BC_Threshold_Input) | 
+                                                       (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                          NLS_I_S_BC >= BC_Threshold_Input)) &
+                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+
+data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -1785,13 +2390,13 @@ Mock_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_M_BC >= BC_Threshold_CoC
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
-data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
-  xlim(c(-6, 6)) +
-  ylim(c(-6, 6)) +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
   ggtitle(paste0('Mock HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
@@ -1799,6 +2404,61 @@ ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
 
+# Mock Comparison - mRNA specific:
+Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                   grouped_annotation == "3'UTR" | 
+                                                   grouped_annotation == "CDS" | 
+                                                   grouped_annotation == "intron" |
+                                                   grouped_annotation == "downstream 10K") &
+                                                  ((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
+                                                    NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                   (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                      Cyto_F_M_BC >= BC_Threshold_Fraction)) &
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Mock Comparison - non-mRNA specific:
+Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                   grouped_annotation != "3'UTR" & 
+                                                   grouped_annotation != "CDS" & 
+                                                   grouped_annotation != "intron" & 
+                                                   grouped_annotation != "downstream 10K") &
+                                                  ((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
+                                                      NES_E_M_BC >= BC_Threshold_CoCLIP) | 
+                                                     (Nuc_F_M_BC >= BC_Threshold_Fraction & 
+                                                        Cyto_F_M_BC >= BC_Threshold_Fraction)) &
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-8, 8)) +
+  ylim(c(-8, 8)) +
+  ggtitle(paste0('Mock HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
 
 # Stress Comparison
 Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
@@ -1809,7 +2469,63 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_C
                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
-data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+
+ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle(paste0('Stress HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Comparison - mRNA specific
+Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
+                                                     grouped_annotation == "3'UTR" | 
+                                                     grouped_annotation == "CDS" | 
+                                                     grouped_annotation == "intron" |
+                                                     grouped_annotation == "downstream 10K") &
+                                                    ((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
+                                                      NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                     (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                        Cyto_F_S_BC >= BC_Threshold_Fraction)) &
+                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                    E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'log2(CoCLIP Nuclear/Cytoplasm)', y = 'log2(Fractionation CLIP Nuclear/Cytoplasm)') +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
+  ggtitle(paste0('Stress HuR Peaks: CoCLIP vs Fractionation CLIP of Nuclear/Cytoplasm (',  nrow(data), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Comparison - non-mRNA specific
+Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
+                                                     grouped_annotation != "3'UTR" & 
+                                                     grouped_annotation != "CDS" & 
+                                                     grouped_annotation != "intron" & 
+                                                     grouped_annotation != "downstream 10K") &
+                                                    ((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
+                                                        NES_E_S_BC >= BC_Threshold_CoCLIP) | 
+                                                       (Nuc_F_S_BC >= BC_Threshold_Fraction & 
+                                                          Cyto_F_S_BC >= BC_Threshold_Fraction)) &
+                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
+                                                    E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+
+data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
 
 ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -1831,8 +2547,55 @@ ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
 NLS_Mock_Peaks_Filtered = peakRowSum %>% filter(NLS_I_M_BC >= BC_Threshold_Input & 
                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP  &
                                                       I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Mock_Peaks_Filtered$grouped_annotation = factor(NLS_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = grouped_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NLS Enrich', y = 'Input') + 
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear CoCLIP vs Input (',  nrow(NLS_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Nuclear Mock - mRNA specific:
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                   grouped_annotation == "3'UTR" | 
+                                                   grouped_annotation == "CDS" | 
+                                                   grouped_annotation == "intron" |
+                                                   grouped_annotation == "downstream 10K") &
+                                                  NLS_I_M_BC >= BC_Threshold_Input & 
+                                                  NLS_E_M_BC >= BC_Threshold_CoCLIP  &
+                                                  I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NLS Enrich', y = 'Input') + 
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear CoCLIP vs Input (',  nrow(NLS_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Nuclear Mock - non-mRNA specific:
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                   grouped_annotation != "3'UTR" & 
+                                                   grouped_annotation != "CDS" & 
+                                                   grouped_annotation != "intron" & 
+                                                   grouped_annotation != "downstream 10K") &
+                                                  NLS_I_M_BC >= BC_Threshold_Input & 
+                                                  NLS_E_M_BC >= BC_Threshold_CoCLIP  &
+                                                  I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NLS Enrich', y = 'Input') + 
   xlim(c(0, 3)) +
@@ -1848,8 +2611,55 @@ ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = 
 NES_Mock_Peaks_Filtered = peakRowSum %>% filter(NES_I_M_BC >= BC_Threshold_Input & 
                                                       NES_E_M_BC >= BC_Threshold_CoCLIP &
                                                       I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Mock_Peaks_Filtered$grouped_annotation = factor(NES_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = grouped_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NES Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Cytoplasm CoCLIP vs Input (',  nrow(NES_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Cytoplasm Mock - mRNA specific:
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                   grouped_annotation == "3'UTR" | 
+                                                   grouped_annotation == "CDS" | 
+                                                   grouped_annotation == "intron" |
+                                                   grouped_annotation == "downstream 10K") &
+                                                  NES_I_M_BC >= BC_Threshold_Input & 
+                                                  NES_E_M_BC >= BC_Threshold_CoCLIP &
+                                                  I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NES Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Cytoplasm CoCLIP vs Input (',  nrow(NES_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Cytoplasm Mock - non-mRNA specific:
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                   grouped_annotation != "3'UTR" & 
+                                                   grouped_annotation != "CDS" & 
+                                                   grouped_annotation != "intron" & 
+                                                   grouped_annotation != "downstream 10K") &
+                                                  NES_I_M_BC >= BC_Threshold_Input & 
+                                                  NES_E_M_BC >= BC_Threshold_CoCLIP &
+                                                  I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NES Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1865,8 +2675,55 @@ ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = 
 G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                        G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
                                                        I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Mock_Peaks_Filtered$grouped_annotation = factor(G3BP_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = grouped_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'G3BP Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Stress Granule CoCLIP vs Input (',  nrow(G3BP_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Granule Mock - mRNA specific:
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                    grouped_annotation == "3'UTR" | 
+                                                    grouped_annotation == "CDS" | 
+                                                    grouped_annotation == "intron" |
+                                                    grouped_annotation == "downstream 10K") &
+                                                   G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                   G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
+                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'G3BP Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Mock HuR Peaks: Stress Granule CoCLIP vs Input (',  nrow(G3BP_Mock_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Granule Mock - non-mRNA specific:
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                    grouped_annotation != "3'UTR" & 
+                                                    grouped_annotation != "CDS" & 
+                                                    grouped_annotation != "intron" & 
+                                                    grouped_annotation != "downstream 10K") &
+                                                   G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+                                                   G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
+                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'G3BP Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1882,8 +2739,55 @@ ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color 
 NLS_Stress_Peaks_Filtered = peakRowSum %>% filter(NLS_I_S_BC >= BC_Threshold_Input & 
                                                         NLS_E_S_BC >= BC_Threshold_CoCLIP &
                                                         I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Stress_Peaks_Filtered$grouped_annotation = factor(NLS_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = grouped_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NLS Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear CoCLIP vs Input (',  nrow(NLS_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Nuclear Stress - mRNA specific:
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                     grouped_annotation == "3'UTR" | 
+                                                     grouped_annotation == "CDS" | 
+                                                     grouped_annotation == "intron" |
+                                                     grouped_annotation == "downstream 10K") &
+                                                    NLS_I_S_BC >= BC_Threshold_Input & 
+                                                    NLS_E_S_BC >= BC_Threshold_CoCLIP &
+                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NLS Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear CoCLIP vs Input (',  nrow(NLS_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Nuclear Stress - non-mRNA specific:
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                     grouped_annotation != "3'UTR" & 
+                                                     grouped_annotation != "CDS" & 
+                                                     grouped_annotation != "intron" & 
+                                                     grouped_annotation != "downstream 10K") &
+                                                    NLS_I_S_BC >= BC_Threshold_Input & 
+                                                    NLS_E_S_BC >= BC_Threshold_CoCLIP &
+                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NLS Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1899,8 +2803,55 @@ ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color 
 NES_Stress_Peaks_Filtered = peakRowSum %>% filter(NES_I_S_BC >= BC_Threshold_Input & 
                                                         NES_E_S_BC >= BC_Threshold_CoCLIP &
                                                         I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Stress_Peaks_Filtered$grouped_annotation = factor(NES_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = grouped_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NES Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Cytoplasm CoCLIP vs Input (',  nrow(NES_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Cytoplasm Stress - mRNA specific:
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                     grouped_annotation == "3'UTR" | 
+                                                     grouped_annotation == "CDS" | 
+                                                     grouped_annotation == "intron" |
+                                                     grouped_annotation == "downstream 10K") &
+                                                    NES_I_S_BC >= BC_Threshold_Input & 
+                                                    NES_E_S_BC >= BC_Threshold_CoCLIP &
+                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'NES Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Cytoplasm CoCLIP vs Input (',  nrow(NES_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Cytoplasm Stress - non-mRNA specific:
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                     grouped_annotation != "3'UTR" & 
+                                                     grouped_annotation != "CDS" & 
+                                                     grouped_annotation != "intron" & 
+                                                     grouped_annotation != "downstream 10K") &
+                                                    NES_I_S_BC >= BC_Threshold_Input & 
+                                                    NES_E_S_BC >= BC_Threshold_CoCLIP &
+                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
+NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
   labs(x = 'NES Enrich', y = 'Input') +
   xlim(c(0, 3)) +
@@ -1916,6 +2867,7 @@ ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color 
 G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                          G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
                                                          I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Stress_Peaks_Filtered$grouped_annotation = factor(G3BP_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
 
 ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -1929,5 +2881,50 @@ ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), colo
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
 
+# Stress Granule Stress - mRNA specific:
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
+                                                      grouped_annotation == "3'UTR" | 
+                                                      grouped_annotation == "CDS" | 
+                                                      grouped_annotation == "intron" |
+                                                      grouped_annotation == "downstream 10K") &
+                                                     G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                     G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
+                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+
+ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'G3BP Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Stress Granule CoCLIP vs Input (',  nrow(G3BP_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+# Stress Granule Stress - non-mRNA specific:
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
+                                                      grouped_annotation != "3'UTR" & 
+                                                      grouped_annotation != "CDS" & 
+                                                      grouped_annotation != "intron" & 
+                                                      grouped_annotation != "downstream 10K") &
+                                                     G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+                                                     G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
+                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
+G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+
+ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = finalized_annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  labs(x = 'G3BP Enrich', y = 'Input') +
+  xlim(c(0, 3)) +
+  ylim(c(0, 3)) +
+  ggtitle(paste0('Stress HuR Peaks: Stress Granule CoCLIP vs Input (',  nrow(G3BP_Stress_Peaks_Filtered), ' peaks)')) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
 ####################################################################################################################
 
