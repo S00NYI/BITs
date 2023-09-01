@@ -143,8 +143,8 @@ genes.ext.gr = GRanges(seqnames=genes.bed.ext$chr, ranges=IRanges(start=genes.be
 
 ## Load peak file:
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
-# peaksMatrix_FILE = 'Combined_peakCoverage_groomed.txt'
-peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized.txt'
+peaksMatrix_FILE = 'Combined_peakCoverage_groomed.txt'
+# peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized.txt'
 peaksMatrix = read.delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), header = TRUE, sep = "\t")
 peaksMatrix = peaksMatrix %>% mutate(chr = ifelse(chr == "chrM", "chrMT", chr))
 names(peaksMatrix)[names(peaksMatrix) == 'chr'] = 'chrom'
@@ -239,7 +239,7 @@ peaksMatrix$threeUTRs = ifelse(is.na(peaksMatrix$threeUTRs), NA, "3'UTR")
 peaksMatrix$CDS = ifelse(is.na(peaksMatrix$CDS), NA, "CDS")
 peaksMatrix$DNS10K = ifelse(is.na(peaksMatrix$DNS10K), NA, "downstream 10K")
 peaksMatrix$introns = ifelse(is.na(peaksMatrix$introns), NA, "intron")
-peaksMatrix$intergenic = ifelse(is.na(peaksMatrix$tx_ext), "deep intergenic", NA)
+peaksMatrix$intergenic = ifelse(is.na(peaksMatrix$tx_ext), "unannotated", NA)
 peaksMatrix$tRNA1 = ifelse(is.na(peaksMatrix$tRNA1), NA, "tRNA")
 peaksMatrix$LINE1 = ifelse(is.na(peaksMatrix$LINE1), NA, "TE")
 peaksMatrix$LTR1 = ifelse(is.na(peaksMatrix$LTR1), NA, "Other")
@@ -252,7 +252,7 @@ peaksMatrix$rRNA1 = ifelse(is.na(peaksMatrix$rRNA1), NA, "rRNA")
 peaksMatrix$snoRNA1 = ifelse(is.na(peaksMatrix$snoRNA1), NA, "snoRNA")
 peaksMatrix$scaRNA1 = ifelse(is.na(peaksMatrix$scaRNA1 ), NA, "scaRNA")
 peaksMatrix$snRNA1 = ifelse(is.na(peaksMatrix$snRNA1), NA, "snRNA")
-peaksMatrix$miscRNA1 = ifelse(is.na(peaksMatrix$miscRNA1 ), NA, "miscRNA")
+peaksMatrix$miscRNA1 = ifelse(is.na(peaksMatrix$miscRNA1 ), NA, "Other")
 # peaksMatrix$anti1 = ifelse(is.na(peaksMatrix$anti1), NA, "antisense")
 peaksMatrix$Prot_retained_int1  = ifelse(is.na(peaksMatrix$Prot_retained_int1), NA, "CDS_Retained_intron")
 peaksMatrix$nc_retained_int1  = ifelse(is.na(peaksMatrix$nc_retained_int1), NA, "ncRNA_Retained_intron")
@@ -272,7 +272,7 @@ peaksMatrix$annotation = apply(peaksMatrix, 1, function(i) paste(i[c("fiveUTRs",
 priority_list = c("3'UTR", "5'UTR", "CDS",
                   "miRNA", "lncRNA",  "rRNA", "snoRNA",  "scaRNA",  "snRNA",  "miscRNA",  "tRNA",  "TE",  "Other",  
                   "CDS_Retained_intron", "ncRNA_Retained_intron", 
-                  "intron", "downstream 10K", "deep intergenic")
+                  "intron", "downstream 10K", "unannotated")
 
 # Extract the highest priority term for finalized_annotation
 peaksMatrix = peaksMatrix %>%
@@ -287,9 +287,9 @@ peaksMatrix = peaksMatrix %>%
 
 # Map terms to grouped_annotation
 peaksMatrix = peaksMatrix %>%
-  mutate(grouped_annotation = ifelse(finalized_annotation %in% c("5'UTR", "CDS", "3'UTR", "TE", "Other", "downstream 10K", "deep intergenic", "snoRNA"), finalized_annotation,
+  mutate(grouped_annotation = ifelse(finalized_annotation %in% c("5'UTR", "CDS", "3'UTR", "TE", "Other", "downstream 10K", "unannotated", "snoRNA"), finalized_annotation,
                                      ifelse(finalized_annotation %in% c("miRNA", "lncRNA", "rRNA", "scaRNA", "snRNA", "miscRNA", "tRNA"), "ncRNA",
-                                            ifelse(finalized_annotation %in% c("CDS_Retained_intron", "ncRNA_Retained_intron", "intron"), "intron", "deep intergenic"))),
+                                            ifelse(finalized_annotation %in% c("CDS_Retained_intron", "ncRNA_Retained_intron", "intron"), "intron", "unannotated"))),
   annotation_count = sapply(strsplit(annotation, "\\|"), length))  # Count elements after splitting
 
 #########################################################################################################
@@ -312,7 +312,7 @@ gene_names = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
                     mart = mart.hs)
 
 peaksMatrix = peaksMatrix %>% left_join(gene_names, by = c("gene" = "ensembl_gene_id"), relationship = "many-to-many")
-
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(is.na(finalized_annotation), 'unannotated', finalized_annotation))
 
 write.table(apply(peaksMatrix,2,as.character), paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_annotated.txt")), 
             quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
