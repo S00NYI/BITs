@@ -1767,8 +1767,7 @@ ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-
-## Exploratory Stacked Bar Plots For CoCLIP Peak Density:
+## Exploratory Stacked Bar Plots For CoCLIP Peak Density: Specific RNA biotypes ONLY
 ####################################################################################################################
 ## mRNA Features Only
 ## Mock vs Stress for Each Fraction
