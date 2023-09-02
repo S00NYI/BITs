@@ -14,8 +14,8 @@ library(pheatmap)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
-# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
-peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
+# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -2102,7 +2102,7 @@ ggplot(data, aes(x = log_snoRNA_E_S_NvC, y = log_snoRNA_F_S_NvC)) +
 ## Mock Vs Stress
 ####################################################################################################################
 ## Nuclear: 
-NLS_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Input & 
+NLS_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                   NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (NLS_I_S_BC >= BC_Threshold_Input & 
                                                  NLS_E_S_BC >= BC_Threshold_CoCLIP)) &
@@ -2110,7 +2110,7 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Inpu
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
-data$annotation = factor(NLS_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2125,11 +2125,12 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Nuclear - mRNA specific:
-NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                  grouped_annotation == "3'UTR" | 
-                                                  grouped_annotation == "CDS" | 
-                                                  grouped_annotation == "intron" |
-                                                  grouped_annotation == "downstream 10K") & 
+NLS_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                  finalized_annotation == "3'UTR" | 
+                                                  finalized_annotation == "CDS" | 
+                                                  finalized_annotation == "intron" | 
+                                                  finalized_annotation == "CDS_Retained_intron" |
+                                                  finalized_annotation == "downstream 10K") & 
                                                  ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                    NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                   (NLS_I_S_BC >= BC_Threshold_Input & 
@@ -2138,7 +2139,7 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" |
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
-data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2153,11 +2154,13 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Nuclear - non-mRNA specific:
-NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                  grouped_annotation != "3'UTR" & 
-                                                  grouped_annotation != "CDS" & 
-                                                  grouped_annotation != "intron" & 
-                                                  grouped_annotation != "downstream 10K") & 
+NLS_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                  finalized_annotation != "3'UTR" & 
+                                                  finalized_annotation != "CDS" & 
+                                                  finalized_annotation != "intron" &  
+                                                  finalized_annotation != "CDS_Retained_intron" &
+                                                  finalized_annotation != "downstream 10K" &
+                                                  finalized_annotation != "unannotated") & 
                                                  ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                      NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                     (NLS_I_S_BC >= BC_Threshold_Input & 
@@ -2166,7 +2169,7 @@ NLS_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" &
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_Peaks_Filtered$NLS_EvI_M, NLS_EvI_S = NLS_Peaks_Filtered$NLS_EvI_S)
-data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NLS_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2181,7 +2184,7 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NLS_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Cytoplasm:
-NES_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Input & 
+NES_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NES_I_M_BC >= BC_Threshold_Input & 
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (NES_I_S_BC >= BC_Threshold_Input & 
                                                  NES_E_S_BC >= BC_Threshold_CoCLIP)) &
@@ -2189,7 +2192,7 @@ NES_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Inpu
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2204,11 +2207,12 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Cytoplasm - mRNA specific:
-NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                  grouped_annotation == "3'UTR" | 
-                                                  grouped_annotation == "CDS" | 
-                                                  grouped_annotation == "intron" |
-                                                  grouped_annotation == "downstream 10K") &
+NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                  finalized_annotation == "3'UTR" | 
+                                                  finalized_annotation == "CDS" | 
+                                                  finalized_annotation == "intron" | 
+                                                  finalized_annotation == "CDS_Retained_intron" |
+                                                  finalized_annotation == "downstream 10K") &
                                                  ((NES_I_M_BC >= BC_Threshold_Input & 
                                                    NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                   (NES_I_S_BC >= BC_Threshold_Input & 
@@ -2217,7 +2221,7 @@ NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" |
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2232,11 +2236,13 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Cytoplasm - non-mRNA specific:
-NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                  grouped_annotation != "3'UTR" & 
-                                                  grouped_annotation != "CDS" & 
-                                                  grouped_annotation != "intron" & 
-                                                  grouped_annotation != "downstream 10K") &
+NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                  finalized_annotation != "3'UTR" & 
+                                                  finalized_annotation != "CDS" & 
+                                                  finalized_annotation != "intron" &  
+                                                  finalized_annotation != "CDS_Retained_intron" &
+                                                  finalized_annotation != "downstream 10K" &
+                                                  finalized_annotation != "unannotated") & 
                                                  ((NES_I_M_BC >= BC_Threshold_Input & 
                                                      NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                     (NES_I_S_BC >= BC_Threshold_Input & 
@@ -2245,7 +2251,7 @@ NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" &
                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_Peaks_Filtered$NES_EvI_M, NES_EvI_S = NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2260,7 +2266,7 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 ## Stress Granule:
-G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+G3BP_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
                                                   (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                   G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
@@ -2268,7 +2274,7 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter(((G3BP_I_M_BC >= BC_Threshold_In
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2283,11 +2289,12 @@ ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)
         legend.text = element_text(size=14))
 
 ## Stress Granule - mRNA specific:
-G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                   grouped_annotation == "3'UTR" | 
-                                                   grouped_annotation == "CDS" | 
-                                                   grouped_annotation == "intron" |
-                                                   grouped_annotation == "downstream 10K") &
+G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_Retained_intron" |
+                                                   finalized_annotation == "downstream 10K") &
                                                   ((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                     G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
                                                    (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2296,7 +2303,7 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" |
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2311,11 +2318,13 @@ ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)
         legend.text = element_text(size=14))
 
 ## Stress Granule - non-mRNA specific:
-G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                   grouped_annotation != "3'UTR" & 
-                                                   grouped_annotation != "CDS" & 
-                                                   grouped_annotation != "intron" & 
-                                                   grouped_annotation != "downstream 10K") &
+G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                   finalized_annotation != "3'UTR" & 
+                                                   finalized_annotation != "CDS" & 
+                                                   finalized_annotation != "intron" &  
+                                                   finalized_annotation != "CDS_Retained_intron" &
+                                                   finalized_annotation != "downstream 10K" &
+                                                   finalized_annotation != "unannotated") & 
                                                   ((G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                     G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG) | 
                                                    (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2324,7 +2333,7 @@ G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" &
                                                   E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(G3BP_EvI_M = G3BP_Peaks_Filtered$G3BP_EvI_M, G3BP_EvI_S = G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2343,7 +2352,7 @@ ggplot(data, aes(x = log2(G3BP_EvI_M), y = log2(G3BP_EvI_S), color = annotation)
 ## Compartment Comparison
 ####################################################################################################################
 # Mock NLS vs NES:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Input & 
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                      (NES_I_M_BC >= BC_Threshold_Input & 
                                                      NES_E_M_BC >= BC_Threshold_CoCLIP)) &
@@ -2351,7 +2360,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
-data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2366,11 +2375,12 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Mock NLS vs NES - mRNA specific:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                      grouped_annotation == "3'UTR" | 
-                                                      grouped_annotation == "CDS" | 
-                                                      grouped_annotation == "intron" |
-                                                      grouped_annotation == "downstream 10K") &
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                      finalized_annotation == "3'UTR" | 
+                                                      finalized_annotation == "CDS" | 
+                                                      finalized_annotation == "intron" | 
+                                                      finalized_annotation == "CDS_Retained_intron" |
+                                                      finalized_annotation == "downstream 10K") &
                                                      ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                        NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                       (NES_I_M_BC >= BC_Threshold_Input & 
@@ -2379,7 +2389,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
-data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2394,11 +2404,13 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Mock NLS vs NES - non-mRNA specific:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                      grouped_annotation != "3'UTR" & 
-                                                      grouped_annotation != "CDS" & 
-                                                      grouped_annotation != "intron" & 
-                                                      grouped_annotation != "downstream 10K") &
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                      finalized_annotation != "3'UTR" & 
+                                                      finalized_annotation != "CDS" & 
+                                                      finalized_annotation != "intron" &  
+                                                      finalized_annotation != "CDS_Retained_intron" &
+                                                      finalized_annotation != "downstream 10K" &
+                                                      finalized_annotation != "unannotated") & 
                                                      ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                          NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                         (NES_I_M_BC >= BC_Threshold_Input & 
@@ -2407,7 +2419,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_NES_Peaks_Filtered$NLS_EvI_M, NES_EvI_M = NLS_NES_Peaks_Filtered$NES_EvI_M)
-data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2422,7 +2434,7 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Mock NLS vs G3BP:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold_Input & 
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                        NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
@@ -2430,7 +2442,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_M_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2445,11 +2457,12 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock NLS vs G3BP - mRNA specific:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                       grouped_annotation == "3'UTR" | 
-                                                       grouped_annotation == "CDS" | 
-                                                       grouped_annotation == "intron" |
-                                                       grouped_annotation == "downstream 10K") &
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                       finalized_annotation == "3'UTR" | 
+                                                       finalized_annotation == "CDS" | 
+                                                       finalized_annotation == "intron" | 
+                                                       finalized_annotation == "CDS_Retained_intron" |
+                                                       finalized_annotation == "downstream 10K") &
                                                       ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                         NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                        (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
@@ -2458,7 +2471,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2473,11 +2486,13 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock NLS vs G3BP - non-mRNA specific:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                       grouped_annotation != "3'UTR" & 
-                                                       grouped_annotation != "CDS" & 
-                                                       grouped_annotation != "intron" & 
-                                                       grouped_annotation != "downstream 10K") &
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                       finalized_annotation != "3'UTR" & 
+                                                       finalized_annotation != "CDS" & 
+                                                       finalized_annotation != "intron" &  
+                                                       finalized_annotation != "CDS_Retained_intron" &
+                                                       finalized_annotation != "downstream 10K" &
+                                                       finalized_annotation != "unannotated") & 
                                                       ((NLS_I_M_BC >= BC_Threshold_Input & 
                                                           NLS_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                          (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
@@ -2486,7 +2501,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_M = NLS_G3BP_Peaks_Filtered$NLS_EvI_M, G3BP_EvI_M = NLS_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2502,7 +2517,7 @@ ggplot(data, aes(x = log2(NLS_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
 
 
 # Mock NES vs G3BP:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold_Input & 
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NES_I_M_BC >= BC_Threshold_Input & 
                                                        NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG)) &
@@ -2510,7 +2525,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_M_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2525,11 +2540,12 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock NES vs G3BP - mRNA specific:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                       grouped_annotation == "3'UTR" | 
-                                                       grouped_annotation == "CDS" | 
-                                                       grouped_annotation == "intron" |
-                                                       grouped_annotation == "downstream 10K") &
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                       finalized_annotation == "3'UTR" | 
+                                                       finalized_annotation == "CDS" | 
+                                                       finalized_annotation == "intron" | 
+                                                       finalized_annotation == "CDS_Retained_intron" |
+                                                       finalized_annotation == "downstream 10K") &
                                                       ((NES_I_M_BC >= BC_Threshold_Input & 
                                                         NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                        (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
@@ -2538,7 +2554,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2553,11 +2569,13 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock NES vs G3BP - non-mRNA specific:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                       grouped_annotation != "3'UTR" & 
-                                                       grouped_annotation != "CDS" & 
-                                                       grouped_annotation != "intron" & 
-                                                       grouped_annotation != "downstream 10K") &
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                       finalized_annotation != "3'UTR" & 
+                                                       finalized_annotation != "CDS" & 
+                                                       finalized_annotation != "intron" &  
+                                                       finalized_annotation != "CDS_Retained_intron" &
+                                                       finalized_annotation != "downstream 10K" &
+                                                       finalized_annotation != "unannotated") & 
                                                       ((NES_I_M_BC >= BC_Threshold_Input & 
                                                           NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                          (G3BP_I_M_BC >= BC_Threshold_Input_SG & 
@@ -2566,7 +2584,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_M = NES_G3BP_Peaks_Filtered$NES_EvI_M, G3BP_EvI_M = NES_G3BP_Peaks_Filtered$G3BP_EvI_M)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2581,7 +2599,7 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NLS vs NES:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_Input & 
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                       NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                      (NES_I_S_BC >= BC_Threshold_Input & 
                                                      NES_E_S_BC >= BC_Threshold_CoCLIP)) &
@@ -2589,7 +2607,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_NES_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2604,11 +2622,12 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Stress NLS vs NES - mRNA specific:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                      grouped_annotation == "3'UTR" | 
-                                                      grouped_annotation == "CDS" | 
-                                                      grouped_annotation == "intron" |
-                                                      grouped_annotation == "downstream 10K") &
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                      finalized_annotation == "3'UTR" | 
+                                                      finalized_annotation == "CDS" | 
+                                                      finalized_annotation == "intron" | 
+                                                      finalized_annotation == "CDS_Retained_intron" |
+                                                      finalized_annotation == "downstream 10K") &
                                                      ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                        NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                       (NES_I_S_BC >= BC_Threshold_Input & 
@@ -2617,7 +2636,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2632,11 +2651,13 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Stress NLS vs NES - non-mRNA specific:
-NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                      grouped_annotation != "3'UTR" & 
-                                                      grouped_annotation != "CDS" & 
-                                                      grouped_annotation != "intron" & 
-                                                      grouped_annotation != "downstream 10K") &
+NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                      finalized_annotation != "3'UTR" & 
+                                                      finalized_annotation != "CDS" & 
+                                                      finalized_annotation != "intron" &  
+                                                      finalized_annotation != "CDS_Retained_intron" &
+                                                      finalized_annotation != "downstream 10K" &
+                                                      finalized_annotation != "unannotated") & 
                                                      ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                          NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                         (NES_I_S_BC >= BC_Threshold_Input & 
@@ -2645,7 +2666,7 @@ NLS_NES_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR
                                                      E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_NES_Peaks_Filtered$NLS_EvI_S, NES_EvI_S = NLS_NES_Peaks_Filtered$NES_EvI_S)
-data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NLS_NES_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2660,7 +2681,7 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) 
         legend.text = element_text(size=14))
 
 # Stress NLS vs G3BP:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold_Input & 
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                        NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
@@ -2668,7 +2689,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NLS_I_S_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2683,11 +2704,12 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NLS vs G3BP - mRNA specific:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                       grouped_annotation == "3'UTR" | 
-                                                       grouped_annotation == "CDS" | 
-                                                       grouped_annotation == "intron" |
-                                                       grouped_annotation == "downstream 10K") &
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                       finalized_annotation == "3'UTR" | 
+                                                       finalized_annotation == "CDS" | 
+                                                       finalized_annotation == "intron" | 
+                                                       finalized_annotation == "CDS_Retained_intron" |
+                                                       finalized_annotation == "downstream 10K") &
                                                       ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                         NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                        (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2696,7 +2718,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2711,11 +2733,13 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NLS vs G3BP - non-mRNA specific:
-NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                       grouped_annotation != "3'UTR" & 
-                                                       grouped_annotation != "CDS" & 
-                                                       grouped_annotation != "intron" & 
-                                                       grouped_annotation != "downstream 10K") &
+NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                       finalized_annotation != "3'UTR" & 
+                                                       finalized_annotation != "CDS" & 
+                                                       finalized_annotation != "intron" &  
+                                                       finalized_annotation != "CDS_Retained_intron" &
+                                                       finalized_annotation != "downstream 10K" &
+                                                       finalized_annotation != "unannotated") & 
                                                       ((NLS_I_S_BC >= BC_Threshold_Input & 
                                                           NLS_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                          (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2724,7 +2748,7 @@ NLS_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NLS_EvI_S = NLS_G3BP_Peaks_Filtered$NLS_EvI_S, G3BP_EvI_S = NLS_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NLS_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2739,7 +2763,7 @@ ggplot(data, aes(x = log2(NLS_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NES vs G3BP:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_S_BC >= BC_Threshold_Input & 
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NES_I_S_BC >= BC_Threshold_Input & 
                                                        NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                       (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                       G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG)) &
@@ -2747,7 +2771,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter(((NES_I_S_BC >= BC_Threshold
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2762,11 +2786,12 @@ ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NES vs G3BP - mRNA specific:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                       grouped_annotation == "3'UTR" | 
-                                                       grouped_annotation == "CDS" | 
-                                                       grouped_annotation == "intron" |
-                                                       grouped_annotation == "downstream 10K") &
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                       finalized_annotation == "3'UTR" | 
+                                                       finalized_annotation == "CDS" | 
+                                                       finalized_annotation == "intron" | 
+                                                       finalized_annotation == "CDS_Retained_intron" |
+                                                       finalized_annotation == "downstream 10K") &
                                                       ((NES_I_S_BC >= BC_Threshold_Input & 
                                                         NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                        (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2775,7 +2800,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2790,11 +2815,13 @@ ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress NES vs G3BP - non-mRNA specific:
-NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                       grouped_annotation != "3'UTR" & 
-                                                       grouped_annotation != "CDS" & 
-                                                       grouped_annotation != "intron" & 
-                                                       grouped_annotation != "downstream 10K") &
+NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                       finalized_annotation != "3'UTR" & 
+                                                       finalized_annotation != "CDS" & 
+                                                       finalized_annotation != "intron" &  
+                                                       finalized_annotation != "CDS_Retained_intron" &
+                                                       finalized_annotation != "downstream 10K" &
+                                                       finalized_annotation != "unannotated") & 
                                                       ((NES_I_S_BC >= BC_Threshold_Input & 
                                                           NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                          (G3BP_I_S_BC >= BC_Threshold_Input_SG & 
@@ -2803,7 +2830,7 @@ NES_G3BP_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UT
                                                       E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(NES_EvI_S = NES_G3BP_Peaks_Filtered$NES_EvI_S, G3BP_EvI_S = NES_G3BP_Peaks_Filtered$G3BP_EvI_S)
-data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(NES_G3BP_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2822,15 +2849,15 @@ ggplot(data, aes(x = log2(NES_EvI_S), y = log2(G3BP_EvI_S), color = annotation))
 ## Fractionation Compartment Comparison
 ####################################################################################################################
 # Mock Nuclear vs Cytoplasm:
-Mock_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_M_BC >= BC_Threshold_Fraction & 
+Mock_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((Cyto_F_M_BC >= BC_Threshold_Fraction & 
                                                   NES_I_M_BC >= BC_Threshold_Input) | 
                                                  (Nuc_F_M_BC >= BC_Threshold_Fraction & 
                                                   NLS_I_M_BC >= BC_Threshold_Input)) &
-                                                 (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                 (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                  I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
-data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2845,20 +2872,21 @@ ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock Nuclear vs Cytoplasm - mRNA specific:
-Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                   grouped_annotation == "3'UTR" | 
-                                                   grouped_annotation == "CDS" | 
-                                                   grouped_annotation == "intron" |
-                                                   grouped_annotation == "downstream 10K") &
+Mock_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_Retained_intron" |
+                                                   finalized_annotation == "downstream 10K") &
                                                   ((Cyto_F_M_BC >= BC_Threshold_Fraction & 
                                                     NES_I_M_BC >= BC_Threshold_Input) | 
                                                    (Nuc_F_M_BC >= BC_Threshold_Fraction & 
                                                       NLS_I_M_BC >= BC_Threshold_Input)) &
-                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
-data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2873,20 +2901,22 @@ ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Mock Nuclear vs Cytoplasm - non-mRNA specific:
-Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                   grouped_annotation != "3'UTR" & 
-                                                   grouped_annotation != "CDS" & 
-                                                   grouped_annotation != "intron" & 
-                                                   grouped_annotation != "downstream 10K") &
+Mock_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                   finalized_annotation != "3'UTR" & 
+                                                   finalized_annotation != "CDS" & 
+                                                   finalized_annotation != "intron" &  
+                                                   finalized_annotation != "CDS_Retained_intron" &
+                                                   finalized_annotation != "downstream 10K" &
+                                                   finalized_annotation != "unannotated") & 
                                                   ((Cyto_F_M_BC >= BC_Threshold_Fraction & 
                                                       NES_I_M_BC >= BC_Threshold_Input) | 
                                                      (Nuc_F_M_BC >= BC_Threshold_Fraction & 
                                                         NLS_I_M_BC >= BC_Threshold_Input)) &
-                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                  (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                     I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_M = Mock_Peaks_Filtered$Nuc_EvI_M, Cyto_EvI_M = Mock_Peaks_Filtered$Cyto_EvI_M)
-data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2901,15 +2931,15 @@ ggplot(data, aes(x = log2(Nuc_EvI_M), y = log2(Cyto_EvI_M), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress Nuclear vs Cytoplasm:
-Stress_Peaks_Filtered = peakEnrichment %>% filter(((Cyto_F_S_BC >= BC_Threshold_Fraction & 
+Stress_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((Cyto_F_S_BC >= BC_Threshold_Fraction & 
                                                     NES_I_S_BC >= BC_Threshold_Input) | 
                                                    (Nuc_F_S_BC >= BC_Threshold_Fraction & 
                                                     NLS_I_S_BC >= BC_Threshold_Input)) &
-                                                   (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                    I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                   (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                    I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
-data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2924,20 +2954,21 @@ ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress Nuclear vs Cytoplasm - mRNA specific:
-Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                     grouped_annotation == "3'UTR" | 
-                                                     grouped_annotation == "CDS" | 
-                                                     grouped_annotation == "intron" |
-                                                     grouped_annotation == "downstream 10K") &
+Stress_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                     finalized_annotation == "3'UTR" | 
+                                                     finalized_annotation == "CDS" | 
+                                                     finalized_annotation == "intron" | 
+                                                     finalized_annotation == "CDS_Retained_intron" |
+                                                     finalized_annotation == "downstream 10K") &
                                                     ((Cyto_F_S_BC >= BC_Threshold_Fraction & 
                                                       NES_I_S_BC >= BC_Threshold_Input) | 
                                                      (Nuc_F_S_BC >= BC_Threshold_Fraction & 
                                                         NLS_I_S_BC >= BC_Threshold_Input)) &
-                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
-data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2952,20 +2983,22 @@ ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation))
         legend.text = element_text(size=14))
 
 # Stress Nuclear vs Cytoplasm - non-mRNA specific:
-Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                     grouped_annotation != "3'UTR" & 
-                                                     grouped_annotation != "CDS" & 
-                                                     grouped_annotation != "intron" & 
-                                                     grouped_annotation != "downstream 10K") &
+Stress_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                     finalized_annotation != "3'UTR" & 
+                                                     finalized_annotation != "CDS" & 
+                                                     finalized_annotation != "intron" &  
+                                                     finalized_annotation != "CDS_Retained_intron" &
+                                                     finalized_annotation != "downstream 10K" &
+                                                     finalized_annotation != "unannotated") & 
                                                     ((Cyto_F_S_BC >= BC_Threshold_Fraction & 
                                                         NES_I_S_BC >= BC_Threshold_Input) | 
                                                        (Nuc_F_S_BC >= BC_Threshold_Fraction & 
                                                           NLS_I_S_BC >= BC_Threshold_Input)) &
-                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*2))
+                                                    (F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                       I_rowSum >= median(peakEnrichment$I_rowSum)*F_rowSum_Multiplier))
 
 data = data.frame(Nuc_EvI_S = Stress_Peaks_Filtered$Nuc_EvI_S, Cyto_EvI_S = Stress_Peaks_Filtered$Cyto_EvI_S)
-data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -2984,15 +3017,15 @@ ggplot(data, aes(x = log2(Nuc_EvI_S), y = log2(Cyto_EvI_S), color = annotation))
 ## Fractionation and CoCLIP comparison
 ####################################################################################################################
 # Mock Comparison
-Mock_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
+Mock_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                  (Nuc_F_M_BC >= BC_Threshold_Fraction & 
                                                   Cyto_F_M_BC >= BC_Threshold_Fraction)) &
-                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*F_rowSum_Multiplier)
 
 data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
-data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3007,20 +3040,21 @@ ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
         legend.text = element_text(size=14))
 
 # Mock Comparison - mRNA specific:
-Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                   grouped_annotation == "3'UTR" | 
-                                                   grouped_annotation == "CDS" | 
-                                                   grouped_annotation == "intron" |
-                                                   grouped_annotation == "downstream 10K") &
+Mock_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_Retained_intron" |
+                                                   finalized_annotation == "downstream 10K") &
                                                   ((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
                                                     NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                    (Nuc_F_M_BC >= BC_Threshold_Fraction & 
-                                                      Cyto_F_M_BC >= BC_Threshold_Fraction)) &
-                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+                                                    Cyto_F_M_BC >= BC_Threshold_Fraction)) &
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*F_rowSum_Multiplier)
 
 data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
-data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3035,20 +3069,22 @@ ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
         legend.text = element_text(size=14))
 
 # Mock Comparison - non-mRNA specific:
-Mock_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                   grouped_annotation != "3'UTR" & 
-                                                   grouped_annotation != "CDS" & 
-                                                   grouped_annotation != "intron" & 
-                                                   grouped_annotation != "downstream 10K") &
+Mock_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                   finalized_annotation != "3'UTR" & 
+                                                   finalized_annotation != "CDS" & 
+                                                   finalized_annotation != "intron" &  
+                                                   finalized_annotation != "CDS_Retained_intron" &
+                                                   finalized_annotation != "downstream 10K" &
+                                                   finalized_annotation != "unannotated") & 
                                                   ((NLS_E_M_BC >= BC_Threshold_CoCLIP & 
                                                       NES_E_M_BC >= BC_Threshold_CoCLIP) | 
                                                      (Nuc_F_M_BC >= BC_Threshold_Fraction & 
                                                         Cyto_F_M_BC >= BC_Threshold_Fraction)) &
-                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+                                                  F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                  E_rowSum >= median(peakEnrichment$E_rowSum)*F_rowSum_Multiplier)
 
 data = data.frame(E_NvC_M = Mock_Peaks_Filtered$E_NvC_M, F_NvC_M = Mock_Peaks_Filtered$F_NvC_M)
-data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3063,15 +3099,15 @@ ggplot(data, aes(x = log2(E_NvC_M), y = log2(F_NvC_M), color = annotation)) +
         legend.text = element_text(size=14))
 
 # Stress Comparison
-Stress_Peaks_Filtered = peakEnrichment %>% filter(((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
+Stress_Peaks_Filtered = peakEnrichment %>% filter(grouped_annotation != 'unannotated' & ((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
                                                     NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                    (Nuc_F_S_BC >= BC_Threshold_Fraction & 
                                                     Cyto_F_S_BC >= BC_Threshold_Fraction)) &
-                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*2 &
-                                                    E_rowSum >= median(peakEnrichment$E_rowSum)*2)
+                                                    F_rowSum >= median(peakEnrichment$F_rowSum)*F_rowSum_Multiplier &
+                                                    E_rowSum >= median(peakEnrichment$E_rowSum)*F_rowSum_Multiplier)
 
 data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
-data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+data$annotation = factor(Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3086,11 +3122,12 @@ ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
         legend.text = element_text(size=14))
 
 # Stress Comparison - mRNA specific
-Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR" | 
-                                                     grouped_annotation == "3'UTR" | 
-                                                     grouped_annotation == "CDS" | 
-                                                     grouped_annotation == "intron" |
-                                                     grouped_annotation == "downstream 10K") &
+Stress_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation == "5'UTR" | 
+                                                     finalized_annotation == "3'UTR" | 
+                                                     finalized_annotation == "CDS" | 
+                                                     finalized_annotation == "intron" | 
+                                                     finalized_annotation == "CDS_Retained_intron" |
+                                                     finalized_annotation == "downstream 10K") &
                                                     ((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
                                                       NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                      (Nuc_F_S_BC >= BC_Threshold_Fraction & 
@@ -3099,7 +3136,7 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation == "5'UTR"
                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
-data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3114,11 +3151,13 @@ ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
         legend.text = element_text(size=14))
 
 # Stress Comparison - non-mRNA specific
-Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR" & 
-                                                     grouped_annotation != "3'UTR" & 
-                                                     grouped_annotation != "CDS" & 
-                                                     grouped_annotation != "intron" & 
-                                                     grouped_annotation != "downstream 10K") &
+Stress_Peaks_Filtered = peakEnrichment %>% filter((finalized_annotation != "5'UTR" & 
+                                                     finalized_annotation != "3'UTR" & 
+                                                     finalized_annotation != "CDS" & 
+                                                     finalized_annotation != "intron" &  
+                                                     finalized_annotation != "CDS_Retained_intron" &
+                                                     finalized_annotation != "downstream 10K" &
+                                                     finalized_annotation != "unannotated") &
                                                     ((NLS_E_S_BC >= BC_Threshold_CoCLIP & 
                                                         NES_E_S_BC >= BC_Threshold_CoCLIP) | 
                                                        (Nuc_F_S_BC >= BC_Threshold_Fraction & 
@@ -3127,7 +3166,7 @@ Stress_Peaks_Filtered = peakEnrichment %>% filter((grouped_annotation != "5'UTR"
                                                     E_rowSum >= median(peakEnrichment$E_rowSum)*2)
 
 data = data.frame(E_NvC_S= Stress_Peaks_Filtered$E_NvC_S, F_NvC_S = Stress_Peaks_Filtered$F_NvC_S)
-data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+data$annotation = factor(Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3146,10 +3185,10 @@ ggplot(data, aes(x = log2(E_NvC_S), y = log2(F_NvC_S), color = annotation)) +
 ## Input and CoCLIP comparison
 ####################################################################################################################
 # Nuclear Mock:
-NLS_Mock_Peaks_Filtered = peakRowSum %>% filter(NLS_I_M_BC >= BC_Threshold_Input & 
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & NLS_I_M_BC >= BC_Threshold_Input & 
                                                       NLS_E_M_BC >= BC_Threshold_CoCLIP  &
                                                       I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Mock_Peaks_Filtered$grouped_annotation = factor(NLS_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+NLS_Mock_Peaks_Filtered$grouped_annotation = factor(NLS_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3164,15 +3203,16 @@ ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Nuclear Mock - mRNA specific:
-NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                   grouped_annotation == "3'UTR" | 
-                                                   grouped_annotation == "CDS" | 
-                                                   grouped_annotation == "intron" |
-                                                   grouped_annotation == "downstream 10K") &
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_Retained_intron" |
+                                                   finalized_annotation == "downstream 10K") &
                                                   NLS_I_M_BC >= BC_Threshold_Input & 
                                                   NLS_E_M_BC >= BC_Threshold_CoCLIP  &
                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3187,15 +3227,17 @@ ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Nuclear Mock - non-mRNA specific:
-NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                   grouped_annotation != "3'UTR" & 
-                                                   grouped_annotation != "CDS" & 
-                                                   grouped_annotation != "intron" & 
-                                                   grouped_annotation != "downstream 10K") &
+NLS_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                   finalized_annotation != "3'UTR" & 
+                                                   finalized_annotation != "CDS" & 
+                                                   finalized_annotation != "intron" &  
+                                                   finalized_annotation != "CDS_Retained_intron" &
+                                                   finalized_annotation != "downstream 10K" &
+                                                   finalized_annotation != "unannotated") & 
                                                   NLS_I_M_BC >= BC_Threshold_Input & 
                                                   NLS_E_M_BC >= BC_Threshold_CoCLIP  &
                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+NLS_Mock_Peaks_Filtered$finalized_annotation = factor(NLS_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3210,10 +3252,10 @@ ggplot(NLS_Mock_Peaks_Filtered, aes(x = log10(NLS_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Cytoplasm Mock:
-NES_Mock_Peaks_Filtered = peakRowSum %>% filter(NES_I_M_BC >= BC_Threshold_Input & 
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & NES_I_M_BC >= BC_Threshold_Input & 
                                                       NES_E_M_BC >= BC_Threshold_CoCLIP &
                                                       I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Mock_Peaks_Filtered$grouped_annotation = factor(NES_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+NES_Mock_Peaks_Filtered$grouped_annotation = factor(NES_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3228,15 +3270,16 @@ ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Cytoplasm Mock - mRNA specific:
-NES_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                   grouped_annotation == "3'UTR" | 
-                                                   grouped_annotation == "CDS" | 
-                                                   grouped_annotation == "intron" |
-                                                   grouped_annotation == "downstream 10K") &
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_Retained_intron" |
+                                                   finalized_annotation == "downstream 10K") &
                                                   NES_I_M_BC >= BC_Threshold_Input & 
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP &
                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3251,15 +3294,17 @@ ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Cytoplasm Mock - non-mRNA specific:
-NES_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                   grouped_annotation != "3'UTR" & 
-                                                   grouped_annotation != "CDS" & 
-                                                   grouped_annotation != "intron" & 
-                                                   grouped_annotation != "downstream 10K") &
+NES_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                   finalized_annotation != "3'UTR" & 
+                                                   finalized_annotation != "CDS" & 
+                                                   finalized_annotation != "intron" &  
+                                                   finalized_annotation != "CDS_Retained_intron" &
+                                                   finalized_annotation != "downstream 10K" &
+                                                   finalized_annotation != "unannotated") & 
                                                   NES_I_M_BC >= BC_Threshold_Input & 
                                                   NES_E_M_BC >= BC_Threshold_CoCLIP &
                                                   I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+NES_Mock_Peaks_Filtered$finalized_annotation = factor(NES_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3274,10 +3319,10 @@ ggplot(NES_Mock_Peaks_Filtered, aes(x = log10(NES_E_M), y = log10(I_M), color = 
         legend.text = element_text(size=14))
 
 # Stress Granule Mock:
-G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_M_BC >= BC_Threshold_Input_SG & 
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                        G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
                                                        I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Mock_Peaks_Filtered$grouped_annotation = factor(G3BP_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+G3BP_Mock_Peaks_Filtered$grouped_annotation = factor(G3BP_Mock_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3292,15 +3337,16 @@ ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color 
         legend.text = element_text(size=14))
 
 # Stress Granule Mock - mRNA specific:
-G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                    grouped_annotation == "3'UTR" | 
-                                                    grouped_annotation == "CDS" | 
-                                                    grouped_annotation == "intron" |
-                                                    grouped_annotation == "downstream 10K") &
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                    finalized_annotation == "3'UTR" | 
+                                                    finalized_annotation == "CDS" | 
+                                                    finalized_annotation == "intron" | 
+                                                    finalized_annotation == "CDS_Retained_intron" |
+                                                    finalized_annotation == "downstream 10K") &
                                                    G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3315,15 +3361,17 @@ ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color 
         legend.text = element_text(size=14))
 
 # Stress Granule Mock - non-mRNA specific:
-G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                    grouped_annotation != "3'UTR" & 
-                                                    grouped_annotation != "CDS" & 
-                                                    grouped_annotation != "intron" & 
-                                                    grouped_annotation != "downstream 10K") &
+G3BP_Mock_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                    finalized_annotation != "3'UTR" & 
+                                                    finalized_annotation != "CDS" & 
+                                                    finalized_annotation != "intron" &  
+                                                    finalized_annotation != "CDS_Retained_intron" &
+                                                    finalized_annotation != "downstream 10K" &
+                                                    finalized_annotation != "unannotated") & 
                                                    G3BP_I_M_BC >= BC_Threshold_Input_SG & 
                                                    G3BP_E_M_BC >= BC_Threshold_CoCLIP_SG &
                                                    I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+G3BP_Mock_Peaks_Filtered$finalized_annotation = factor(G3BP_Mock_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3338,10 +3386,10 @@ ggplot(G3BP_Mock_Peaks_Filtered, aes(x = log10(G3BP_E_M), y = log10(I_M), color 
         legend.text = element_text(size=14))
 
 # Nuclear Stress:
-NLS_Stress_Peaks_Filtered = peakRowSum %>% filter(NLS_I_S_BC >= BC_Threshold_Input & 
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & NLS_I_S_BC >= BC_Threshold_Input & 
                                                         NLS_E_S_BC >= BC_Threshold_CoCLIP &
                                                         I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Stress_Peaks_Filtered$grouped_annotation = factor(NLS_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+NLS_Stress_Peaks_Filtered$grouped_annotation = factor(NLS_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3356,15 +3404,16 @@ ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Nuclear Stress - mRNA specific:
-NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                     grouped_annotation == "3'UTR" | 
-                                                     grouped_annotation == "CDS" | 
-                                                     grouped_annotation == "intron" |
-                                                     grouped_annotation == "downstream 10K") &
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                     finalized_annotation == "3'UTR" | 
+                                                     finalized_annotation == "CDS" | 
+                                                     finalized_annotation == "intron" | 
+                                                     finalized_annotation == "CDS_Retained_intron" |
+                                                     finalized_annotation == "downstream 10K") &
                                                     NLS_I_S_BC >= BC_Threshold_Input & 
                                                     NLS_E_S_BC >= BC_Threshold_CoCLIP &
                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3379,15 +3428,17 @@ ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Nuclear Stress - non-mRNA specific:
-NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                     grouped_annotation != "3'UTR" & 
-                                                     grouped_annotation != "CDS" & 
-                                                     grouped_annotation != "intron" & 
-                                                     grouped_annotation != "downstream 10K") &
+NLS_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                     finalized_annotation != "3'UTR" & 
+                                                     finalized_annotation != "CDS" & 
+                                                     finalized_annotation != "intron" &  
+                                                     finalized_annotation != "CDS_Retained_intron" &
+                                                     finalized_annotation != "downstream 10K" &
+                                                     finalized_annotation != "unannotated") &
                                                     NLS_I_S_BC >= BC_Threshold_Input & 
                                                     NLS_E_S_BC >= BC_Threshold_CoCLIP &
                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+NLS_Stress_Peaks_Filtered$finalized_annotation = factor(NLS_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3402,10 +3453,10 @@ ggplot(NLS_Stress_Peaks_Filtered, aes(x = log10(NLS_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Cytoplasm Stress:
-NES_Stress_Peaks_Filtered = peakRowSum %>% filter(NES_I_S_BC >= BC_Threshold_Input & 
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & NES_I_S_BC >= BC_Threshold_Input & 
                                                         NES_E_S_BC >= BC_Threshold_CoCLIP &
                                                         I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Stress_Peaks_Filtered$grouped_annotation = factor(NES_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+NES_Stress_Peaks_Filtered$grouped_annotation = factor(NES_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3420,15 +3471,16 @@ ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Cytoplasm Stress - mRNA specific:
-NES_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                     grouped_annotation == "3'UTR" | 
-                                                     grouped_annotation == "CDS" | 
-                                                     grouped_annotation == "intron" |
-                                                     grouped_annotation == "downstream 10K") &
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                     finalized_annotation == "3'UTR" | 
+                                                     finalized_annotation == "CDS" | 
+                                                     finalized_annotation == "intron" | 
+                                                     finalized_annotation == "CDS_Retained_intron" |
+                                                     finalized_annotation == "downstream 10K") &
                                                     NES_I_S_BC >= BC_Threshold_Input & 
                                                     NES_E_S_BC >= BC_Threshold_CoCLIP &
                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3443,15 +3495,17 @@ ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Cytoplasm Stress - non-mRNA specific:
-NES_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                     grouped_annotation != "3'UTR" & 
-                                                     grouped_annotation != "CDS" & 
-                                                     grouped_annotation != "intron" & 
-                                                     grouped_annotation != "downstream 10K") &
+NES_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                     finalized_annotation != "3'UTR" & 
+                                                     finalized_annotation != "CDS" & 
+                                                     finalized_annotation != "intron" &  
+                                                     finalized_annotation != "CDS_Retained_intron" &
+                                                     finalized_annotation != "downstream 10K" &
+                                                     finalized_annotation != "unannotated") & 
                                                     NES_I_S_BC >= BC_Threshold_Input & 
                                                     NES_E_S_BC >= BC_Threshold_CoCLIP &
                                                     I_rowSum >= median(peakRowSum$I_rowSum)*2)
-NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+NES_Stress_Peaks_Filtered$finalized_annotation = factor(NES_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3466,10 +3520,10 @@ ggplot(NES_Stress_Peaks_Filtered, aes(x = log10(NES_E_S), y = log10(I_S), color 
         legend.text = element_text(size=14))
 
 # Stress Granule Stress:
-G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter(G3BP_I_S_BC >= BC_Threshold_Input_SG & 
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter(grouped_annotation != 'unannotated' & G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                          G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
                                                          I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Stress_Peaks_Filtered$grouped_annotation = factor(G3BP_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", 'snoRNA', "ncRNA", "TE", "Other", "deep intergenic", "downstream 10K"))
+G3BP_Stress_Peaks_Filtered$grouped_annotation = factor(G3BP_Stress_Peaks_Filtered$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "downstream 10K"))
 
 ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = grouped_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3484,15 +3538,16 @@ ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), colo
         legend.text = element_text(size=14))
 
 # Stress Granule Stress - mRNA specific:
-G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation == "5'UTR" | 
-                                                      grouped_annotation == "3'UTR" | 
-                                                      grouped_annotation == "CDS" | 
-                                                      grouped_annotation == "intron" |
-                                                      grouped_annotation == "downstream 10K") &
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation == "5'UTR" | 
+                                                      finalized_annotation == "3'UTR" | 
+                                                      finalized_annotation == "CDS" | 
+                                                      finalized_annotation == "intron" | 
+                                                      finalized_annotation == "CDS_Retained_intron" |
+                                                      finalized_annotation == "downstream 10K") &
                                                      G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                      G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
                                                      I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'ncRNA_Retained_intron', 'downstream 10K'))
+G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_Retained_intron", 'downstream 10K'))
 
 ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
@@ -3507,15 +3562,17 @@ ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), colo
         legend.text = element_text(size=14))
 
 # Stress Granule Stress - non-mRNA specific:
-G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((grouped_annotation != "5'UTR" & 
-                                                      grouped_annotation != "3'UTR" & 
-                                                      grouped_annotation != "CDS" & 
-                                                      grouped_annotation != "intron" & 
-                                                      grouped_annotation != "downstream 10K") &
+G3BP_Stress_Peaks_Filtered = peakRowSum %>% filter((finalized_annotation != "5'UTR" & 
+                                                      finalized_annotation != "3'UTR" & 
+                                                      finalized_annotation != "CDS" & 
+                                                      finalized_annotation != "intron" &  
+                                                      finalized_annotation != "CDS_Retained_intron" &
+                                                      finalized_annotation != "downstream 10K" &
+                                                      finalized_annotation != "unannotated") & 
                                                      G3BP_I_S_BC >= BC_Threshold_Input_SG & 
                                                      G3BP_E_S_BC >= BC_Threshold_CoCLIP_SG &
                                                      I_rowSum >= median(peakRowSum$I_rowSum)*2)
-G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'miscRNA', 'TE', 'deep intergenic', 'Other'))
+G3BP_Stress_Peaks_Filtered$finalized_annotation = factor(G3BP_Stress_Peaks_Filtered$finalized_annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'ncRNA_Retained_intron', 'TE', 'Other'))
 
 ggplot(G3BP_Stress_Peaks_Filtered, aes(x = log10(G3BP_E_S), y = log10(I_S), color = finalized_annotation)) +
   geom_point(pch = 16, size = 3, alpha = 0.5) +
