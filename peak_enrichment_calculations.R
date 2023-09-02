@@ -56,25 +56,25 @@ rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 
 ## Make an peak density table:
 ## Actually this is just peak row sums by sample, not "density"
-peakDensity = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
-peakDensity = peakDensity %>% mutate(Nuc_F_M = rowSums(peaksMatrix[, c(Nuc_F_M)]) / length(Nuc_F_M))
-peakDensity = peakDensity %>% mutate(Nuc_F_S = rowSums(peaksMatrix[, c(Nuc_F_S)]) / length(Nuc_F_S))
-peakDensity = peakDensity %>% mutate(Cyto_F_M = rowSums(peaksMatrix[, c(Cyto_F_M)]) / length(Cyto_F_M))
-peakDensity = peakDensity %>% mutate(Cyto_F_S = rowSums(peaksMatrix[, c(Cyto_F_S)]) / length(Cyto_F_S))
+avgTagCounts = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
+avgTagCounts = avgTagCounts %>% mutate(Nuc_F_M = rowSums(peaksMatrix[, c(Nuc_F_M)]) / length(Nuc_F_M))
+avgTagCounts = avgTagCounts %>% mutate(Nuc_F_S = rowSums(peaksMatrix[, c(Nuc_F_S)]) / length(Nuc_F_S))
+avgTagCounts = avgTagCounts %>% mutate(Cyto_F_M = rowSums(peaksMatrix[, c(Cyto_F_M)]) / length(Cyto_F_M))
+avgTagCounts = avgTagCounts %>% mutate(Cyto_F_S = rowSums(peaksMatrix[, c(Cyto_F_S)]) / length(Cyto_F_S))
 
-peakDensity = peakDensity %>% mutate(NLS_I_M = rowSums(peaksMatrix[, c(NLS_I_M)]) / length(NLS_I_M))
-peakDensity = peakDensity %>% mutate(NLS_I_S = rowSums(peaksMatrix[, c(NLS_I_S)]) / length(NLS_I_S))
-peakDensity = peakDensity %>% mutate(NES_I_M = rowSums(peaksMatrix[, c(NES_I_M)]) / length(NES_I_M))
-peakDensity = peakDensity %>% mutate(NES_I_S = rowSums(peaksMatrix[, c(NES_I_S)]) / length(NES_I_S))
-peakDensity = peakDensity %>% mutate(G3BP_I_M = rowSums(peaksMatrix[, c(G3BP_I_M)]) / length(G3BP_I_M))
-peakDensity = peakDensity %>% mutate(G3BP_I_S = rowSums(peaksMatrix[, c(G3BP_I_S)]) / length(G3BP_I_S))
+avgTagCounts = avgTagCounts %>% mutate(NLS_I_M = rowSums(peaksMatrix[, c(NLS_I_M)]) / length(NLS_I_M))
+avgTagCounts = avgTagCounts %>% mutate(NLS_I_S = rowSums(peaksMatrix[, c(NLS_I_S)]) / length(NLS_I_S))
+avgTagCounts = avgTagCounts %>% mutate(NES_I_M = rowSums(peaksMatrix[, c(NES_I_M)]) / length(NES_I_M))
+avgTagCounts = avgTagCounts %>% mutate(NES_I_S = rowSums(peaksMatrix[, c(NES_I_S)]) / length(NES_I_S))
+avgTagCounts = avgTagCounts %>% mutate(G3BP_I_M = rowSums(peaksMatrix[, c(G3BP_I_M)]) / length(G3BP_I_M))
+avgTagCounts = avgTagCounts %>% mutate(G3BP_I_S = rowSums(peaksMatrix[, c(G3BP_I_S)]) / length(G3BP_I_S))
 
-peakDensity = peakDensity %>% mutate(NLS_E_M = rowSums(peaksMatrix[, c(NLS_E_M)]) / length(NLS_E_M))
-peakDensity = peakDensity %>% mutate(NLS_E_S = rowSums(peaksMatrix[, c(NLS_E_S)]) / length(NLS_E_S))
-peakDensity = peakDensity %>% mutate(NES_E_M = rowSums(peaksMatrix[, c(NES_E_M)]) / length(NES_E_M))
-peakDensity = peakDensity %>% mutate(NES_E_S = rowSums(peaksMatrix[, c(NES_E_S)]) / length(NES_E_S))
-peakDensity = peakDensity %>% mutate(G3BP_E_M = rowSums(peaksMatrix[, c(G3BP_E_M)]) / length(G3BP_E_M))
-peakDensity = peakDensity %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, c(G3BP_E_S)]) / length(G3BP_E_S))
+avgTagCounts = avgTagCounts %>% mutate(NLS_E_M = rowSums(peaksMatrix[, c(NLS_E_M)]) / length(NLS_E_M))
+avgTagCounts = avgTagCounts %>% mutate(NLS_E_S = rowSums(peaksMatrix[, c(NLS_E_S)]) / length(NLS_E_S))
+avgTagCounts = avgTagCounts %>% mutate(NES_E_M = rowSums(peaksMatrix[, c(NES_E_M)]) / length(NES_E_M))
+avgTagCounts = avgTagCounts %>% mutate(NES_E_S = rowSums(peaksMatrix[, c(NES_E_S)]) / length(NES_E_S))
+avgTagCounts = avgTagCounts %>% mutate(G3BP_E_M = rowSums(peaksMatrix[, c(G3BP_E_M)]) / length(G3BP_E_M))
+avgTagCounts = avgTagCounts %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, c(G3BP_E_S)]) / length(G3BP_E_S))
 
 ## Add pseudocount instead of filtering by median. This might be better because we will be filtering by BC down the road anyway.
 # peakCount_median = median(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
@@ -822,36 +822,36 @@ ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots for Fractionation CLIP Peak Density:
+## Exploratory Stacked Bar Plots for Fractionation CLIP average Tags:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
-PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                 peakDensity = peakDensity$Nuc_F_M, 
-                                                 BC = peakDensity$Nuc_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                 AvgTagCounts = avgTagCounts$Nuc_F_M, 
+                                                 BC = avgTagCounts$Nuc_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts$Nuc_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                 peakDensity = peakDensity$Nuc_F_S, 
-                                                 BC = peakDensity$Nuc_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                 AvgTagCounts = avgTagCounts$Nuc_F_S, 
+                                                 BC = avgTagCounts$Nuc_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts$Nuc_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                 peakDensity = peakDensity$Cyto_F_M, 
-                                                 BC = peakDensity$Cyto_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                 AvgTagCounts = avgTagCounts$Cyto_F_M, 
+                                                 BC = avgTagCounts$Cyto_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts$Cyto_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                 peakDensity = peakDensity$Cyto_F_S, 
-                                                 BC = peakDensity$Cyto_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                 AvgTagCounts = avgTagCounts$Cyto_F_S, 
+                                                 BC = avgTagCounts$Cyto_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts$Cyto_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
 colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
 colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
@@ -898,40 +898,40 @@ ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) +
 
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots for Fractionation CLIP Peak Density: Specific RNA biotypes ONLY
+## Exploratory Stacked Bar Plots for Fractionation CLIP average Tags: Specific RNA biotypes ONLY
 ####################################################################################################################
 ## mRNA Features Only
 ## Mock vs Stress for Each Fraction
-peakDensity_mRNA = peakDensity %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == "CDS_Retained_intron" | finalized_annotation == 'downstream 10K')
+avgTagCounts_mRNA = avgTagCounts %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == "CDS_Retained_intron" | finalized_annotation == 'downstream 10K')
 
 ## Mock vs Stress for Each Fraction
-PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_mRNA$Nuc_F_M, 
-                                                 BC = peakDensity_mRNA$Nuc_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_mRNA$Nuc_F_M, 
+                                                 BC = avgTagCounts_mRNA$Nuc_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_mRNA$Nuc_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_mRNA$Nuc_F_S, 
-                                                 BC = peakDensity_mRNA$Nuc_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_mRNA$Nuc_F_S, 
+                                                 BC = avgTagCounts_mRNA$Nuc_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_mRNA$Nuc_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_mRNA$Cyto_F_M, 
-                                                 BC = peakDensity_mRNA$Cyto_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_mRNA$Cyto_F_M, 
+                                                 BC = avgTagCounts_mRNA$Cyto_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_mRNA$Cyto_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_mRNA$Cyto_F_S, 
-                                                 BC = peakDensity_mRNA$Cyto_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_mRNA$Cyto_F_S, 
+                                                 BC = avgTagCounts_mRNA$Cyto_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_mRNA$Cyto_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
 colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
 colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
@@ -978,36 +978,39 @@ ggplot(PeakDistribution_F_combined, aes(fill = Annotation, y=Freq, x=Source)) +
 
 ## nonmRNA Features Only
 ## Mock vs Stress for Each Fraction
-peakDensity_Not_mRNA = peakDensity %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_Retained_intron" & finalized_annotation != 'downstream 10K')
+avgTagCounts_Not_mRNA = avgTagCounts %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_Retained_intron" & finalized_annotation != 'downstream 10K')
 
 ## Mock vs Stress for Each Fraction
-PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_Not_mRNA$Nuc_F_M, 
-                                                 BC = peakDensity_Not_mRNA$Nuc_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_Not_mRNA$Nuc_F_M, 
+                                                 BC = avgTagCounts_Not_mRNA$Nuc_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_Not_mRNA$Nuc_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_Not_mRNA$Nuc_F_S, 
-                                                 BC = peakDensity_Not_mRNA$Nuc_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Nuc_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_Not_mRNA$Nuc_F_S, 
+                                                 BC = avgTagCounts_Not_mRNA$Nuc_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_Not_mRNA$Nuc_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_Not_mRNA$Cyto_F_M, 
-                                                 BC = peakDensity_Not_mRNA$Cyto_F_M_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_Not_mRNA$Cyto_F_M, 
+                                                 BC = avgTagCounts_Not_mRNA$Cyto_F_M_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_Not_mRNA$Cyto_F_M)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
+PeakDistribution_F_Cyt_M = rbind(PeakDistribution_F_Cyt_M, c(0))
+row.names(PeakDistribution_F_Cyt_M) = c(row.names(PeakDistribution_F_Cyt_M)[1:10], 'scaRNA')
+PeakDistribution_F_Cyt_M = PeakDistribution_F_Cyt_M[row.names(PeakDistribution_F_Nuc_S), 'tags', drop = FALSE]
 
-PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                 peakDensity = peakDensity_Not_mRNA$Cyto_F_S, 
-                                                 BC = peakDensity_Not_mRNA$Cyto_F_S_BC)
-                                      %>% filter(BC >= BC_Threshold_Fraction)
+PeakDistribution_F_Cyt_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                 AvgTagCounts = avgTagCounts_Not_mRNA$Cyto_F_S, 
+                                                 BC = avgTagCounts_Not_mRNA$Cyto_F_S_BC)
+                                      %>% filter(BC >= BC_Threshold_Fraction & AvgTagCounts >= median(avgTagCounts_Not_mRNA$Cyto_F_S)*F_rowSum_Multiplier)
                                       %>% group_by(annotation) 
-                                      %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                      %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
 colnames(PeakDistribution_F_Nuc_M) = c('F_M_Nuc')
 colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
@@ -1657,64 +1660,64 @@ ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots For CoCLIP Peak Density:
+## Exploratory Stacked Bar Plots For CoCLIP average Tags:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
-PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                    peakDensity = rowSums(peakDensity[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
-                                                    BC = rowSums(peakDensity[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
+PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
+                                                    BC = rowSums(avgTagCounts[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                    peakDensity = rowSums(peakDensity[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
-                                                    BC = rowSums(peakDensity[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
+PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
+                                                    BC = rowSums(avgTagCounts[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$NLS_E_M,
-                                                  BC = peakDensity$NLS_E_M_BC)
+PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$NLS_E_M,
+                                                  BC = avgTagCounts$NLS_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$NLS_E_S,
-                                                  BC = peakDensity$NLS_E_S_BC)
+PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$NLS_E_S,
+                                                  BC = avgTagCounts$NLS_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$NES_E_M,
-                                                  BC = peakDensity$NES_E_M_BC)
+PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$NES_E_M,
+                                                  BC = avgTagCounts$NES_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$NES_E_S,
-                                                  BC = peakDensity$NES_E_S_BC)
+PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$NES_E_S,
+                                                  BC = avgTagCounts$NES_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$G3BP_E_M,
-                                                  BC = peakDensity$G3BP_E_M_BC)
+PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$G3BP_E_M,
+                                                  BC = avgTagCounts$G3BP_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = peakDensity$grouped_annotation, 
-                                                  peakDensity = peakDensity$G3BP_E_S,
-                                                  BC = peakDensity$G3BP_E_S_BC)
+PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = avgTagCounts$grouped_annotation, 
+                                                  AvgTagCounts = avgTagCounts$G3BP_E_S,
+                                                  BC = avgTagCounts$G3BP_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
 colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
 colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
@@ -1768,67 +1771,67 @@ ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) +
   scale_fill_brewer(palette = "Set3")
 ####################################################################################################################
 
-## Exploratory Stacked Bar Plots For CoCLIP Peak Density: Specific RNA biotypes ONLY
+## Exploratory Stacked Bar Plots For CoCLIP average Tags: Specific RNA biotypes ONLY
 ####################################################################################################################
 ## mRNA Features Only
 ## Mock vs Stress for Each Fraction
-peakDensity_mRNA = peakDensity %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == "CDS_Retained_intron" | finalized_annotation == 'downstream 10K')
+avgTagCounts_mRNA = avgTagCounts %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == "CDS_Retained_intron" | finalized_annotation == 'downstream 10K')
 
-PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                    peakDensity = rowSums(peakDensity_mRNA[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
-                                                    BC = rowSums(peakDensity_mRNA[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
+PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts_mRNA[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
+                                                    BC = rowSums(avgTagCounts_mRNA[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                    peakDensity = rowSums(peakDensity_mRNA[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
-                                                    BC = rowSums(peakDensity_mRNA[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
+PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts_mRNA[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
+                                                    BC = rowSums(avgTagCounts_mRNA[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_mRNA$NLS_E_M,
-                                                  BC = peakDensity_mRNA$NLS_E_M_BC)
+PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_mRNA$NLS_E_M,
+                                                  BC = avgTagCounts_mRNA$NLS_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_mRNA$NLS_E_S,
-                                                  BC = peakDensity_mRNA$NLS_E_S_BC)
+PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_mRNA$NLS_E_S,
+                                                  BC = avgTagCounts_mRNA$NLS_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_mRNA$NES_E_M,
-                                                  BC = peakDensity_mRNA$NES_E_M_BC)
+PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_mRNA$NES_E_M,
+                                                  BC = avgTagCounts_mRNA$NES_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_mRNA$NES_E_S,
-                                                  BC = peakDensity_mRNA$NES_E_S_BC)
+PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_mRNA$NES_E_S,
+                                                  BC = avgTagCounts_mRNA$NES_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                   peakDensity = peakDensity_mRNA$G3BP_E_M,
-                                                   BC = peakDensity_mRNA$G3BP_E_M_BC)
+PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                   AvgTagCounts = avgTagCounts_mRNA$G3BP_E_M,
+                                                   BC = avgTagCounts_mRNA$G3BP_E_M_BC)
                                         %>% filter(BC >= BC_Threshold_CoCLIP)
                                         %>% group_by(annotation) 
-                                        %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                        %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = peakDensity_mRNA$finalized_annotation, 
-                                                   peakDensity = peakDensity_mRNA$G3BP_E_S,
-                                                   BC = peakDensity_mRNA$G3BP_E_S_BC)
+PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = avgTagCounts_mRNA$finalized_annotation, 
+                                                   AvgTagCounts = avgTagCounts_mRNA$G3BP_E_S,
+                                                   BC = avgTagCounts_mRNA$G3BP_E_S_BC)
                                         %>% filter(BC >= BC_Threshold_CoCLIP)
                                         %>% group_by(annotation) 
-                                        %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                        %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
 colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
 colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
@@ -1883,76 +1886,76 @@ ggplot(PeakDistribution_Co_combined, aes(fill = Annotation, y=Freq, x=Source)) +
 
 ## nonmRNA Features Only
 ## Mock vs Stress for Each Fraction
-peakDensity_Not_mRNA = peakDensity %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_Retained_intron" & finalized_annotation != 'downstream 10K')
+avgTagCounts_Not_mRNA = avgTagCounts %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_Retained_intron" & finalized_annotation != 'downstream 10K')
 
-PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                    peakDensity = rowSums(peakDensity_Not_mRNA[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
-                                                    BC = rowSums(peakDensity_Not_mRNA[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
+PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts_Not_mRNA[, c('NLS_I_M', 'NES_I_M', 'G3BP_I_M')])/3,
+                                                    BC = rowSums(avgTagCounts_Not_mRNA[, c('NLS_I_M_BC', 'NES_I_M_BC', 'G3BP_I_M_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                    peakDensity = rowSums(peakDensity_Not_mRNA[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
-                                                    BC = rowSums(peakDensity_Not_mRNA[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
+PeakDistribution_Co_Input_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                    AvgTagCounts = rowSums(avgTagCounts_Not_mRNA[, c('NLS_I_S', 'NES_I_S', 'G3BP_I_S')])/3,
+                                                    BC = rowSums(avgTagCounts_Not_mRNA[, c('NLS_I_S_BC', 'NES_I_S_BC', 'G3BP_I_S_BC')]))
                                          %>% filter(BC >= BC_Threshold_Input*3)
                                          %>% group_by(annotation) 
-                                         %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                         %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_Not_mRNA$NLS_E_M,
-                                                  BC = peakDensity_Not_mRNA$NLS_E_M_BC)
+PeakDistribution_Co_NLS_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_Not_mRNA$NLS_E_M,
+                                                  BC = avgTagCounts_Not_mRNA$NLS_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 
-PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_Not_mRNA$NLS_E_S,
-                                                  BC = peakDensity_Not_mRNA$NLS_E_S_BC)
+PeakDistribution_Co_NLS_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_Not_mRNA$NLS_E_S,
+                                                  BC = avgTagCounts_Not_mRNA$NLS_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 PeakDistribution_Co_NLS_S = rbind(PeakDistribution_Co_NLS_S, c(0))
 row.names(PeakDistribution_Co_NLS_S) = c(row.names(PeakDistribution_Co_NLS_S)[1:10], 'scaRNA')
 PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
 
 
-PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_Not_mRNA$NES_E_M,
-                                                  BC = peakDensity_Not_mRNA$NES_E_M_BC)
+PeakDistribution_Co_NES_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_Not_mRNA$NES_E_M,
+                                                  BC = avgTagCounts_Not_mRNA$NES_E_M_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0), c(0))
 row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:8], 'scaRNA', 'ncRNA_Retained_intron', 'miRNA')
 PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
 
-PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                  peakDensity = peakDensity_Not_mRNA$NES_E_S,
-                                                  BC = peakDensity_Not_mRNA$NES_E_S_BC)
+PeakDistribution_Co_NES_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                  AvgTagCounts = avgTagCounts_Not_mRNA$NES_E_S,
+                                                  BC = avgTagCounts_Not_mRNA$NES_E_S_BC)
                                        %>% filter(BC >= BC_Threshold_CoCLIP)
                                        %>% group_by(annotation) 
-                                       %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                       %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0), c(0))
 row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:9], 'scaRNA', 'ncRNA_Retained_intron')
 PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
 
-PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                   peakDensity = peakDensity_Not_mRNA$G3BP_E_M,
-                                                   BC = peakDensity_Not_mRNA$G3BP_E_M_BC)
+PeakDistribution_Co_G3BP_M = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                   AvgTagCounts = avgTagCounts_Not_mRNA$G3BP_E_M,
+                                                   BC = avgTagCounts_Not_mRNA$G3BP_E_M_BC)
                                         %>% filter(BC >= BC_Threshold_CoCLIP)
                                         %>% group_by(annotation) 
-                                        %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                        %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0), c(0))
 row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:9], 'scaRNA', 'miRNA')
 PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
 
-PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = peakDensity_Not_mRNA$finalized_annotation, 
-                                                   peakDensity = peakDensity_Not_mRNA$G3BP_E_S,
-                                                   BC = peakDensity_Not_mRNA$G3BP_E_S_BC)
+PeakDistribution_Co_G3BP_S = data.frame(data.frame(annotation = avgTagCounts_Not_mRNA$finalized_annotation, 
+                                                   AvgTagCounts = avgTagCounts_Not_mRNA$G3BP_E_S,
+                                                   BC = avgTagCounts_Not_mRNA$G3BP_E_S_BC)
                                         %>% filter(BC >= BC_Threshold_CoCLIP)
                                         %>% group_by(annotation) 
-                                        %>% summarise(tags = sum(peakDensity)), row.names = 1)
+                                        %>% summarise(tags = sum(AvgTagCounts)), row.names = 1)
 PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0), c(0))
 row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:9], 'scaRNA', 'miRNA')
 PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_M), 'tags', drop = FALSE]
