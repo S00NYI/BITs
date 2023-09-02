@@ -55,6 +55,7 @@ peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_
 rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 
 ## Make an peak density table:
+## Actually this is just peak row sums by sample, not "density"
 peakDensity = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
 peakDensity = peakDensity %>% mutate(Nuc_F_M = rowSums(peaksMatrix[, c(Nuc_F_M)]) / length(Nuc_F_M))
 peakDensity = peakDensity %>% mutate(Nuc_F_S = rowSums(peaksMatrix[, c(Nuc_F_S)]) / length(Nuc_F_S))
