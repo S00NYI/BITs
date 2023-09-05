@@ -5,6 +5,7 @@
 ## Last edit: 2023-09-04
 
 library(dplyr)
+library(tidyr)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(GenomicFeatures)
 library(IRanges)
@@ -20,12 +21,6 @@ library(ggplot2)
 # Read in GTF file
 gtfFile = '~/Desktop/Genomics/Annotations/Homo_sapiens.GRCh38.110.gtf'
 gtf_raw = readGFF(gtfFile)
-
-# Read in the peaks and filter as necessary:
-peakFile = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/Combined_peakCoverage_groomed_annotated.txt'
-peaks = read.delim(peakFile, header=TRUE, sep="\t")
-peaks = peaks %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 4)
-
 
 # Add chr to chromosome names and filter out genes (transcripts only), focus on protein coding 
 gtf_raw$seqid = ifelse(substr(gtf_raw$seqid, 1, 3) != "chr", paste0("chr", gtf_raw$seqid), gtf_raw$seqid)
@@ -100,6 +95,55 @@ utr3_starts$window_end <- ifelse(utr3_starts$strand == "+", utr3_starts$start + 
 tts_starts <- subset(gtf, type == "three_prime_utr")
 tts_starts$window_start <- ifelse(tts_starts$strand == "+", tts_starts$end - window_def, tts_starts$start - window_def)
 tts_starts$window_end <- ifelse(tts_starts$strand == "+", tts_starts$end + window_def, tts_starts$start + window_def)
+
+
+# Read in the peaks and filter as necessary:
+peakFile = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/Combined_peakCoverage_groomed_annotated.txt'
+peaks_org = read.delim(peakFile, header=TRUE, sep="\t")
+
+Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
+Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
+
+Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
+Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
+
+NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
+NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
+G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
+
+NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
+NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
+G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
+
+NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
+NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
+G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
+
+NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
+NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
+G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
+
+BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
+               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
+               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
+               "TOTAL_BC")
+
+peaks = peaks_org
+peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 4)
+peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 4)
+
+peaks = peaks_org %>% filter(NLS_E_M_BC >= 1)
+peaks = peaks_org %>% filter(NLS_E_S_BC >= 1)
+peaks = peaks_org %>% filter(NES_E_M_BC >= 1)
+peaks = peaks_org %>% filter(NES_E_S_BC >= 1)
+peaks = peaks_org %>% filter(G3BP_E_M_BC >= 1)
+peaks = peaks_org %>% filter(G3BP_E_S_BC >= 1)
+
+peaks = peaks_org %>% filter(Nuc_F_M_BC >= 2)
+peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
+peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
+peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
+
 
 
 # Convert peaks and various RNA landmarks  to GRanges objects
