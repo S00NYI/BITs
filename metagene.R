@@ -129,16 +129,22 @@ BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC",
                "TOTAL_BC")
 
 peaks = peaks_org
-peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 4)
-peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 4)
 
+## Filter for Inputs
+peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 3)
+peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 3)
+
+## Filter for CoCLIPs
 peaks = peaks_org %>% filter(NLS_E_M_BC >= 1)
 peaks = peaks_org %>% filter(NLS_E_S_BC >= 1)
+
 peaks = peaks_org %>% filter(NES_E_M_BC >= 1)
 peaks = peaks_org %>% filter(NES_E_S_BC >= 1)
-peaks = peaks_org %>% filter(G3BP_E_M_BC >= 1)
-peaks = peaks_org %>% filter(G3BP_E_S_BC >= 1)
 
+peaks = peaks_org %>% filter(G3BP_E_M_BC >= 2)
+peaks = peaks_org %>% filter(G3BP_E_S_BC >= 2)
+
+## Filter for Fractionation CLIPs
 peaks = peaks_org %>% filter(Nuc_F_M_BC >= 2)
 peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
 peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
@@ -198,7 +204,7 @@ plot_density <- function(density_data, feature_name) {
     geom_line(color="blue") +
     geom_vline(xintercept=0, color="red", linetype="dashed") +
     ylim(0, 0.005) + 
-    labs(title=paste("Metagene Plot: Peak Density around", feature_name),
+    labs(title=paste("Cyto Ars Metagene Plot: Peak Density around", feature_name),
          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
     theme_minimal()
 }
@@ -211,9 +217,114 @@ plot_density(three_prime_splice_density_data, "3' Splice Sites")
 plot_density(translation_stop_density_data, "Translation Stop Sites")
 plot_density(tts_density_data, "TTS")
 
+## Peak Level Plotting Info:
+## Input Mock   BC: 3   ylim: 0.001 or 0.002
+## Input Ars    BC: 3   ylim: 0.002 (0.001 for splice sites?)
+
+## NLS Mock     BC: 1   ylim: 0.001 (0.0005 for splice sites?)
+## NLS Ars      BC: 1   ylim: 0.001 (0.0005 for splice sites?)
+## NES Mock     BC: 1   ylim: 0.0005 (nothing on splice sites)
+## NES Ars      BC: 1   ylim: 0.001  (nothing on splice sites)
+## SG Mock      BC: 2   ylim: 0.0005
+## SG Ars       BC: 2   ylim: 0.001 
+
+## Nuc Mock     BC: 2   ylim: 0.002 
+## Nuc Ars      BC: 2   ylim: 0.003 (0.001 for splice sites) 
+## Cyto Mock    BC: 2   ylim: 0.003 (nothing on splice sites)
+## Cyto Ars     BC: 2   ylim: 0.003 (some splice site signal)
 ###Above is good for metagene plots. Now need to create for each main category (Input/Total, Nuc, NLS,, G3BP, Frac etc)
 
 #############################################
+## How about at bed file (Reads) level
+
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Input_Mock.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Input_Stress.sorted.peaks.bed'
+
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/NLS_Mock.sorted.peaks.bed'
+bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/NLS_Stress.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/NES_Mock.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/NES_Stress.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/G3BP_Mock.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/G3BP_Stress.sorted.peaks.bed'
+
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Nuc_Mock.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Nuc_Stress.sorted.peaks.bed'
+
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Cyto_Mock.sorted.peaks.bed'
+# bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Cyto_Stress.sorted.peaks.bed'
+
+
+reads_org = read.delim(bedFile, header=F, sep="\t")
+colnames(reads_org) = c("chrom", "start", "end", "name", "score", "strand" )
+reads = reads_org
+reads = reads %>% filter(score > mean(score))
+
+# Convert reads and various RNA landmarks  to GRanges objects
+reads_gr <- GRanges(seqnames=reads$chrom, ranges=IRanges(start=reads$start, end=reads$end))
+tss_windows <- GRanges(seqnames=tss_starts$seqid, 
+                       ranges=IRanges(start=tss_starts$window_start, end=tss_starts$window_end))
+cds_windows <- GRanges(seqnames=cds_starts$seqid, 
+                       ranges=IRanges(start=cds_starts$window_start, end=cds_starts$window_end))
+five_prime_splice_windows <- GRanges(seqnames=five_prime_splice$seqid, 
+                                     ranges=IRanges(start=five_prime_splice$window_start, end=five_prime_splice$window_end))
+three_prime_splice_windows <- GRanges(seqnames=three_prime_splice$seqid, 
+                                      ranges=IRanges(start=three_prime_splice$window_start, end=three_prime_splice$window_end))
+translation_stop_windows <- GRanges(seqnames=utr3_starts$seqid, 
+                                    ranges=IRanges(start=utr3_starts$window_start, end=utr3_starts$window_end))
+tts_windows <- GRanges(seqnames=tts_starts$seqid, 
+                       ranges=IRanges(start=tts_starts$window_start, end=tts_starts$window_end))
+
+
+# Calculate densities for each feature, function. Can playwith window width in the function
+calculate_density <- function(feature_windows, feature_starts, reads_gr) {
+  window_width <- 50
+  window_def <- 500
+  start_positions <- seq(-window_def, window_def - window_width, by=window_width)
+  end_positions <- seq(-window_def + window_width, window_def, by=window_width)
+  densities <- numeric(length(start_positions))
+  
+  for (i in 1:length(start_positions)) {
+    window <- GRanges(seqnames=seqnames(feature_windows), 
+                      ranges=IRanges(start=feature_starts + start_positions[i], 
+                                     end=feature_starts + end_positions[i]))
+    densities[i] <- sum(countOverlaps(window, reads_gr))
+  }
+  
+  densities <- densities / (window_width * length(feature_windows))
+  return(data.frame(midpoint=(start_positions + end_positions) / 2, density=densities))
+}
+
+# Calculate densities for each feature
+tss_density_data <- calculate_density(tss_windows, tss_starts$start, reads_gr)
+cds_density_data <- calculate_density(cds_windows, cds_starts$start, reads_gr)
+five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, reads_gr)
+three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, reads_gr)
+translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, reads_gr)
+tts_density_data <- calculate_density(tts_windows, tts_starts$end, reads_gr)  # Note: using end for TTS
+
+# Function to plot the densities
+plot_density <- function(density_data, feature_name) {
+  ggplot(density_data, aes(x=midpoint, y=density)) +
+    geom_line(color="blue") +
+    geom_vline(xintercept=0, color="red", linetype="dashed") +
+    ylim(0, 0.002) +
+    labs(title=paste("NLS Mock Metagene Plot: Peak Density around", feature_name),
+         x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
+    theme_minimal()
+}
+
+# Plot for each feature
+plot_density(tss_density_data, "TSS")
+plot_density(cds_density_data, "Translation Start Sites")
+plot_density(five_prime_splice_density_data, "5' Splice Sites")
+plot_density(three_prime_splice_density_data, "3' Splice Sites")
+plot_density(translation_stop_density_data, "Translation Stop Sites")
+plot_density(tts_density_data, "TTS")
+
+
+############################################################
+
+
 #####Intron as percentage
 ###Need to convert from a peak based to read based analysis, easiest way is to amplify total Tagcount as number of rows per peak.
 
