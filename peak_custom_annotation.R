@@ -26,6 +26,11 @@ setwd("~/Desktop/Genomics/Annotations")
 # gtfFile = 'gencode.v44.primary_assembly.annotation.gtf'
 gtfFile = 'Homo_sapiens.GRCh38.110.gtf'
 gtf = import(gtfFile)
+
+# gtf = subset(gtf, transcript_support_level == "1")
+# gtfFile_filtered = str_replace(gtfFile, '.gtf', '.TSL1.gtf')
+# export(gtf, gtfFile_filtered)
+
 gtf_df = as.data.frame(gtf)
 
 ## Subset the data_frame by gene/transcript types:
