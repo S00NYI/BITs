@@ -27,6 +27,7 @@ gtf_raw$seqid = ifelse(substr(gtf_raw$seqid, 1, 3) != "chr", paste0("chr", gtf_r
 gtf_raw = gtf_raw[gtf_raw$type != "gene", ]
 
 gtf = subset(gtf_raw, transcript_biotype == "protein_coding")
+# gtf = gtf_raw
 
 # head(gtf)
 # table(gtf$transcript_biotype)
@@ -103,27 +104,22 @@ peaks_org = read.delim(peakFile, header=TRUE, sep="\t")
 
 Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
 Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
-
 Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
 Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
-
 NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
 NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
 G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
-
 NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
 NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
 G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
-
 NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
 NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
 G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
-
 NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
 NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
 
-BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
+BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC",
                "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
                "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
                "TOTAL_BC")
@@ -132,24 +128,46 @@ peaks = peaks_org
 
 ## Filter for Inputs
 peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 3)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
+
 peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 3)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
 
 ## Filter for CoCLIPs
 peaks = peaks_org %>% filter(NLS_E_M_BC >= 1)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
+
 peaks = peaks_org %>% filter(NLS_E_S_BC >= 1)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
 
 peaks = peaks_org %>% filter(NES_E_M_BC >= 1)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
+
 peaks = peaks_org %>% filter(NES_E_S_BC >= 1)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
 
 peaks = peaks_org %>% filter(G3BP_E_M_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
+
 peaks = peaks_org %>% filter(G3BP_E_S_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
 
 ## Filter for Fractionation CLIPs
 peaks = peaks_org %>% filter(Nuc_F_M_BC >= 2)
-peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
-peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
-peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
 
+peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
+
+peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
+
+peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
+peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
+
+
+# ## Copy by the number of tags 
+# peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
 
 
 # Convert peaks and various RNA landmarks  to GRanges objects
@@ -170,7 +188,7 @@ tts_windows <- GRanges(seqnames=tts_starts$seqid,
 
 # Calculate densities for each feature, function. Can playwith window width in the function
 calculate_density <- function(feature_windows, feature_starts, peaks_gr) {
-  window_width <- 10
+  window_width <- 7
   window_def <- 500
   start_positions <- seq(-window_def, window_def - window_width, by=window_width)
   end_positions <- seq(-window_def + window_width, window_def, by=window_width)
@@ -195,16 +213,13 @@ three_prime_splice_density_data <- calculate_density(three_prime_splice_windows,
 translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, peaks_gr)
 tts_density_data <- calculate_density(tts_windows, tts_starts$end, peaks_gr)  # Note: using end for TTS
 
-# 7. Generate the Metagene Plot
-library(ggplot2)
-
 # Function to plot the densities
 plot_density <- function(density_data, feature_name) {
   ggplot(density_data, aes(x=midpoint, y=density)) +
     geom_line(color="blue") +
     geom_vline(xintercept=0, color="red", linetype="dashed") +
-    ylim(0, 0.005) + 
-    labs(title=paste("Cyto Ars Metagene Plot: Peak Density around", feature_name),
+    ylim(0, 0.03) +
+    labs(title=paste("Cytoplasm Fraction Arsenite Metagene Plot: Peak Density around", feature_name),
          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
     theme_minimal()
 }
@@ -235,6 +250,58 @@ plot_density(tts_density_data, "TTS")
 ###Above is good for metagene plots. Now need to create for each main category (Input/Total, Nuc, NLS,, G3BP, Frac etc)
 
 #############################################
+
+#############################################
+library(ChIPpeakAnno)
+
+density_TSS = metagenePlot(peaks_gr, tss_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+density_CDS = metagenePlot(peaks_gr, cds_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+density_5SS = metagenePlot(peaks_gr, five_prime_splice_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+density_3SS = metagenePlot(peaks_gr, three_prime_splice_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+density_STC = metagenePlot(peaks_gr, translation_stop_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+density_TTS = metagenePlot(peaks_gr, tts_windows, PeakLocForDistance = 'middle', FeatureLocForDistance = 'middle', upstream = 5e2, downstream = 5e2)
+
+
+density_TSS = as.data.frame(table(density_TSS$data$distance))
+colnames(density_TSS) = c('position', 'Freq')
+density_TSS = density_TSS %>% mutate(density = Freq/sum(Freq))
+
+plot(density_TSS$position, density_TSS$density, type = "l")
+
+density_CDS = as.data.frame(table(density_CDS$data$distance))
+colnames(density_CDS) = c('position', 'Freq')
+density_CDS = density_CDS %>% mutate(density = Freq/sum(Freq))
+
+plot(density_CDS$position, density_CDS$density, type = "l")
+
+density_5SS = as.data.frame(table(density_5SS$data$distance))
+colnames(density_5SS) = c('position', 'Freq')
+density_5SS = density_5SS %>% mutate(density = Freq/sum(Freq))
+
+plot(density_5SS$position, density_5SS$density, type = "l")
+
+density_3SS = as.data.frame(table(density_3SS$data$distance))
+colnames(density_3SS) = c('position', 'Freq')
+density_3SS = density_3SS %>% mutate(density = Freq/sum(Freq))
+
+plot(density_3SS$position, density_3SS$density)
+
+density_STC = as.data.frame(table(density_STC$data$distance))
+colnames(density_STC) = c('position', 'Freq')
+density_STC = density_STC %>% mutate(density = Freq/sum(Freq))
+
+plot(density_STC$position, density_STC$density)
+
+density_TTS = as.data.frame(table(density_TTS$data$distance))
+colnames(density_TTS) = c('position', 'Freq')
+density_TTS = density_TTS %>% mutate(density = Freq/sum(Freq))
+
+plot(density_TTS$position, density_TTS$density)
+
+#############################################
+
+
+
 ## How about at bed file (Reads) level
 
 # bedFile = '/Users/soonyi/Desktop/collapsed_bed/filtered_sorted_combined_collapsed_bed/Input_Mock.sorted.peaks.bed'
