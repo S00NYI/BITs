@@ -17,11 +17,13 @@ bgFiles = list.files(bgDir)
 for (bgFile in bgFiles) {
   bg = read.delim(bgFile, header = F)
   bg = bg[2:nrow(bg), ]
-  bg = bg %>% mutate(final = as.integer(round((rowSums(bg[, colnames(bg)[4:length(colnames(bg))]]) / length(4:length(colnames(bg))))*1e6)))
-  bg = bg %>% filter(final != 0)
+  bg = bg %>% mutate(final = (rowSums(bg[, colnames(bg)[4:length(colnames(bg))]]) / length(4:length(colnames(bg)))))
+  # bg = bg %>% filter(final != 0)
   bg = bg[, c('V1', 'V2', 'V3', 'final')]
   write.table(bg, paste0(baseDir, '/finished_bedgraph/', str_replace(bgFile, '.bedgraph', '.normalized.bedgraph')), row.names = F, col.names = F, quote = F)
 }
+
+
 
 
 # exp_IDs = c('JL0361_Input', 'JL0361_Enrich', 'JL0380_Fraction', 'JL0388_Input', 'JL0388_Enrich', 'JL1024_Pool')
