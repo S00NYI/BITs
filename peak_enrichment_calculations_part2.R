@@ -10,8 +10,8 @@ library(pheatmap)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
-peaksMatrix_PATH = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/'    ## Use this for windows machine
-# peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+# peaksMatrix_PATH = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/'    ## Use this for windows machine
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
 peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
@@ -208,12 +208,12 @@ peakRowSum = cbind(peakRowSum, peaksMatrix[, BC_columns])
 
 peakEnrichment = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
 
-peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$I_M)
-peakEnrichment = peakEnrichment %>% mutate(NES_EvI_M = peakRowSum$NES_E_M / peakRowSum$I_M)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_M = peakRowSum$G3BP_E_M / peakRowSum$I_M)
-peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_S = peakRowSum$NLS_E_S / peakRowSum$I_S)
-peakEnrichment = peakEnrichment %>% mutate(NES_EvI_S = peakRowSum$NES_E_S / peakRowSum$I_S)
-peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_S = peakRowSum$G3BP_E_S / peakRowSum$I_S)
+peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$NLS_I_M)
+peakEnrichment = peakEnrichment %>% mutate(NES_EvI_M = peakRowSum$NES_E_M / peakRowSum$NES_I_M)
+peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_M = peakRowSum$G3BP_E_M / peakRowSum$G3BP_I_M)
+peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_S = peakRowSum$NLS_E_S / peakRowSum$NLS_I_S)
+peakEnrichment = peakEnrichment %>% mutate(NES_EvI_S = peakRowSum$NES_E_S / peakRowSum$NES_I_S)
+peakEnrichment = peakEnrichment %>% mutate(G3BP_EvI_S = peakRowSum$G3BP_E_S / peakRowSum$G3BP_I_S)
 
 peakEnrichment = peakEnrichment %>% mutate(Nuc_EvI_M = peakRowSum$Nuc_F_M / peakRowSum$I_M)
 peakEnrichment = peakEnrichment %>% mutate(Cyto_EvI_M = peakRowSum$Cyto_F_M / peakRowSum$I_M)
@@ -235,39 +235,52 @@ peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]]
 ####################################################################################################################
 # Mock NLS vs NES:
 M_Peaks = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
-                                      ((NLS_I_M_BC >= BC_Threshold_I & NLS_E_M_BC >= BC_Threshold_E) | 
+                                      ((NLS_I_M_BC >= BC_Threshold_I & NLS_E_M_BC >= BC_Threshold_E) & 
                                          (NES_I_M_BC >= BC_Threshold_I & NES_E_M_BC >= BC_Threshold_E)) &
-                                      ((I_rowSum >= median(peakEnrichment$I_rowSum)*rowSum_Multiplier_I) &
-                                         (E_rowSum >= median(peakEnrichment$E_rowSum)*rowSum_Multiplier_E)))
+                                      ((NLS_I_M >= median(NLS_I_M) * rowSum_Multiplier_I) &
+                                         (NES_I_M >= median(NES_I_M) * rowSum_Multiplier_I) &
+                                         (NLS_E_M >= median(NLS_E_M) * rowSum_Multiplier_E) &
+                                         (NES_E_M >= median(NES_E_M) * rowSum_Multiplier_E)))
+
+# M_Peaks = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+#                                       ((NLS_I_M_BC >= BC_Threshold_I & NES_I_M_BC >= BC_Threshold_I & G3BP_I_M_BC >= BC_Threshold_I & NLS_E_M_BC >= BC_Threshold_E) | 
+#                                          (NLS_I_M_BC >= BC_Threshold_I & NES_I_M_BC >= BC_Threshold_I & G3BP_I_M_BC >= BC_Threshold_I & NES_E_M_BC >= BC_Threshold_E)) &
+#                                       ((NLS_I_M >= median(NLS_I_M) * rowSum_Multiplier_I) &
+#                                          (NES_I_M >= median(NES_I_M) * rowSum_Multiplier_I) &
+#                                          (G3BP_I_M >= median(G3BP_I_M) * rowSum_Multiplier_I) &
+#                                          (NLS_E_M >= median(NLS_E_M) * rowSum_Multiplier_E) &
+#                                          (NES_E_M >= median(NES_E_M) * rowSum_Multiplier_E)))
 
 plotData = data.frame(NLS_EvI_M = M_Peaks$NLS_EvI_M, NES_EvI_M = M_Peaks$NES_EvI_M)
 plotData$annotation = factor(M_Peaks$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "DS10K"))
 
-ggplot(plotData, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.5) +
+mockPlot = ggplot(plotData, aes(x = log2(NLS_EvI_M), y = log2(NES_EvI_M), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
-  xlim(c(-8, 8)) +
-  ylim(c(-8, 8)) +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
   geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "red") +
   geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "red") +
-  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  ggtitle(paste0('Mock HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(plotData), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
   theme(axis.text = element_text(size=14), 
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
+print(mockPlot)
+ggMarginal(mockPlot, type="histogram", groupColour = TRUE, groupFill = TRUE)
 
 ## Per Gene Peaks so that we can filter:
 M_Peaks_per_gene = M_Peaks %>% group_by(gene, external_gene_name) %>% summarise(peakCounts = n())
 
 ## Peaks per location:
-M_Peaks_NLS = M_Peaks %>% filter((NLS_EvI_M >= 2 & NES_EvI_M < 2) & 
+M_Peaks_NLS = M_Peaks %>% filter((log2(NLS_EvI_M) >= 1 & log2(NES_EvI_M) <= -1) & 
                                    (NLS_E_M_BC >= BC_Threshold_E))
 
-M_Peaks_NES = M_Peaks %>% filter((NES_EvI_M >= 2 & NLS_EvI_M < 2) &
+M_Peaks_NES = M_Peaks %>% filter((log2(NES_EvI_M) >= 1 & log2(NLS_EvI_M) <= -1) &
                                    (NES_E_M_BC >= BC_Threshold_E))
 
-M_Peaks_Shared = M_Peaks %>% filter((NLS_EvI_M >= 2 & NES_EvI_M >= 2) &
+M_Peaks_Shared = M_Peaks %>% filter((log2(NLS_EvI_M) >= 1 & log2(NES_EvI_M) >= 1) &
                                       (NLS_E_M_BC >= BC_Threshold_E & NES_E_M_BC >= BC_Threshold_E))
 
 ## Gene Level Grouping:
@@ -289,41 +302,54 @@ M_Peaks_SharedGenes = M_Peaks_SharedGenes[, c(inert_columns[1:length(inert_colum
 
 
 # Stress NLS vs NES:
+# S_Peaks = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+#                                       ((NLS_I_S_BC >= BC_Threshold_I & NES_I_S_BC >= BC_Threshold_I & G3BP_I_S_BC >= BC_Threshold_I & NLS_E_S_BC >= BC_Threshold_E) | 
+#                                          (NLS_I_S_BC >= BC_Threshold_I & NES_I_S_BC >= BC_Threshold_I & G3BP_I_S_BC >= BC_Threshold_I & NES_E_S_BC >= BC_Threshold_E)) &
+#                                       ((NLS_I_S >= median(NLS_I_S) * rowSum_Multiplier_I) &
+#                                          (NES_I_S >= median(NES_I_S) * rowSum_Multiplier_I) &
+#                                          (G3BP_I_S >= median(G3BP_I_S) * rowSum_Multiplier_I) &
+#                                          (NLS_E_S >= median(NLS_E_S) * rowSum_Multiplier_E) &
+#                                          (NES_E_S >= median(NES_E_S) * rowSum_Multiplier_E)))
+
 S_Peaks = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
-                                      ((NLS_I_S_BC >= BC_Threshold_I & NLS_E_S_BC >= BC_Threshold_E) | 
+                                      ((NLS_I_S_BC >= BC_Threshold_I & NLS_E_S_BC >= BC_Threshold_E) & 
                                          (NES_I_S_BC >= BC_Threshold_I & NES_E_S_BC >= BC_Threshold_E)) &
-                                      ((I_rowSum >= median(peakEnrichment$I_rowSum)*rowSum_Multiplier_I) &
-                                         (E_rowSum >= median(peakEnrichment$E_rowSum)*rowSum_Multiplier_E)))
+                                      ((NLS_I_S >= median(NLS_I_S) * rowSum_Multiplier_I) &
+                                         (NES_I_S >= median(NES_I_S) * rowSum_Multiplier_I) &
+                                         (NLS_E_S >= median(NLS_E_S) * rowSum_Multiplier_E) &
+                                         (NES_E_S >= median(NES_E_S) * rowSum_Multiplier_E)))
 
 plotData = data.frame(NLS_EvI_S = S_Peaks$NLS_EvI_S, NES_EvI_S = S_Peaks$NES_EvI_S)
 plotData$annotation = factor(S_Peaks$grouped_annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", "ncRNA", "TE", "Other", "DS10K"))
 
-ggplot(plotData, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
-  geom_point(pch = 16, size = 3, alpha = 0.5) +
+stressPlot = ggplot(plotData, aes(x = log2(NLS_EvI_S), y = log2(NES_EvI_S), color = annotation)) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
   labs(x = 'log2(Nuclear Enriched/Input)', y = 'log2(Cytoplasm Enriched/Input)') +
-  xlim(c(-8, 8)) +
-  ylim(c(-8, 8)) +
+  xlim(c(-6, 6)) +
+  ylim(c(-6, 6)) +
   geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "red") +
   geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "red") +
-  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(data), ' peaks)')) +
+  ggtitle(paste0('Stress HuR Peaks: Nuclear vs Cytoplasm of Enriched/Input (',  nrow(plotData), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
   theme(axis.text = element_text(size=14), 
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
+ggMarginal(stressPlot, type="histogram", groupColour = TRUE, groupFill = T)
+
 
 ## Per Gene Peaks so that we can filter:
 S_Peaks_per_gene = S_Peaks %>% group_by(gene, external_gene_name) %>% summarise(peakCounts = n())
 
 
 ## Peaks per location:
-S_Peaks_NLS = S_Peaks %>% filter((NLS_EvI_S >= 2 & NES_EvI_S < 2) &
+S_Peaks_NLS = S_Peaks %>% filter((log2(NLS_EvI_S) >= 1 & log2(NES_EvI_S) < -1) &
                                    (NLS_E_S_BC >= BC_Threshold_E))
 
-S_Peaks_NES = S_Peaks %>% filter((NES_EvI_S >= 2 & NLS_EvI_S < 2) &
+S_Peaks_NES = S_Peaks %>% filter((log2(NES_EvI_S) >= 1 & log2(NLS_EvI_S) < -1) &
                                    (NES_E_S_BC >= BC_Threshold_E))
 
-S_Peaks_Shared = S_Peaks %>% filter((NLS_EvI_S >= 2 & NES_EvI_S >= 2) &
+S_Peaks_Shared = S_Peaks %>% filter((log2(NLS_EvI_S) >= 1 & log2(NES_EvI_S) >= 1) &
                                       (NLS_E_S_BC >= BC_Threshold_E & NES_E_S_BC >= BC_Threshold_E))
 
 ## Gene Level Grouping:
@@ -353,6 +379,12 @@ Genes_M2S_NES_NLS = intersect(M_Peaks_NES_UniqueGenes$gene, S_Peaks_NLS_UniqueGe
 
 
 
+
+
+
+M_Input_Genes = unique((peaksMatrix %>% filter(NLS_I_M_BC >= 1 &
+                                                NES_I_M_BC >= 1 &
+                                                G3BP_I_M_BC >= 1))$gene)
 
 
 
@@ -455,7 +487,7 @@ ggplot(data, aes(x = log2(NES_EvI_M), y = log2(G3BP_EvI_M), color = annotation))
   labs(x = 'log2(Cytoplasm Enriched/Input)', y = 'log2(Stress Granule Enriched/Input)') +
   xlim(c(-8, 8)) +
   ylim(c(-8, 8)) +
-  ggtitle(paste0('Mock HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(data), ' peaks)')) +
+  ggtitle(paste0('Mock HuR Peaks: Cytoplasm vs Stress Granule of Enriched/Input (',  nrow(plotData), ' peaks)')) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
   theme(axis.text = element_text(size=14), 
