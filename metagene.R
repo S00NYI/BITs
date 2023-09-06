@@ -217,7 +217,11 @@ plot_density <- function(density_data, feature_name) {
     ylim(0, 0.004) +
     labs(title=paste("Metagene Plot: Peak Density around", feature_name),
          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
-    theme_minimal()
+    theme_minimal() +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.text = element_text(size=14))
 }
 
 # Plot for each feature
