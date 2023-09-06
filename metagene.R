@@ -26,8 +26,8 @@ gtf_raw = readGFF(gtfFile)
 gtf_raw$seqid = ifelse(substr(gtf_raw$seqid, 1, 3) != "chr", paste0("chr", gtf_raw$seqid), gtf_raw$seqid)
 gtf_raw = gtf_raw[gtf_raw$type != "gene", ]
 
-gtf = subset(gtf_raw, transcript_biotype == "protein_coding")
-# gtf = gtf_raw
+# gtf = subset(gtf_raw, transcript_biotype == "protein_coding")
+gtf = gtf_raw
 
 # head(gtf)
 # table(gtf$transcript_biotype)
@@ -166,10 +166,6 @@ peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
 peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
 
 
-# ## Copy by the number of tags 
-# peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
-
-
 # Convert peaks and various RNA landmarks  to GRanges objects
 peaks_gr <- GRanges(seqnames=peaks$chrom, ranges=IRanges(start=peaks$start, end=peaks$end))
 tss_windows <- GRanges(seqnames=tss_starts$seqid, 
@@ -188,7 +184,7 @@ tts_windows <- GRanges(seqnames=tts_starts$seqid,
 
 # Calculate densities for each feature, function. Can playwith window width in the function
 calculate_density <- function(feature_windows, feature_starts, peaks_gr) {
-  window_width <- 7
+  window_width <- 25
   window_def <- 500
   start_positions <- seq(-window_def, window_def - window_width, by=window_width)
   end_positions <- seq(-window_def + window_width, window_def, by=window_width)
@@ -218,8 +214,8 @@ plot_density <- function(density_data, feature_name) {
   ggplot(density_data, aes(x=midpoint, y=density)) +
     geom_line(color="blue") +
     geom_vline(xintercept=0, color="red", linetype="dashed") +
-    ylim(0, 0.03) +
-    labs(title=paste("Cytoplasm Fraction Arsenite Metagene Plot: Peak Density around", feature_name),
+    ylim(0, 0.004) +
+    labs(title=paste("Metagene Plot: Peak Density around", feature_name),
          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
     theme_minimal()
 }
@@ -265,37 +261,31 @@ density_TTS = metagenePlot(peaks_gr, tts_windows, PeakLocForDistance = 'middle',
 density_TSS = as.data.frame(table(density_TSS$data$distance))
 colnames(density_TSS) = c('position', 'Freq')
 density_TSS = density_TSS %>% mutate(density = Freq/sum(Freq))
-
 plot(density_TSS$position, density_TSS$density, type = "l")
 
 density_CDS = as.data.frame(table(density_CDS$data$distance))
 colnames(density_CDS) = c('position', 'Freq')
 density_CDS = density_CDS %>% mutate(density = Freq/sum(Freq))
-
 plot(density_CDS$position, density_CDS$density, type = "l")
 
 density_5SS = as.data.frame(table(density_5SS$data$distance))
 colnames(density_5SS) = c('position', 'Freq')
 density_5SS = density_5SS %>% mutate(density = Freq/sum(Freq))
-
 plot(density_5SS$position, density_5SS$density, type = "l")
 
 density_3SS = as.data.frame(table(density_3SS$data$distance))
 colnames(density_3SS) = c('position', 'Freq')
 density_3SS = density_3SS %>% mutate(density = Freq/sum(Freq))
-
 plot(density_3SS$position, density_3SS$density)
 
 density_STC = as.data.frame(table(density_STC$data$distance))
 colnames(density_STC) = c('position', 'Freq')
 density_STC = density_STC %>% mutate(density = Freq/sum(Freq))
-
 plot(density_STC$position, density_STC$density)
 
 density_TTS = as.data.frame(table(density_TTS$data$distance))
 colnames(density_TTS) = c('position', 'Freq')
 density_TTS = density_TTS %>% mutate(density = Freq/sum(Freq))
-
 plot(density_TTS$position, density_TTS$density)
 
 #############################################
