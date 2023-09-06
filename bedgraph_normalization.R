@@ -10,8 +10,8 @@ library(stringr)
 library(data.table)
 
 baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/normalize_BEDGRAPH/'
+bgDir = paste0(baseDir, 'normalized_combined_bedgraph')
 setwd(bgDir)
-bgDir = paste0(baseDir, 'combined_bedgraph')
 bgFiles = list.files(bgDir)
 
 for (bgFile in bgFiles) {
@@ -20,7 +20,7 @@ for (bgFile in bgFiles) {
   bg = bg %>% mutate(final = as.integer(round((rowSums(bg[, colnames(bg)[4:length(colnames(bg))]]) / length(4:length(colnames(bg))))*1e6)))
   bg = bg %>% filter(final != 0)
   bg = bg[, c('V1', 'V2', 'V3', 'final')]
-  write.table(bg, paste0(baseDir, '/combined_normalized_bedgraph/', str_replace(bgFile, '.bedgraph', '.normalized.bedgraph')), row.names = F, col.names = F, quote = F)
+  write.table(bg, paste0(baseDir, '/finished_bedgraph/', str_replace(bgFile, '.bedgraph', '.normalized.bedgraph')), row.names = F, col.names = F, quote = F)
 }
 
 
