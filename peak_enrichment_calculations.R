@@ -1030,6 +1030,15 @@ colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
 colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
 
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M %>% slice(-which(rownames(PeakDistribution_Co_Input_M) == 'UnAn'))
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S %>% slice(-which(rownames(PeakDistribution_Co_Input_S) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M %>% slice(-which(rownames(PeakDistribution_Co_G3BP_M) == 'UnAn'))
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S %>% slice(-which(rownames(PeakDistribution_Co_G3BP_S) == 'UnAn'))
+
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
                                      PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
@@ -1133,6 +1142,15 @@ colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
 colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
 colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M %>% slice(-which(rownames(PeakDistribution_Co_Input_M) == 'UnAn'))
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S %>% slice(-which(rownames(PeakDistribution_Co_Input_S) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M %>% slice(-which(rownames(PeakDistribution_Co_G3BP_M) == 'UnAn'))
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S %>% slice(-which(rownames(PeakDistribution_Co_G3BP_S) == 'UnAn'))
 
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
@@ -1247,6 +1265,15 @@ colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
 colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
 colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M %>% slice(-which(rownames(PeakDistribution_Co_Input_M) == 'UnAn'))
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S %>% slice(-which(rownames(PeakDistribution_Co_Input_S) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M %>% slice(-which(rownames(PeakDistribution_Co_G3BP_M) == 'UnAn'))
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S %>% slice(-which(rownames(PeakDistribution_Co_G3BP_S) == 'UnAn'))
 
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
@@ -2049,6 +2076,14 @@ colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
 colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
 colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 
+PeakDistribution_F_Nuc_M = PeakDistribution_F_Nuc_M %>% slice(-which(rownames(PeakDistribution_F_Nuc_M) == 'UnAn'))
+PeakDistribution_F_Cyt_M = PeakDistribution_F_Cyt_M %>% slice(-which(rownames(PeakDistribution_F_Cyt_M) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_F_Nuc_S = PeakDistribution_F_Nuc_S %>% slice(-which(rownames(PeakDistribution_F_Nuc_S) == 'UnAn'))
+PeakDistribution_F_Cyt_S = PeakDistribution_F_Cyt_S %>% slice(-which(rownames(PeakDistribution_F_Cyt_S) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
 
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Cyt_M, 
@@ -2157,7 +2192,6 @@ colnames(PeakDistribution_F_Nuc_S) = c('F_S_Nuc')
 colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
 colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
 colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
-
 
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Cyt_M, 
@@ -2292,6 +2326,15 @@ colnames(PeakDistribution_F_Cyt_S) = c('F_S_Cyt')
 colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
 colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
 
+
+PeakDistribution_F_Nuc_M = PeakDistribution_F_Nuc_M %>% slice(-which(rownames(PeakDistribution_F_Nuc_M) == 'UnAn'))
+PeakDistribution_F_Cyt_M = PeakDistribution_F_Cyt_M %>% slice(-which(rownames(PeakDistribution_F_Cyt_M) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_F_Nuc_S = PeakDistribution_F_Nuc_S %>% slice(-which(rownames(PeakDistribution_F_Nuc_S) == 'UnAn'))
+PeakDistribution_F_Cyt_S = PeakDistribution_F_Cyt_S %>% slice(-which(rownames(PeakDistribution_F_Cyt_S) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
 
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_Cyt_M, 
