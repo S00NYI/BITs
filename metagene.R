@@ -97,6 +97,19 @@ tts_starts <- subset(gtf, type == "three_prime_utr")
 tts_starts$window_start <- ifelse(tts_starts$strand == "+", tts_starts$end - window_def, tts_starts$start - window_def)
 tts_starts$window_end <- ifelse(tts_starts$strand == "+", tts_starts$end + window_def, tts_starts$start + window_def)
 
+# Convert various RNA landmarks  to GRanges objects
+tss_windows <- GRanges(seqnames=tss_starts$seqid, 
+                       ranges=IRanges(start=tss_starts$window_start, end=tss_starts$window_end))
+cds_windows <- GRanges(seqnames=cds_starts$seqid, 
+                       ranges=IRanges(start=cds_starts$window_start, end=cds_starts$window_end))
+five_prime_splice_windows <- GRanges(seqnames=five_prime_splice$seqid, 
+                                     ranges=IRanges(start=five_prime_splice$window_start, end=five_prime_splice$window_end))
+three_prime_splice_windows <- GRanges(seqnames=three_prime_splice$seqid, 
+                                      ranges=IRanges(start=three_prime_splice$window_start, end=three_prime_splice$window_end))
+translation_stop_windows <- GRanges(seqnames=utr3_starts$seqid, 
+                                    ranges=IRanges(start=utr3_starts$window_start, end=utr3_starts$window_end))
+tts_windows <- GRanges(seqnames=tts_starts$seqid, 
+                       ranges=IRanges(start=tts_starts$window_start, end=tts_starts$window_end))
 
 # Read in the peaks and filter as necessary:
 peakFile = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/Combined_peakCoverage_groomed_annotated.txt'
@@ -126,65 +139,64 @@ BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC",
 
 peaks = peaks_org
 
-## Filter for Inputs
-peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 3)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
+## Filter for Input Mock
+I_M_peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= 3)
+I_M_peaks = I_M_peaks %>% mutate(selectRowSum = rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 3)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
+## Filter for Input Stress
+I_S_peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= 3)
+I_S_peaks = I_S_peaks %>% mutate(selectRowSum = rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
 
-## Filter for CoCLIPs
-peaks = peaks_org %>% filter(NLS_E_M_BC >= 1)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
+## Filter for NLS Mock
+NLS_M_peaks = peaks_org %>% filter(NLS_E_M_BC >= 1)
+NLS_M_peaks = NLS_M_peaks %>% mutate(selectRowSum = rowSums(NLS_M_peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(NLS_E_S_BC >= 1)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
+## Filter for NLS Stress
+NLS_S_peaks = peaks_org %>% filter(NLS_E_S_BC >= 1)
+NLS_S_peaks = NLS_S_peaks %>% mutate(selectRowSum = rowSums(NLS_S_peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(NES_E_M_BC >= 1)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
+## Filter for NES Mock
+NES_M_peaks = peaks_org %>% filter(NES_E_M_BC >= 1)
+NES_M_peaks = NES_M_peaks %>% mutate(selectRowSum = rowSums(NES_M_peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(NES_E_S_BC >= 1)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
+## Filter for NES Stress
+NES_S_peaks = peaks_org %>% filter(NES_E_S_BC >= 1)
+NES_S_peaks = NES_S_peaks %>% mutate(selectRowSum = rowSums(NES_S_peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(G3BP_E_M_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
+## Filter for G3BP Mock
+G3BP_M_peaks = peaks_org %>% filter(G3BP_E_M_BC >= 2)
+G3BP_M_peaks = G3BP_M_peaks %>% mutate(selectRowSum = rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(G3BP_E_S_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
+## Filter for G3BP Stress
+G3BP_S_peaks = peaks_org %>% filter(G3BP_E_S_BC >= 2)
+G3BP_S_peaks = G3BP_S_peaks %>% mutate(selectRowSum = rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
 
-## Filter for Fractionation CLIPs
-peaks = peaks_org %>% filter(Nuc_F_M_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
+## Filter for Nuclear Fraction Mock
+Nuc_M_peaks = peaks_org %>% filter(Nuc_F_M_BC >= 2)
+Nuc_M_peaks = Nuc_M_peaks %>% mutate(selectRowSum = rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
+## Filter for Nuclear Fraction Stress
+Nuc_S_peaks = peaks_org %>% filter(Nuc_F_S_BC >= 2)
+Nuc_S_peaks = Nuc_S_peaks %>% mutate(selectRowSum = rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
+## Filter for Cytoplasm Fraction Mock
+Cyto_M_peaks = peaks_org %>% filter(Cyto_F_M_BC >= 2)
+Cyto_M_peaks = Cyto_M_peaks %>% mutate(selectRowSum = rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
 
-peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
-peaks = peaks %>% mutate(selectRowSum = rowSums(peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
-
+## Filter for Cytoplasm Fraction Stress
+Cyto_S_peaks = peaks_org %>% filter(Cyto_F_S_BC >= 2)
+Cyto_S_peaks = Cyto_S_peaks %>% mutate(selectRowSum = rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
 
 # Convert peaks and various RNA landmarks  to GRanges objects
 peaks_gr <- GRanges(seqnames=peaks$chrom, ranges=IRanges(start=peaks$start, end=peaks$end))
-tss_windows <- GRanges(seqnames=tss_starts$seqid, 
-                       ranges=IRanges(start=tss_starts$window_start, end=tss_starts$window_end))
-cds_windows <- GRanges(seqnames=cds_starts$seqid, 
-                       ranges=IRanges(start=cds_starts$window_start, end=cds_starts$window_end))
-five_prime_splice_windows <- GRanges(seqnames=five_prime_splice$seqid, 
-                                     ranges=IRanges(start=five_prime_splice$window_start, end=five_prime_splice$window_end))
-three_prime_splice_windows <- GRanges(seqnames=three_prime_splice$seqid, 
-                                      ranges=IRanges(start=three_prime_splice$window_start, end=three_prime_splice$window_end))
-translation_stop_windows <- GRanges(seqnames=utr3_starts$seqid, 
-                                    ranges=IRanges(start=utr3_starts$window_start, end=utr3_starts$window_end))
-tts_windows <- GRanges(seqnames=tts_starts$seqid, 
-                       ranges=IRanges(start=tts_starts$window_start, end=tts_starts$window_end))
 
+I_M_peaks_gr <- GRanges(seqnames=I_M_peaks$chrom, ranges=IRanges(start=I_M_peaks$start, end=I_M_peaks$end))
+NLS_M_peaks_gr <- GRanges(seqnames=NLS_M_peaks$chrom, ranges=IRanges(start=NLS_M_peaks$start, end=NLS_M_peaks$end))
+NES_M_peaks_gr <- GRanges(seqnames=NES_M_peaks$chrom, ranges=IRanges(start=NES_M_peaks$start, end=NES_M_peaks$end))
 
 # Calculate densities for each feature, function. Can playwith window width in the function
 calculate_density <- function(feature_windows, feature_starts, peaks_gr) {
-  window_width <- 25
+  window_width <- 7
   window_def <- 500
   start_positions <- seq(-window_def, window_def - window_width, by=window_width)
   end_positions <- seq(-window_def + window_width, window_def, by=window_width)
@@ -201,27 +213,22 @@ calculate_density <- function(feature_windows, feature_starts, peaks_gr) {
   return(data.frame(midpoint=(start_positions + end_positions) / 2, density=densities))
 }
 
-# Calculate densities for each feature
-tss_density_data <- calculate_density(tss_windows, tss_starts$start, peaks_gr)
-cds_density_data <- calculate_density(cds_windows, cds_starts$start, peaks_gr)
-five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, peaks_gr)
-three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, peaks_gr)
-translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, peaks_gr)
-tts_density_data <- calculate_density(tts_windows, tts_starts$end, peaks_gr)  # Note: using end for TTS
+tss_density_data <- calculate_density(tss_windows, tss_starts$start, I_M_peaks_gr)
+cds_density_data <- calculate_density(cds_windows, cds_starts$start, I_M_peaks_gr)
+five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, I_M_peaks_gr)
+three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, I_M_peaks_gr)
+translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, I_M_peaks_gr)
+tts_density_data <- calculate_density(tts_windows, tts_starts$end, I_M_peaks_gr)
 
 # Function to plot the densities
 plot_density <- function(density_data, feature_name) {
   ggplot(density_data, aes(x=midpoint, y=density)) +
     geom_line(color="blue") +
     geom_vline(xintercept=0, color="red", linetype="dashed") +
-    ylim(0, 0.004) +
-    labs(title=paste("Metagene Plot: Peak Density around", feature_name),
+    ylim(0, 0.002) +
+    labs(title=paste("NLS Mock Metagene Plot: Peak Density around", feature_name),
          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
-    theme_minimal() +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.text = element_text(size=14))
+    theme_minimal()
 }
 
 # Plot for each feature
@@ -231,6 +238,66 @@ plot_density(five_prime_splice_density_data, "5' Splice Sites")
 plot_density(three_prime_splice_density_data, "3' Splice Sites")
 plot_density(translation_stop_density_data, "Translation Stop Sites")
 plot_density(tts_density_data, "TTS")
+
+# scale_values <- function(density){
+#   (density - min(density)) / (max(density) - min(density))
+#   }
+# 
+# # Calculate densities for each feature
+# I_M_tss_density_data <- calculate_density(tss_windows, tss_starts$start, I_M_peaks_gr)
+# I_M_cds_density_data <- calculate_density(cds_windows, cds_starts$start, I_M_peaks_gr)
+# I_M_five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, I_M_peaks_gr)
+# I_M_three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, I_M_peaks_gr)
+# I_M_translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, I_M_peaks_gr)
+# I_M_tts_density_data <- calculate_density(tts_windows, tts_starts$end, I_M_peaks_gr)
+# 
+# NLS_M_tss_density_data <- calculate_density(tss_windows, tss_starts$start, NLS_M_peaks_gr)
+# NLS_M_cds_density_data <- calculate_density(cds_windows, cds_starts$start, NLS_M_peaks_gr)
+# NLS_M_five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, NLS_M_peaks_gr)
+# NLS_M_three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, NLS_M_peaks_gr)
+# NLS_M_translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, NLS_M_peaks_gr)
+# NLS_M_tts_density_data <- calculate_density(tts_windows, tts_starts$end, NLS_M_peaks_gr)
+# 
+# NES_M_tss_density_data <- calculate_density(tss_windows, tss_starts$start, NES_M_peaks_gr)
+# NES_M_cds_density_data <- calculate_density(cds_windows, cds_starts$start, NES_M_peaks_gr)
+# NES_M_five_prime_splice_density_data <- calculate_density(five_prime_splice_windows, five_prime_splice$intron_start, NES_M_peaks_gr)
+# NES_M_three_prime_splice_density_data <- calculate_density(three_prime_splice_windows, three_prime_splice$intron_end, NES_M_peaks_gr)
+# NES_M_translation_stop_density_data <- calculate_density(translation_stop_windows, utr3_starts$start, NES_M_peaks_gr)
+# NES_M_tts_density_data <- calculate_density(tts_windows, tts_starts$end, NES_M_peaks_gr)
+# 
+# tss_density_data = data.frame(cbind(I_M_tss_density_data$midpoint, scale_values(I_M_tss_density_data$density), scale_values(NLS_M_tss_density_data$density), scale_values(NES_M_tss_density_data$density)))
+# cds_density_data = cbind(I_M_cds_density_data$midpoint, I_M_cds_density_data$density, NLS_M_cds_density_data$density, NES_M_cds_density_data$density)
+# five_prime_splice_density_data = cbind(I_M_five_prime_splice_density_data$midpoint, I_M_five_prime_splice_density_data$density, NLS_M_five_prime_splice_density_data$density, NES_M_five_prime_splice_density_data$density)
+# three_prime_splice_density_data = cbind(I_M_three_prime_splice_density_data$midpoint, I_M_three_prime_splice_density_data$density, NLS_M_three_prime_splice_density_data$density, NES_M_three_prime_splice_density_data$density)
+# translation_stop_density_data = cbind(I_M_translation_stop_density_data$midpoint, I_M_translation_stop_density_data$density, NLS_M_translation_stop_density_data$density, NES_M_translation_stop_density_data$density)
+# tts_density_data = cbind(I_M_tts_density_data$midpoint, I_M_tts_density_data$density, NLS_M_tts_density_data$density, NES_M_tts_density_data$density)
+# 
+# colnames(tss_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+# colnames(cds_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+# colnames(five_prime_splice_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+# colnames(three_prime_splice_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+# colnames(translation_stop_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+# colnames(tts_density_data) = c('midpoint', 'Input', 'NLS', 'NES')
+#
+# # Function to plot the densities
+# plot_density <- function(density_data1, feature_name) {
+#   ggplot(density_data1) + 
+#     geom_smooth(aes(x=midpoint, y=Input), span = 0.15, colour = 'grey', se = FALSE) +
+#     geom_smooth(aes(x=midpoint, y=NLS), span = 0.15, colour = 'salmon', se = FALSE) +
+#     geom_smooth(aes(x=midpoint, y=NES), span = 0.15, colour = 'blue', se = FALSE) +
+#     # geom_line(color="blue") +
+#     geom_vline(xintercept=0, color="red", linetype="dashed") +
+#     ylim(0, 2) +
+#     labs(title=paste("Metagene Plot: Peak Density around", feature_name),
+#          x=paste("Distance to", feature_name, "(nucleotides)"), y="Peak Density") +
+#     theme_minimal() +
+#     theme_bw() + 
+#     theme(axis.text = element_text(size=14), 
+#           axis.title = element_text(size=14, face = 'bold'), 
+#           legend.text = element_text(size=14))
+# }
+
+
 
 ## Peak Level Plotting Info:
 ## Input Mock   BC: 3   ylim: 0.001 or 0.002
