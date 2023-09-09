@@ -1,3 +1,8 @@
+## CoCLIP Analysis: 
+## Peak Enrichment Calculation
+## Continuation of Part1, mostly the same, but forked for focused figure making.
+## Written by Soon Yi
+## Last Edit: 2023-09-07
 
 library(stringr)
 library(readr)
