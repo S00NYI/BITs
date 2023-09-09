@@ -86,6 +86,6 @@ done
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP.motifs -cpu 7> ./motifs_density/${FILE_NAME}.txt
+    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./motifs_density/25bp/${FILE_NAME}.txt
 done
     
