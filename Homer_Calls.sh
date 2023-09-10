@@ -19,7 +19,7 @@ for bedFILE in *.bed; do
     annotatePeaks.pl ./6mer_motif/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -size 1000 -hist 20 -m ./6mer_motif/${FILE_NAME}_combined_TagDir/homerMotifs.motifs7 > ./motifDensity/${FILE_NAME}.txt
 done
 
-
+################ FOR FIGUREs:
 ## in the collapsedBed directory:
 cat JL0361_Input_G3BP_Input_Mock*.bed JL0388_Input_SG_Input_Mock*.bed JL1024_Pool_G3BP_I_Mock*.bed JL0388_Input_NES_Input_Mock*.bed JL1024_Pool_NES_I_Mock*.bed JL0388_Input_NLS_Input_Mock*.bed JL1024_Pool_NLS_I_Mock*.bed > CoCLIP_Input_Mock.bed
 cat JL0361_Input_G3BP_Input_Ars*.bed JL0388_Input_SG_Input_Ars*.bed JL1024_Pool_G3BP_I_Ars*.bed JL0388_Input_NES_Input_Ars*.bed JL1024_Pool_NES_I_Ars*.bed JL0388_Input_NLS_Input_Ars*.bed JL1024_Pool_NLS_I_Ars*.bed > CoCLIP_Input_Arsenite.bed
@@ -89,3 +89,40 @@ for bedFILE in ./combined_bed/*.bed; do
     annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./motifs_density/25bp/${FILE_NAME}.txt
 done
     
+annotatePeaks.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./motifs_density/50bp/All_Libraries.txt
+
+
+#########
+## SAMPLE N peaks:
+
+for bedFILE in ./combined_bed/*.bed; do
+    FILE_NAME="${bedFILE##*/}"
+    FILE_NAME="${FILE_NAME%.bed}"
+    N=694; awk 'BEGIN {srand()} !/^#/ {print rand() "\t" $0}' ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt | sort -n | head -n $N | cut -f2- > ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt
+done
+
+## Search for PAR-CLIP motifs:
+
+for bedFILE in ./combined_bed/*.bed; do
+    FILE_NAME="${bedFILE##*/}"
+    FILE_NAME="${FILE_NAME%.bed}"
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR_PAR_CLIP.motifs > ./sampled/PAR_CLIP_motifs/${FILE_NAME}.HuR_PAR_CLIP.MotifCounts.txt
+done
+
+## Search for enriched motifs:
+
+for bedFILE in ./combined_bed/*.bed; do
+    FILE_NAME="${bedFILE##*/}"
+    FILE_NAME="${FILE_NAME%.bed}"
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+done
+
+## annotatePeaks.pl for motif density 
+
+for bedFILE in ./combined_bed/*.bed; do
+    FILE_NAME="${bedFILE##*/}"
+    FILE_NAME="${FILE_NAME%.bed}"
+    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./sampled/motifs_density/50bp/${FILE_NAME}.txt
+done
