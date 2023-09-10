@@ -151,7 +151,8 @@ pheatmap(all_ranks[, colnames(all_ranks)[3:15]], cluster_rows=FALSE, cluster_col
 
 
 ####################
-baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs_density/50bp/'
+# baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs_density/50bp/'
+baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/sampled/motifs_density/50bp/'
 setwd(baseDir)
 
 
@@ -274,7 +275,7 @@ plot_density = function(density_data, motif_list, xaxis_lims = NULL, yaxis_lims 
 motif_list = c('WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
 
 
-CoCLIP_File = CoCLIP_Files[4]
+CoCLIP_File = CoCLIP_Files[8]
 plot_density(return_counts(CoCLIP_File), motif_list, yaxis_lims = c(0, 1), sampleName = CoCLIP_File)
 
 
