@@ -160,8 +160,7 @@ countsFile = list.files(paste0(baseDir))
 CoCLIP_Files = countsFile[grep("^CoCLIP", countsFile)]
 FracCLIP_Files = countsFile[grep("FracCLIP", countsFile)]
 
-raw_all_counts = list()
-index = 1
+## FIGURE3 B
 
 for (motifFile in motifFiles) {
   motifCounts = read.delim(motifFile, header = T)
@@ -175,29 +174,52 @@ for (motifFile in motifFiles) {
   raw_all_counts[[index]] = counts
   index = index + 1
 }
-## FIGURE3 B
 
 ## FIGURE3 C
 ## Metagene plots centered on peaks across peaks but for top motif only: Input vs CoCLIP
 
+mock_all = list()
+arsenite_all = list()
 
+# for (CoCLIP_File in CoCLIP_Files) {
+#   count = read.delim(CoCLIP_File)
+#   Localization = str_split(str_split(CoCLIP_File , '\\.')[[1]][1], '_')[2]
+#   Condition = str_split(str_split(CoCLIP_File , '\\.')[[1]][1], '_')[2]
+#   
+#   count = cbind(count[, 1], count[, c(2, seq(5, ncol(count)-4, by = 3))])
+#   # count = cbind(count[, 1], count[, c(3, seq(6, ncol(count)-4, by = 3))])     # + strand
+#   # count = cbind(count[, 1], count[, c(4, seq(7, ncol(count)-4, by = 3))])     # - strand
+#   colnames(count) = c('position', 'WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
+# }
 
-
-## FIGURE3 D
-## Metagene plots centered on peaks across peaks but for top motif only: Fractionation CLIP
-
-for (FracCLIP_File in FracCLIP_Files) {
-  count = read.delim(FracCLIP_File)
+return_counts = function(FILE) {
+  count = read.delim(FILE)
+  Localization = str_split(str_split(FILE , '\\.')[[1]][1], '_')[2]
+  Condition = str_split(str_split(FILE , '\\.')[[1]][1], '_')[2]
   
   count = cbind(count[, 1], count[, c(2, seq(5, ncol(count)-4, by = 3))])
+  # count = cbind(count[, 1], count[, c(3, seq(6, ncol(count)-4, by = 3))])     # + strand
+  # count = cbind(count[, 1], count[, c(4, seq(7, ncol(count)-4, by = 3))])     # - strand
   colnames(count) = c('position', 'WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
   
-  normalized_count = count %>% mutate(across(-1, ~ . - min(.)))
-  
+  return(count)
 }
 
+return_normed_counts = function(FILE) {
+  count = read.delim(FILE)
+  Localization = str_split(str_split(FILE , '\\.')[[1]][1], '_')[2]
+  Condition = str_split(str_split(FILE , '\\.')[[1]][1], '_')[2]
+  
+  count = cbind(count[, 1], count[, c(2, seq(5, ncol(count)-4, by = 3))])
+  # count = cbind(count[, 1], count[, c(3, seq(6, ncol(count)-4, by = 3))])     # + strand
+  # count = cbind(count[, 1], count[, c(4, seq(7, ncol(count)-4, by = 3))])     # - strand
+  colnames(count) = c('position', 'WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
+  normalized_count = count %>% mutate(across(-1, ~ . - min(.)))
+  
+  return(normalized_count)
+}
 
-plot_density = function(density_data, motif_list, xaxis_lims, yaxis_lims, custom_colors = NULL) {
+plot_density = function(density_data, motif_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, sampleName = NULL) {
   # Select the columns based on the motif_list
   plot_data = density_data %>% select(position, {{motif_list}})
   
@@ -211,11 +233,11 @@ plot_density = function(density_data, motif_list, xaxis_lims, yaxis_lims, custom
   # Create the ggplot object
   plot = ggplot(plot_data_long, aes(x = position, y = Density, color = Motif)) +
     geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
-    ylim(yaxis_lims) +
-    xlim(xaxis_lims) +
-    labs(title = "Metagene Plot: Motif Density around Peaks",
-         x = "Distance to peak center (nucleotides)",
-         y = "Peak Density") +
+    # ylim(yaxis_lims) +
+    # xlim(xaxis_lims) +
+    # labs(title = "Metagene Plot: Motif Density around Peaks",
+    #      x = "Distance to peak center (nucleotides)",
+    #      y = "Peak Density") +
     theme_minimal() +
     theme_bw() +
     theme(axis.text = element_text(size = 14),
@@ -228,11 +250,52 @@ plot_density = function(density_data, motif_list, xaxis_lims, yaxis_lims, custom
     plot = plot + scale_color_manual(values = custom_colors)
   }
   
+  if (!is.null(xaxis_lims)) {
+    plot = plot + xlim(xaxis_lims)
+  }
+  
+  if (!is.null(yaxis_lims)) {
+    plot = plot + ylim(yaxis_lims)
+  }
+  
+  if (!is.null(sampleName)) {
+    plot = plot + labs(title = paste0(sampleName, ": Motif Density around Peaks"),
+                       x = "Distance to peak center (nucleotides)",
+                       y = "Peak Density")
+  } else {
+    plot = plot + labs("Metagene Plot: Motif Density around Peaks",
+                       x = "Distance to peak center (nucleotides)",
+                       y = "Peak Density")
+  }
+  
   return(plot)
 }
 
+motif_list = c('WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
+
+
+CoCLIP_File = CoCLIP_Files[4]
+plot_density(return_counts(CoCLIP_File), motif_list, yaxis_lims = c(0, 1), sampleName = CoCLIP_File)
+
+
+## FIGURE3 D
+## Metagene plots centered on peaks across peaks but for top motif only: Fractionation CLIP
+
+for (FracCLIP_File in FracCLIP_Files) {
+  count = read.delim(FracCLIP_File)
+  
+  count = cbind(count[, 1], count[, c(3, seq(6, ncol(count)-4, by = 3))])
+  colnames(count) = c('position', 'WUUUA', 'UUUUU', 'YUUUA', 'AUUUY', 'UWUAA', 'WAAAA', 'UYAAA', 'UAAAW', 'WAAAU', 'WUAAA')
+  
+  normalized_count = count %>% mutate(across(-1, ~ . - min(.)))
+  
+}
+
+
+
+
 motif_list = c('WAAAA', 'UUUUU')
-plot_density(count, motif_list, c(-500, 500), c(0, 0.1), c('red', 'blue'))
+plot_density(normalized_count, motif_list)
 
 
 
