@@ -14,156 +14,233 @@ library(corrplot)
 library(pheatmap)
 
 # baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/motifs/'
-baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs'
+baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs/counts'
 setwd(baseDir)
 motifFiles = list.files(baseDir)
 motifFiles = motifFiles[grep('MotifCounts.txt', motifFiles)]
 
 peakCounts = data.frame(sample = sapply(str_split(motifFiles, '\\.'), function(x) x[1]), 
-                        peaks = c(387880, 10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 102500, 65923, 80733, 86254))
+                        peaks = c(10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 102500, 65923, 80733, 86254))
+# , peaks = c(387880, 10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 102500, 65923, 80733, 86254))
 
-raw_all_counts = list()
-normalized_all_counts = list()
+unique_peaks_per_motif = list()
+unique_peaks_per_motif_normalized = list()
+
+raw_counts_per_motif = list()
+raw_counts_per_motif_normalized = list()
+
 index = 1
 
 for (motifFile in motifFiles) {
   motifCounts = read.delim(motifFile, header = T)
   sampleName = str_split(motifFile, '\\.')[[1]][1]
   
-  peaks = 
-  counts = data.frame(motifCounts %>% group_by(Motif.Name) %>% summarise(Unique_Positions = n_distinct(PositionID)))
-  rownames(counts) = counts$Motif.Name
-  counts$Motif.Name = NULL
-  colnames(counts)[1] = sampleName
-
-  raw_all_counts[[index]] = counts
-  normalized_all_counts[[index]] = counts/peakCounts$peaks[peakCounts$sample == sampleName]
+  peaks_per_motif = data.frame(motifCounts %>% group_by(Motif.Name) %>% summarise(Unique_Positions = n_distinct(PositionID)))
+  rownames(peaks_per_motif) = peaks_per_motif$Motif.Name
+  peaks_per_motif$Motif.Name = NULL
+  colnames(peaks_per_motif)[1] = sampleName
+  
+  unique_peaks_per_motif[[index]] = peaks_per_motif
+  unique_peaks_per_motif_normalized[[index]] = peaks_per_motif/peakCounts$peaks[peakCounts$sample == sampleName]
+  
+  motif_appearance = data.frame(motifCounts %>% group_by(Motif.Name) %>% summarise(Count = n()))
+  rownames(motif_appearance) = motif_appearance$Motif.Name
+  motif_appearance$Motif.Name = NULL
+  colnames(motif_appearance)[1] = sampleName
+  
+  raw_counts_per_motif[[index]] = motif_appearance
+  raw_counts_per_motif_normalized[[index]] = motif_appearance/peakCounts$peaks[peakCounts$sample == sampleName]
+  
   index = index + 1
 }
 
-## Remove UUUUU and 35-WWWUAUUUAUUUW for analysis:
-all_counts = data.frame(raw_all_counts)
-all_ncounts = data.frame(normalized_all_counts)
 
-# idx2remove = which(rownames(all_counts) %in% c('0-UUUUU', '35-WWWUAUUUAUUUW'))
-# all_counts = all_counts[-idx2remove, ]
-# all_ncounts = all_ncounts[-idx2remove, ]
+all_unique_PPM = data.frame(unique_peaks_per_motif)
+all_unique_PPM_normed = data.frame(unique_peaks_per_motif_normalized)
+all_raw_Motifs = data.frame(raw_counts_per_motif)
+all_raw_Motifs_normed = data.frame(raw_counts_per_motif_normalized)
 
-all_ranks = all_counts %>% mutate_all(~rank(-., ties.method = "min"))
+all_ranks = all_unique_PPM %>% mutate_all(~rank(-., ties.method = "min"))
 
-all_counts$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_counts)))
-all_counts$MOTIF = sub(".*-", "", rownames(all_counts))
-all_counts = arrange(all_counts, PAR_CLIP)
-all_counts = all_counts[, c('MOTIF', 'PAR_CLIP', 'All_Libraries', 
-                          'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
-                          'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
-                          'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
-                          'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
-                          'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
-                          'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')]
-rownames(all_counts) = all_counts$MOTIF
+new_column_names = c('MOTIF', 'PAR_CLIP', 
+                     'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
+                     'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
+                     'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
+                     'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
+                     'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
+                     'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')
 
-all_ncounts$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_ncounts)))
-all_ncounts$MOTIF = sub(".*-", "", rownames(all_ncounts))
-all_ncounts = arrange(all_ncounts, PAR_CLIP)
-all_ncounts = all_ncounts[, c('MOTIF', 'PAR_CLIP', 'All_Libraries', 
-                            'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
-                            'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
-                            'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
-                            'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
-                            'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
-                            'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')]
-rownames(all_ncounts) = all_ncounts$MOTIF
+# new_column_names = c('MOTIF', 'PAR_CLIP', 'All_Libraries', 
+#                      'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
+#                      'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
+#                      'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
+#                      'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
+#                      'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
+#                      'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')
+
+all_unique_PPM$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_unique_PPM)))
+all_unique_PPM$MOTIF = sub(".*-", "", rownames(all_unique_PPM))
+all_unique_PPM = arrange(all_unique_PPM, PAR_CLIP)
+all_unique_PPM = all_unique_PPM[, new_column_names]
+rownames(all_unique_PPM) = all_unique_PPM$MOTIF
+
+all_unique_PPM_normed$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_unique_PPM_normed)))
+all_unique_PPM_normed$MOTIF = sub(".*-", "", rownames(all_unique_PPM_normed))
+all_unique_PPM_normed = arrange(all_unique_PPM_normed, PAR_CLIP)
+all_unique_PPM_normed = all_unique_PPM_normed[, new_column_names]
+rownames(all_unique_PPM_normed) = all_unique_PPM_normed$MOTIF
+
+all_raw_Motifs$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_raw_Motifs)))
+all_raw_Motifs$MOTIF = sub(".*-", "", rownames(all_raw_Motifs))
+all_raw_Motifs = arrange(all_raw_Motifs, PAR_CLIP)
+all_raw_Motifs = all_raw_Motifs[, new_column_names]
+rownames(all_raw_Motifs) = all_raw_Motifs$MOTIF
+
+all_raw_Motifs_normed$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_raw_Motifs_normed)))
+all_raw_Motifs_normed$MOTIF = sub(".*-", "", rownames(all_raw_Motifs_normed))
+all_raw_Motifs_normed = arrange(all_raw_Motifs_normed, PAR_CLIP)
+all_raw_Motifs_normed = all_raw_Motifs_normed[, new_column_names]
+rownames(all_raw_Motifs_normed) = all_raw_Motifs_normed$MOTIF
 
 all_ranks$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_ranks)))
 all_ranks$MOTIF = sub(".*-", "", rownames(all_ranks))
 all_ranks = arrange(all_ranks, PAR_CLIP)
-all_ranks = all_ranks[, c('MOTIF', 'PAR_CLIP', 'All_Libraries', 
-                                          'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
-                                          'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
-                                          'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
-                                          'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
-                                          'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
-                                          'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')]
+all_ranks = all_ranks[, new_column_names]
 rownames(all_ranks) = all_ranks$MOTIF
 
-# write.table(all_counts, 'HuR_PAR_CLIP_MotifCounts.txt', row.names = T, col.names = T, quote = F, sep = '\t')
+# write.table(all_unique_PPM, 'HuR_PAR_CLIP_MotifCounts.txt', row.names = T, col.names = T, quote = F, sep = '\t')
 # write.table(all_ranks, 'HuR_PAR_CLIP_MotifRanks.txt', row.names = T, col.names = T, quote = F, sep = '\t')
 
 ####
 #### FIGURE3 CorrMatrix_PARCLIP_Motifs
 ## With Ranks
-CorrMatrix = cor(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW') & all_ranks$MOTIF != 'UUUUU', colnames(all_ranks)[2:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
-colnames(CorrMatrix) = colnames(all_ranks)[2:15]
-rownames(CorrMatrix) = colnames(all_ranks)[2:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
+CorrMatrix = cor(all_ranks[(all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU'), colnames(all_ranks)[2:14]])
+CorrMatrix = matrix(round(CorrMatrix,2), nrow = 13)
+colnames(CorrMatrix) = colnames(all_ranks)[2:14]
+rownames(CorrMatrix) = colnames(all_ranks)[2:14]
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "indianred2"))(100)))
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
+pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
 
-## With Counts
-CorrMatrix = cor(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW') & all_counts$MOTIF != 'UUUUU', colnames(all_counts)[2:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
-colnames(CorrMatrix) = colnames(all_counts)[2:15]
-rownames(CorrMatrix) = colnames(all_counts)[2:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
-
-## With normalized counts
-CorrMatrix = cor(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW') & all_ncounts$MOTIF != 'UUUUU', colnames(all_ncounts)[2:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
-colnames(CorrMatrix) = colnames(all_ncounts)[2:15]
-rownames(CorrMatrix) = colnames(all_ncounts)[2:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
+# ## With unique peaks per motif counts
+# CorrMatrix = cor(all_unique_PPM[(all_unique_PPM$MOTIF != 'AAAAA' & all_unique_PPM$MOTIF != 'UUUUU'), colnames(all_unique_PPM)[2:15]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
+# colnames(CorrMatrix) = colnames(all_unique_PPM)[2:15]
+# rownames(CorrMatrix) = colnames(all_unique_PPM)[2:15]
+# pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
+# 
+# ## With unique peaks per motif normalized counts
+# CorrMatrix = cor(all_unique_PPM_normed[(all_unique_PPM_normed$MOTIF != 'AAAAA' & all_unique_PPM_normed$MOTIF != 'UUUUU'), colnames(all_unique_PPM_normed)[2:15]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
+# colnames(CorrMatrix) = colnames(all_unique_PPM_normed)[2:15]
+# rownames(CorrMatrix) = colnames(all_unique_PPM_normed)[2:15]
+# pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
+# 
+# ## With raw motif counts
+# CorrMatrix = cor(all_raw_Motifs[(all_raw_Motifs$MOTIF != 'AAAAA' & all_raw_Motifs$MOTIF != 'UUUUU'), colnames(all_raw_Motifs)[2:15]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
+# colnames(CorrMatrix) = colnames(all_raw_Motifs)[2:15]
+# rownames(CorrMatrix) = colnames(all_raw_Motifs)[2:15]
+# pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
+# 
+# ## With raw motif normalized counts
+# CorrMatrix = cor(all_raw_Motifs_normed[(all_raw_Motifs_normed$MOTIF != 'AAAAA' & all_raw_Motifs_normed$MOTIF != 'UUUUU'), colnames(all_raw_Motifs_normed)[2:15]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 14)
+# colnames(CorrMatrix) = colnames(all_raw_Motifs_normed)[2:15]
+# rownames(CorrMatrix) = colnames(all_raw_Motifs_normed)[2:15]
+# pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1", 'indianred2'))(100)))
 
 ####
 #### Correlation Matrix Without PAR CLIP
 ## With Ranks
-CorrMatrix = cor(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ranks)[3:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 13)
-colnames(CorrMatrix) = colnames(all_ranks)[3:15]
-rownames(CorrMatrix) = colnames(all_ranks)[3:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+CorrMatrix = cor(all_ranks[, colnames(all_ranks)[3:14]])
+CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+colnames(CorrMatrix) = colnames(all_ranks)[3:14]
+rownames(CorrMatrix) = colnames(all_ranks)[3:14]
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
-## With Counts
-CorrMatrix = cor(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_counts)[3:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 13)
-colnames(CorrMatrix) = colnames(all_counts)[3:15]
-rownames(CorrMatrix) = colnames(all_counts)[3:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# ## With unique peaks per motif counts
+# CorrMatrix = cor(all_unique_PPM[, colnames(all_unique_PPM)[3:14]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+# colnames(CorrMatrix) = colnames(all_unique_PPM)[3:14]
+# rownames(CorrMatrix) = colnames(all_unique_PPM)[3:14]
+# pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
-## With normalized counts
-CorrMatrix = cor(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ncounts)[3:15]])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = 13)
-colnames(CorrMatrix) = colnames(all_ncounts)[3:15]
-rownames(CorrMatrix) = colnames(all_ncounts)[3:15]
-pheatmap(CorrMatrix, cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# ## With unique peaks per motif normalized counts
+# CorrMatrix = cor(all_unique_PPM_normed[, colnames(all_unique_PPM_normed)[3:14]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+# colnames(CorrMatrix) = colnames(all_unique_PPM_normed)[3:14]
+# rownames(CorrMatrix) = colnames(all_unique_PPM_normed)[3:14]
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+
+# ## With raw motif counts
+# CorrMatrix = cor(all_raw_Motifs[, colnames(all_raw_Motifs)[3:14]])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+# colnames(CorrMatrix) = colnames(all_raw_Motifs)[3:14]
+# rownames(CorrMatrix) = colnames(all_raw_Motifs)[3:14]
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+
+## With raw motif normalized counts
+CorrMatrix = cor(all_raw_Motifs_normed[, colnames(all_raw_Motifs_normed)[3:14]])
+CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+colnames(CorrMatrix) = colnames(all_raw_Motifs_normed)[3:14]
+rownames(CorrMatrix) = colnames(all_raw_Motifs_normed)[3:14]
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
+
+## With raw motif normalized counts with JUST PAR-CLIP Motifs
+CorrMatrix = cor(all_raw_Motifs_normed[(all_raw_Motifs_normed$MOTIF != 'AAAAA' & all_raw_Motifs_normed$MOTIF != 'UUUUU'), colnames(all_raw_Motifs_normed)[3:14]])
+CorrMatrix = matrix(round(CorrMatrix,2), nrow = 12)
+colnames(CorrMatrix) = colnames(all_raw_Motifs_normed)[3:14]
+rownames(CorrMatrix) = colnames(all_raw_Motifs_normed)[3:14]
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
 
 ####
 #### FIGURE3 Corr_PARCLIP_Motifs
 #### with PAR-CLIP
 ## with Ranks
-pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW') & (all_ranks$MOTIF != 'UUUUU'), colnames(all_ranks)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ranks)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+pheatmap(all_ranks[(all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU'), colnames(all_ranks)[2:14]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+# pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ranks)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 
-## with counts
-pheatmap(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW') & (all_counts$MOTIF != 'UUUUU'), colnames(all_counts)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-pheatmap(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_counts)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-## with ncounts
-pheatmap(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW') & (all_ncounts$MOTIF != 'UUUUU'), colnames(all_ncounts)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-pheatmap(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ncounts)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# ## With unique peaks per motif counts
+# pheatmap(all_unique_PPM[(all_unique_PPM$MOTIF != 'WWWUAUUUAUUUW') & (all_unique_PPM$MOTIF != 'UUUUU'), colnames(all_unique_PPM)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_unique_PPM[(all_unique_PPM$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_unique_PPM)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# 
+# ## With unique peaks per motif normalized counts
+# pheatmap(all_unique_PPM_normed[(all_unique_PPM_normed$MOTIF != 'WWWUAUUUAUUUW') & (all_unique_PPM_normed$MOTIF != 'UUUUU'), colnames(all_unique_PPM_normed)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_unique_PPM_normed[(all_unique_PPM_normed$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_unique_PPM_normed)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# 
+# ## With raw motif counts
+# pheatmap(all_raw_Motifs[(all_raw_Motifs$MOTIF != 'WWWUAUUUAUUUW') & (all_raw_Motifs$MOTIF != 'UUUUU'), colnames(all_raw_Motifs)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_raw_Motifs[(all_raw_Motifs$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_raw_Motifs)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# 
+# ## With raw motif normalized counts
+# pheatmap(all_raw_Motifs_normed[(all_raw_Motifs_normed$MOTIF != 'WWWUAUUUAUUUW') & (all_raw_Motifs_normed$MOTIF != 'UUUUU'), colnames(all_raw_Motifs_normed)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_raw_Motifs_normed[(all_raw_Motifs_normed$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_raw_Motifs_normed)[2:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
 #### without PAR-CLIP
-## without Ranks
-pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW') & (all_ranks$MOTIF != 'UUUUU'), colnames(all_ranks)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ranks)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+## with Ranks
+pheatmap(all_ranks[, colnames(all_ranks)[3:14]], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+pheatmap(all_ranks[, colnames(all_ranks)[3:14]], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+# pheatmap(all_ranks[(all_ranks$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ranks)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 
-## with counts
-pheatmap(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW') & (all_counts$MOTIF != 'UUUUU'), colnames(all_counts)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-pheatmap(all_counts[(all_counts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_counts)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# ## With unique peaks per motif counts
+# pheatmap(all_unique_PPM[(all_unique_PPM$MOTIF != 'WWWUAUUUAUUUW') & (all_unique_PPM$MOTIF != 'UUUUU'), colnames(all_unique_PPM)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_unique_PPM[(all_unique_PPM$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_unique_PPM)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
-## with ncounts
-pheatmap(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW') & (all_ncounts$MOTIF != 'UUUUU'), colnames(all_ncounts)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-pheatmap(all_ncounts[(all_ncounts$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_ncounts)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+## With unique peaks per motif normalized counts
+pheatmap(all_unique_PPM_normed[, colnames(all_unique_PPM_normed)[3:14]], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+pheatmap(all_unique_PPM_normed[, colnames(all_unique_PPM_normed)[3:14]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_unique_PPM_normed[, colnames(all_unique_PPM_normed)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
+# ## With raw motif counts
+# pheatmap(all_raw_Motifs[(all_raw_Motifs$MOTIF != 'WWWUAUUUAUUUW') & (all_raw_Motifs$MOTIF != 'UUUUU'), colnames(all_raw_Motifs)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_raw_Motifs[(all_raw_Motifs$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_raw_Motifs)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+
+## With raw motif normalized counts
+pheatmap(all_raw_Motifs_normed[, colnames(all_raw_Motifs_normed)[3:14]], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+pheatmap(all_raw_Motifs_normed[, colnames(all_raw_Motifs_normed)[3:14]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(all_raw_Motifs_normed[(all_raw_Motifs_normed$MOTIF != 'WWWUAUUUAUUUW'), colnames(all_raw_Motifs_normed)[3:15]], cluster_rows=FALSE, cluster_cols=FALSE, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
 ####################
 baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs_density/50bp/'
