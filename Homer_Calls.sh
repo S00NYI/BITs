@@ -48,6 +48,8 @@ sort -k 1,1 -k2,2n FracCLIP_Cytoplasm_Mock.bed > FracCLIP_Cytoplasm_Mock.sorted.
 sort -k 1,1 -k2,2n FracCLIP_Cytoplasm_Arsenite.bed > FracCLIP_Cytoplasm_Arsenite.sorted.bed
 
 cat *.sorted.bed > All_Libraries.bed
+cat *Mock.sorted.bed > All_Mocks.bed
+cat *Arsenite.sorted.bed > All_Arsenite.bed
 
 ## Homer Motif Enrichment with Bed file after filtering to peaks:
 # for id in *.bed; do
@@ -55,6 +57,7 @@ cat *.sorted.bed > All_Libraries.bed
 # done
 
 ## Call peaks for each combined bed file:
+## -strand separate option will get peaks on both ends.
 
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
@@ -63,16 +66,8 @@ for bedFILE in ./combined_bed/*.bed; do
     findPeaks ./peaks/${FILE_NAME}_combined_TagDir/ -o auto -style factor -L 2 -localSize 10000 -strand separate -minDist 50 -size 20 -fragLength 25
 done
 
-## Search for PAR-CLIP motifs:
-
-for bedFILE in ./combined_bed/*.bed; do
-    FILE_NAME="${bedFILE##*/}"
-    FILE_NAME="${FILE_NAME%.bed}"
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/${FILE_NAME}.HuR.MotifCounts.txt
-done
-
-
 ## Search for enriched motifs:
+## -norevopp only search for motifs in the sense strand relative to the peaks. So only searches strand specified by the peak.
 
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
@@ -84,18 +79,48 @@ done
     findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/denovo/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
     findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/denovo/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
 
+
+## Search for PAR-CLIP motifs:
+## The output will report "+" for strand entries, but what it means is that its relative to the original peak strand.
+## Peaks on the - strand is still there, but just reported as "+".
+
+for bedFILE in ./combined_bed/*.bed; do
+    FILE_NAME="${bedFILE##*/}"
+    FILE_NAME="${FILE_NAME%.bed}"
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/${FILE_NAME}.HuR.MotifCounts.txt
+done
+
+
 ## annotatePeaks.pl for motif density 
+## again, positive strand here means relative to the original peak strand.
+## When making density plot, use the one from the "positive" only.
 
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
     annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/${FILE_NAME}.txt
 done
-    
 
-findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/All_Libraries.HuR.MotifCounts.txt
-findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/denovo/All_Libraries/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
-annotatePeaks.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Libraries.txt
+# ## Running for all Libraries will take very long, zsh may terminate itself (especially the density calculation part).  
+# makeTagDirectory ./peaks/All_Libraries_combined_TagDir/ ./combined_bed/All_Libraries.bed -single -format bed
+# findPeaks ./peaks/All_Libraries_combined_TagDir/ -o auto -style factor -L 2 -localSize 10000 -strand separate -minDist 50 -size 20 -fragLength 25
+# findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/All_Libraries.HuR.MotifCounts.txt
+# findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/denovo/All_Libraries/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+# annotatePeaks.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 -cpu 8 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Libraries.txt
+
+## Just for All Mocks 
+makeTagDirectory ./peaks/All_Mocks_combined_TagDir/ ./combined_bed/All_Mocks.bed -single -format bed
+findPeaks ./peaks/All_Mocks_combined_TagDir/ -o auto -style factor -L 2 -localSize 10000 -strand separate -minDist 50 -size 20 -fragLength 25
+findMotifsGenome.pl ./peaks/All_Mocks_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/All_Mocks.HuR.MotifCounts.txt
+findMotifsGenome.pl ./peaks/All_Mocks_combined_TagDir/peaks.txt hg38 ./motifs/denovo/All_Mocks/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+annotatePeaks.pl ./peaks/All_Mocks_combined_TagDir/peaks.txt hg38 -cpu 8 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Mocks.txt
+
+## Just for All Arsenites
+makeTagDirectory ./peaks/All_Arsenite_combined_TagDir/ ./combined_bed/All_Arsenite.bed -single -format bed
+findPeaks ./peaks/All_Arsenite_combined_TagDir/ -o auto -style factor -L 2 -localSize 10000 -strand separate -minDist 50 -size 20 -fragLength 25
+findMotifsGenome.pl ./peaks/All_Arsenite_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/All_Arsenite.HuR.MotifCounts.txt
+findMotifsGenome.pl ./peaks/All_Arsenite_combined_TagDir/peaks.txt hg38 ./motifs/denovo/All_Arsenite/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+annotatePeaks.pl ./peaks/All_Arsenite_combined_TagDir/peaks.txt hg38 -cpu 8 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Arsenite.txt
 
 #########
 ## SAMPLE N peaks:
