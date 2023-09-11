@@ -476,8 +476,8 @@ colnames(Mock_Combined) = c('position',
                             'UUUUU_All', 'UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm',
                             'AAAAA_All', 'AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm')
 
-plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'))
-plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'))
+plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
 
 ## Arsenite
 Arsenite_All = return_Density(densityFiles[1], strand = '+')
@@ -496,8 +496,8 @@ colnames(Arsenite_Combined) = c('position',
                                 'UUUUU_All', 'UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm',
                                 'AAAAA_All', 'AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm')
 
-plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'))
-plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'))
+plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
 ################################################################################
 
 ## FIGURE3 D
@@ -505,11 +505,11 @@ plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAA
 ################################################################################
 ## Mock
 
-plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'))
-plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'))
+plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'), yaxis_lims = c(0, 0.15))
 
-plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'))
-plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'))
+plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'), yaxis_lims = c(0, 0.15))
 ################################################################################
 
 
