@@ -68,29 +68,34 @@ done
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR_PAR_CLIP.motifs > ./motifs/${FILE_NAME}.HuR_PAR_CLIP.MotifCounts.txt
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/${FILE_NAME}.HuR.MotifCounts.txt
 done
+
 
 ## Search for enriched motifs:
 
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/${FILE_NAME}/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/denovo/${FILE_NAME}/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
 done
+
+
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/denovo/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 ./motifs/denovo/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
 
 ## annotatePeaks.pl for motif density 
 
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./motifs_density/25bp/${FILE_NAME}.txt
+    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/${FILE_NAME}.txt
 done
     
-annotatePeaks.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./motifs_density/50bp/All_Libraries.txt
 
+findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/All_Libraries.HuR.MotifCounts.txt
+findMotifsGenome.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 ./motifs/denovo/All_Libraries/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+annotatePeaks.pl ./peaks/All_Libraries_combined_TagDir/peaks.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Libraries.txt
 
 #########
 ## SAMPLE N peaks:
@@ -106,7 +111,7 @@ done
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR_PAR_CLIP.motifs > ./sampled/PAR_CLIP_motifs/${FILE_NAME}.HuR_PAR_CLIP.MotifCounts.txt
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./sampled/motifs/counts/${FILE_NAME}.HuR.MotifCounts.txt
 done
 
 ## Search for enriched motifs:
@@ -114,9 +119,9 @@ done
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
-    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/${FILE_NAME}/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/denovo/${FILE_NAME}/5mer/ -rna -len 5 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/denovo/${FILE_NAME}/6mer/ -rna -len 6 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+    findMotifsGenome.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 ./sampled/motifs/denovo/${FILE_NAME}/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
 done
 
 ## annotatePeaks.pl for motif density 
@@ -124,5 +129,5 @@ done
 for bedFILE in ./combined_bed/*.bed; do
     FILE_NAME="${bedFILE##*/}"
     FILE_NAME="${FILE_NAME%.bed}"
-    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR_PAR_CLIP_subsets.motifs > ./sampled/motifs_density/50bp/${FILE_NAME}.txt
+    annotatePeaks.pl ./peaks/${FILE_NAME}_combined_TagDir/peaks_sampled.txt hg38 -cpu 10 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./sampled/motifs/density/50bp/${FILE_NAME}.txt
 done
