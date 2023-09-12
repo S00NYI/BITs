@@ -1328,6 +1328,283 @@ ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source =
         legend.text = element_text(size=14))
 ####################################################################################################################
 
+## FIGURE5 Exploratory Stacked Bar Plots For G3BP CoCLIP Peaks: Specific RNA biotypes ONLY
+####################################################################################################################
+## mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_mRNA = Peak_Co_Input_M %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+Peak_Co_Input_S_mRNA = Peak_Co_Input_S %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+
+Peak_Co_NLS_M_mRNA = Peak_Co_NLS_M %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+Peak_Co_NLS_S_mRNA = Peak_Co_NLS_S %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+
+Peak_Co_NES_M_mRNA = Peak_Co_NES_M %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+Peak_Co_NES_S_mRNA = Peak_Co_NES_S %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+
+Peak_Co_G3BP_M_mRNA = Peak_Co_G3BP_M %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+Peak_Co_G3BP_S_mRNA = Peak_Co_G3BP_S %>% filter(finalized_annotation == "3'UTR" | finalized_annotation == "CDS" | finalized_annotation == "5'UTR" | finalized_annotation == "intron" | finalized_annotation == 'CDS_RI' | finalized_annotation == 'DS10K')
+
+PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_S = data.frame(table(Peak_Co_Input_S_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S_mRNA$finalized_annotation), row.names = 1)
+
+PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M_mRNA$finalized_annotation), row.names = 1)
+# PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0))
+# row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:6], 'nC_RI')
+# PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S_mRNA$finalized_annotation), row.names = 1)
+# PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0))
+# row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:6], 'nC_RI')
+# PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M_mRNA$finalized_annotation), row.names = 1)
+# PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0))
+# row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:6], 'nC_RI')
+# PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(table(Peak_Co_G3BP_S_mRNA$finalized_annotation), row.names = 1)
+# PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0))
+# row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:6], 'nC_RI')
+# PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_RI", "DS10K"))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source == 'Co_M_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels= c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Mock mRNA Peak Distribution') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_S_Input' | Source == 'Co_S_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels= c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Arsenite mRNA Peak Distribution') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c("5'UTR", "CDS", "3'UTR", "intron", "CDS_RI", "DS10K"))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source == 'Co_M_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP'))+
+  ggtitle('CoCLIP Mock mRNA Peak Distribution by Fraction') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_S_Input' | Source == 'Co_S_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Arsenite mRNA Peak Distribution by Fraction') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## non-mRNA Features Only
+## Mock vs Stress for Each Fraction
+Peak_Co_Input_M_Not_mRNA = Peak_Co_Input_M %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+Peak_Co_Input_S_Not_mRNA = Peak_Co_Input_S %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+
+Peak_Co_NLS_M_Not_mRNA = Peak_Co_NLS_M %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+Peak_Co_NLS_S_Not_mRNA = Peak_Co_NLS_S %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+
+Peak_Co_NES_M_Not_mRNA = Peak_Co_NES_M %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+Peak_Co_NES_S_Not_mRNA = Peak_Co_NES_S %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+
+Peak_Co_G3BP_M_Not_mRNA = Peak_Co_G3BP_M %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+Peak_Co_G3BP_S_Not_mRNA = Peak_Co_G3BP_S %>% filter(finalized_annotation != "3'UTR" & finalized_annotation != "CDS" & finalized_annotation != "5'UTR" & finalized_annotation != "intron" & finalized_annotation != "CDS_RI" & finalized_annotation != 'DS10K')
+
+PeakDistribution_Co_NLS_M = data.frame(table(Peak_Co_NLS_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_M = rbind(PeakDistribution_Co_NLS_M, c(0))
+row.names(PeakDistribution_Co_NLS_M) = c(row.names(PeakDistribution_Co_NLS_M)[1:10], 'scaRNA')
+
+PeakDistribution_Co_NLS_S = data.frame(table(Peak_Co_NLS_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NLS_S = rbind(PeakDistribution_Co_NLS_S, c(0))
+row.names(PeakDistribution_Co_NLS_S) = c(row.names(PeakDistribution_Co_NLS_S)[1:10], 'scaRNA')
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_Input_M = data.frame(table(Peak_Co_Input_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_M = rbind(PeakDistribution_Co_Input_M, c(0), c(0))
+row.names(PeakDistribution_Co_Input_M) = c(row.names(PeakDistribution_Co_Input_M)[1:9], 'scaRNA', 'nC_RI')
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_Input_S = data.frame(table(Peak_Co_Input_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_Input_S = rbind(PeakDistribution_Co_Input_S, c(0), c(0))
+row.names(PeakDistribution_Co_Input_S) = c(row.names(PeakDistribution_Co_Input_S)[1:9], 'scaRNA', 'nC_RI')
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_M = data.frame(table(Peak_Co_NES_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_M = rbind(PeakDistribution_Co_NES_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_NES_M) = c(row.names(PeakDistribution_Co_NES_M)[1:8], 'miRNA', 'nC_RI', 'scaRNA')
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_NES_S = data.frame(table(Peak_Co_NES_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_NES_S = rbind(PeakDistribution_Co_NES_S, c(0), c(0))
+row.names(PeakDistribution_Co_NES_S) = c(row.names(PeakDistribution_Co_NES_S)[1:9], 'scaRNA', 'nC_RI')
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S[row.names(PeakDistribution_Co_NLS_M), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_M = data.frame(table(Peak_Co_G3BP_M_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_M = rbind(PeakDistribution_Co_G3BP_M, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_M) = c(row.names(PeakDistribution_Co_G3BP_M)[1:8], 'miRNA', 'nC_RI', 'scaRNA')
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+PeakDistribution_Co_G3BP_S = data.frame(table(Peak_Co_G3BP_S_Not_mRNA$finalized_annotation), row.names = 1)
+PeakDistribution_Co_G3BP_S = rbind(PeakDistribution_Co_G3BP_S, c(0), c(0), c(0))
+row.names(PeakDistribution_Co_G3BP_S) = c(row.names(PeakDistribution_Co_G3BP_S)[1:8], 'miRNA', 'nC_RI', 'scaRNA')
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S[row.names(PeakDistribution_Co_NLS_S), 'Freq', drop = FALSE]
+
+colnames(PeakDistribution_Co_Input_M) = c('Co_M_Input')
+colnames(PeakDistribution_Co_Input_S) = c('Co_S_Input')
+colnames(PeakDistribution_Co_NLS_M) = c('Co_M_NLS')
+colnames(PeakDistribution_Co_NLS_S) = c('Co_S_NLS')
+colnames(PeakDistribution_Co_NES_M) = c('Co_M_NES')
+colnames(PeakDistribution_Co_NES_S) = c('Co_S_NES')
+colnames(PeakDistribution_Co_G3BP_M) = c('Co_M_G3BP')
+colnames(PeakDistribution_Co_G3BP_S) = c('Co_S_G3BP')
+
+PeakDistribution_Co_Input_M = PeakDistribution_Co_Input_M %>% slice(-which(rownames(PeakDistribution_Co_Input_M) == 'UnAn'))
+PeakDistribution_Co_Input_S = PeakDistribution_Co_Input_S %>% slice(-which(rownames(PeakDistribution_Co_Input_S) == 'UnAn'))
+PeakDistribution_Co_NLS_M = PeakDistribution_Co_NLS_M %>% slice(-which(rownames(PeakDistribution_Co_NLS_M) == 'UnAn'))
+PeakDistribution_Co_NLS_S = PeakDistribution_Co_NLS_S %>% slice(-which(rownames(PeakDistribution_Co_NLS_S) == 'UnAn'))
+PeakDistribution_Co_NES_M = PeakDistribution_Co_NES_M %>% slice(-which(rownames(PeakDistribution_Co_NES_M) == 'UnAn'))
+PeakDistribution_Co_NES_S = PeakDistribution_Co_NES_S %>% slice(-which(rownames(PeakDistribution_Co_NES_S) == 'UnAn'))
+PeakDistribution_Co_G3BP_M = PeakDistribution_Co_G3BP_M %>% slice(-which(rownames(PeakDistribution_Co_G3BP_M) == 'UnAn'))
+PeakDistribution_Co_G3BP_S = PeakDistribution_Co_G3BP_S %>% slice(-which(rownames(PeakDistribution_Co_G3BP_S) == 'UnAn'))
+
+## Peak Counts Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistribution_Co_Input_S, 
+                                     PeakDistribution_Co_NLS_M, PeakDistribution_Co_NLS_S, 
+                                     PeakDistribution_Co_NES_M, PeakDistribution_Co_NES_S,
+                                     PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI', 'UnAn'))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source == 'Co_M_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Mock ncRNA Peak Distribution') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_S_Input' | Source == 'Co_S_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Arsenite ncRNA Peak Distribution') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+## Fraction Distribution Stacked Bar Graph
+PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M/sum(PeakDistribution_Co_Input_M), PeakDistribution_Co_Input_S/sum(PeakDistribution_Co_Input_S), 
+                                     PeakDistribution_Co_NLS_M/sum(PeakDistribution_Co_NLS_M), PeakDistribution_Co_NLS_S/sum(PeakDistribution_Co_NLS_S), 
+                                     PeakDistribution_Co_NES_M/sum(PeakDistribution_Co_NES_M), PeakDistribution_Co_NES_S/sum(PeakDistribution_Co_NES_S),
+                                     PeakDistribution_Co_G3BP_M/sum(PeakDistribution_Co_G3BP_M), PeakDistribution_Co_G3BP_S/sum(PeakDistribution_Co_G3BP_S))
+PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
+
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>%
+  gather(key = "Source", value = "Freq", 'Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP') %>%
+  select(Source, Freq, Annotation)
+
+PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP'))
+PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI', 'UnAn'))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source == 'Co_M_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Mock ncRNA Peak Distribution by Fraction') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_S_Input' | Source == 'Co_S_G3BP'), aes(fill = Annotation, y=Freq, x=Source)) + 
+  geom_bar(position='stack', stat='identity') +
+  # scale_x_discrete(labels= c('Input Mock', 'Input Stress', 'NLS Mock', 'NLS Stress', 'NES Mock', 'NES Stress', 'G3BP Mock', 'G3BP Stress')) +
+  scale_x_discrete(labels = c('Input', 'G3BP')) +
+  ggtitle('CoCLIP Arsenite ncRNA Peak Distribution by Fraction') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14))
+
+####################################################################################################################
+
 ## FIGURE1 Exploratory Stacked Bar Plots For CoCLIP Tags:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
