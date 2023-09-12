@@ -123,6 +123,12 @@ findMotifsGenome.pl ./peaks/All_Arsenite_combined_TagDir/peaks.txt hg38 ./motifs
 annotatePeaks.pl ./peaks/All_Arsenite_combined_TagDir/peaks.txt hg38 -cpu 8 -size 1000 -hist 50 -m ./motifs/HuR.subsets.motifs > ./motifs/density/All_Arsenite.txt
 
 #########
+## eCLIP Analysis:
+
+findMotifsGenome.pl ./eCLIP_bed/ELAVL1_eCLIP_ENCFF566LNK.bed hg38 ./motifs/ -rna -len 5 -size 50 -find ./motifs/HuR.motifs > ./motifs/counts/eCLIP.HuR.MotifCounts.txt
+findMotifsGenome.pl ./eCLIP_bed/ELAVL1_eCLIP_ENCFF566LNK.bed hg38 ./motifs/denovo/eCLIP/7mer/ -rna -len 7 -size 50 -S 25 -noknown -norevopp -p 8 -mask -mis 2 -bits
+
+#########
 ## SAMPLE N peaks:
 
 for bedFILE in ./combined_bed/*.bed; do
