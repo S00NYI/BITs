@@ -12,6 +12,8 @@ library(dplyr)
 library(data.table)
 library(corrplot)
 library(pheatmap)
+library(scales)
+library(RColorBrewer)
 
 ## data processing for motif counts
 ################################################################################
@@ -22,9 +24,7 @@ countFiles = list.files(baseDir)
 countFiles = countFiles[grep('MotifCounts.txt', countFiles)]
 
 peakCounts = data.frame(sample = sapply(str_split(countFiles, '\\.'), function(x) x[1]), 
-                        peaks = c(287466, 190803, 10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 102500, 65923, 80733, 86254))
-
-# All_libraries = 387880
+                        peaks = c(287466, 190803, 10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 8823, 102500, 65923, 80733, 86254))
 
 unique_peaks_per_motif = list()
 unique_peaks_per_motif_normalized = list()
@@ -83,13 +83,24 @@ all_ranks = swap1and2row(all_ranks)
 all_raw_Motifs = swap1and2row(all_raw_Motifs)
 all_raw_Motifs_normed = swap1and2row(all_raw_Motifs_normed)   ## Normalized by number of peaks
 
-new_column_names = c('MOTIF', 'PAR_CLIP', 'All_Mocks', 'All_Arsenites',
-                     'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
-                     'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
-                     'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
-                     'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
-                     'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
-                     'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')
+# new_column_names = c('MOTIF', 'PAR_CLIP', 'eCLIP', 
+#                      'All_Mocks', 'All_Arsenites',
+#                      'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
+#                      'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
+#                      'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
+#                      'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
+#                      'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
+#                      'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')
+
+new_column_names = c('MOTIF', 'PAR_CLIP', 'eCLIP', 
+                     'All_Mocks', 
+                     'CoCLIP_Input_Mock', 
+                     'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 
+                     'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'CoCLIP_G3BP_Mock', 
+                     'All_Arsenites',
+                     'CoCLIP_Input_Arsenite', 
+                     'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite',
+                     'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'CoCLIP_G3BP_Arsenite')
 
 all_unique_PPM$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_unique_PPM)))
 all_unique_PPM$MOTIF = sub(".*-", "", rownames(all_unique_PPM))
@@ -121,6 +132,9 @@ all_ranks = arrange(all_ranks, PAR_CLIP)
 all_ranks = all_ranks[, new_column_names]
 rownames(all_ranks) = all_ranks$MOTIF
 
+all_ranks$eCLIP = all_ranks$eCLIP - 1
+all_ranks$eCLIP[1] = all_ranks$eCLIP[1] = 0
+all_ranks$eCLIP[2] = all_ranks$eCLIP[2] = 0
 # write.table(all_unique_PPM, 'HuR_PAR_CLIP_MotifCounts.txt', row.names = T, col.names = T, quote = F, sep = '\t')
 # write.table(all_ranks, 'HuR_PAR_CLIP_MotifRanks.txt', row.names = T, col.names = T, quote = F, sep = '\t')
 ################################################################################
@@ -129,15 +143,22 @@ rownames(all_ranks) = all_ranks$MOTIF
 ################################################################################
 ## With Ranks
 row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = c('PAR_CLIP', colnames(all_ranks)[3:16])
-col_selection = c('PAR_CLIP', 'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
-# col_selection = c('PAR_CLIP', 'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
+col_selection = colnames(all_ranks)[2:17]
+col_selection = c('PAR_CLIP', 'eCLIP',  'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
+col_selection = c('PAR_CLIP', 'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
+
+col_selection = c('PAR_CLIP', 'eCLIP', 
+                  'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 
+                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite')
 
 CorrMatrix = cor(all_ranks[row_selection, col_selection])
 CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
 colnames(CorrMatrix) = col_selection
 rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
+
+pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = colorRampPalette(brewer.pal(9, "YlGnBu"))(100))
+
 ################################################################################
 
 ## FIGURE3 Correlation Matrix without PAR-CLIP data and just the PAR-CLIP motifs
@@ -212,11 +233,20 @@ col_selection = colnames(all_ranks)[3:16]
 col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
 col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
 
+
+col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 
+                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite')
+
+
 CorrMatrix = cor(all_ranks[, col_selection])
 CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
 colnames(CorrMatrix) = col_selection
 rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+
+# pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "YlGnBu"))(100))
+pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
+# pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "YlGn"))(100))
 
 # ## With unique peaks per motif counts
 # row_selection = (all_unique_PPM$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
@@ -229,17 +259,17 @@ pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalett
 # rownames(CorrMatrix) = col_selection
 # pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
-## With unique peaks per motif normalized counts
-## This looks equal to un-normalized version
-col_selection = colnames(all_unique_PPM_normed)[3:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-CorrMatrix = cor(all_unique_PPM_normed[, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# ## With unique peaks per motif normalized counts
+# ## This looks equal to un-normalized version
+# col_selection = colnames(all_unique_PPM_normed)[3:16]
+# col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
+# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
+# 
+# CorrMatrix = cor(all_unique_PPM_normed[, col_selection])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
+# colnames(CorrMatrix) = col_selection
+# rownames(CorrMatrix) = col_selection
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 
 # ## With raw motif counts
 # row_selection = (all_raw_Motifs$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
@@ -251,29 +281,36 @@ pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalett
 # colnames(CorrMatrix) = col_selection
 # rownames(CorrMatrix) = col_selection
 # pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-## With raw motif normalized counts
-## This looks equal to un-normalized version
-col_selection = colnames(all_raw_Motifs_normed)[4:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-CorrMatrix = cor(all_raw_Motifs_normed[, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
+# 
+# ## With raw motif normalized counts
+# ## This looks equal to un-normalized version
+# col_selection = colnames(all_raw_Motifs_normed)[4:16]
+# col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
+# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
+# 
+# CorrMatrix = cor(all_raw_Motifs_normed[, col_selection])
+# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
+# colnames(CorrMatrix) = col_selection
+# rownames(CorrMatrix) = col_selection
+# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
 ################################################################################
 
 ## FIGURE3 Motif Score Heatmap with PAR-CLIP data and just the PAR-CLIP motifs
 ################################################################################
 ## with Ranks
 row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = c('PAR_CLIP', colnames(all_ranks)[3:16])
-col_selection = c('PAR_CLIP', 'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
-col_selection = c('PAR_CLIP', 'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
+col_selection = colnames(all_ranks)[2:17]
+col_selection = c('PAR_CLIP', 'eCLIP', 'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
+col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
 
-pheatmap(all_ranks[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+col_selection = c('PAR_CLIP', 'eCLIP', 
+                  'All_Mocks', 'CoCLIP_Input_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 
+                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite')
+
+pheatmap(all_ranks[row_selection, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+
+pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
 ################################################################################
 
 ## FIGURE3 Motif Score Heatmap without PAR-CLIP data and just the PAR-CLIP motifs
@@ -284,7 +321,7 @@ col_selection = colnames(all_ranks)[3:16]
 col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
 col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
 
-pheatmap(all_ranks[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+pheatmap(all_ranks[row_selection, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 
 # ## With unique peaks per motif counts
 # ## Pointless to look at un-normalized ones, because scale varies too much
@@ -328,7 +365,7 @@ col_selection = colnames(all_ranks)[3:15]
 col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
 col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
 
-pheatmap(all_ranks[, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 
 # ## With unique peaks per motif counts
 # ## Pointless to look at un-normalized ones, because scale varies too much
@@ -358,7 +395,7 @@ col_selection = colnames(all_raw_Motifs_normed)[3:15]
 col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
 col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
 
-pheatmap(all_raw_Motifs_normed[, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+pheatmap(all_raw_Motifs_normed[, col_selection], cluster_rows=F, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 ################################################################################
 
 ## data processing for motif density
@@ -449,55 +486,55 @@ plot_Density = function(density_data, motif_list, xaxis_lims = NULL, yaxis_lims 
 ## FIGURE3 B Metagene Plot from All Libraries for Top Motifs UUUUU AAAAA 
 ################################################################################
 ## Mock
-densityFile = return_Density(densityFiles[2], strand = '+')
-plot_Density(densityFile, c('UUUUU', 'AAAAA'))
+densityFile = return_Density(densityFiles[2], strand = '+', normalize = T)
+plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06))
 
 ## Arsenite
-densityFile = return_Density(densityFiles[1], strand = '+')
-plot_Density(densityFile, c('UUUUU', 'AAAAA'))
+densityFile = return_Density(densityFiles[1], strand = '+', normalize = T)
+plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06))
 ################################################################################
 
 ## FIGURE3 C Metagene Plot from Input vs CoCLIP for Top Motifs UUUUU AAAAA 
 ################################################################################
 ## Mock
-Mock_All = return_Density(densityFiles[2], strand = '+') 
-Mock_Input = return_Density(densityFiles[6], strand = '+')
-Mock_NES = return_Density(densityFiles[8], strand = '+')
-Mock_NLS = return_Density(densityFiles[10], strand = '+')
-Mock_G3BP = return_Density(densityFiles[4], strand = '+')
-Mock_Nuclear = return_Density(densityFiles[14], strand = '+')
-Mock_Cytoplasm = return_Density(densityFiles[12], strand = '+')
+Mock_All = return_Density(densityFiles[2], strand = '+', normalize = T) 
+Mock_Input = return_Density(densityFiles[6], strand = '+', normalize = T)
+Mock_NES = return_Density(densityFiles[8], strand = '+', normalize = T)
+Mock_NLS = return_Density(densityFiles[10], strand = '+', normalize = T)
+Mock_G3BP = return_Density(densityFiles[4], strand = '+', normalize = T)
+Mock_Nuclear = return_Density(densityFiles[14], strand = '+', normalize = T)
+Mock_Cytoplasm = return_Density(densityFiles[12], strand = '+', normalize = T)
 
 Mock_Combined = data.frame(cbind(Mock_All$position, 
                                  Mock_All$UUUUU, Mock_Input$UUUUU, Mock_NES$UUUUU, Mock_NLS$UUUUU, Mock_G3BP$UUUUU, Mock_Nuclear$UUUUU, Mock_Cytoplasm$UUUUU,
                                  Mock_All$AAAAA, Mock_Input$AAAAA, Mock_NES$AAAAA, Mock_NLS$AAAAA, Mock_G3BP$AAAAA, Mock_Nuclear$AAAAA, Mock_Cytoplasm$AAAAA))
 
 colnames(Mock_Combined) = c('position', 
-                            'UUUUU_All', 'UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm',
-                            'AAAAA_All', 'AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm')
+                            'UUUUU_All', 'UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuc', 'UUUUU_Cyt',
+                            'AAAAA_All', 'AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuc', 'AAAAA_Cyt')
 
-plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
-plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS'), yaxis_lims = c(0, 0.15))
 
 ## Arsenite
-Arsenite_All = return_Density(densityFiles[1], strand = '+')
-Arsenite_Input = return_Density(densityFiles[5], strand = '+')
-Arsenite_NES = return_Density(densityFiles[7], strand = '+')
-Arsenite_NLS = return_Density(densityFiles[9], strand = '+')
-Arsenite_G3BP = return_Density(densityFiles[3], strand = '+')
-Arsenite_Nuclear = return_Density(densityFiles[13], strand = '+')
-Arsenite_Cytoplasm = return_Density(densityFiles[11], strand = '+')
+Arsenite_All = return_Density(densityFiles[1], strand = '+', normalize = T) 
+Arsenite_Input = return_Density(densityFiles[5], strand = '+', normalize = T) 
+Arsenite_NES = return_Density(densityFiles[7], strand = '+', normalize = T) 
+Arsenite_NLS = return_Density(densityFiles[9], strand = '+', normalize = T) 
+Arsenite_G3BP = return_Density(densityFiles[3], strand = '+', normalize = T) 
+Arsenite_Nuclear = return_Density(densityFiles[13], strand = '+', normalize = T) 
+Arsenite_Cytoplasm = return_Density(densityFiles[11], strand = '+', normalize = T) 
 
 Arsenite_Combined = data.frame(cbind(Arsenite_All$position, 
                                      Arsenite_All$UUUUU, Arsenite_Input$UUUUU, Arsenite_NES$UUUUU, Arsenite_NLS$UUUUU, Arsenite_G3BP$UUUUU, Arsenite_Nuclear$UUUUU, Arsenite_Cytoplasm$UUUUU,
                                      Arsenite_All$AAAAA, Arsenite_Input$AAAAA, Arsenite_NES$AAAAA, Arsenite_NLS$AAAAA, Arsenite_G3BP$AAAAA, Arsenite_Nuclear$AAAAA, Arsenite_Cytoplasm$AAAAA))
 
 colnames(Arsenite_Combined) = c('position', 
-                                'UUUUU_All', 'UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm',
-                                'AAAAA_All', 'AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm')
+                                'UUUUU_All', 'UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuc', 'UUUUU_Cyt',
+                                'AAAAA_All', 'AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuc', 'AAAAA_Cyt')
 
-plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS'), yaxis_lims = c(0, 0.15))
 ################################################################################
 
 ## FIGURE3 D
@@ -505,11 +542,11 @@ plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_NES', 'AAAAA_NLS', 'AAAA
 ################################################################################
 ## Mock
 
-plot_Density(Mock_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'), yaxis_lims = c(0, 0.15))
-plot_Density(Mock_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_Nuc', 'UUUUU_Cyt'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_lims = c(0, 0.15))
 
-plot_Density(Arsenite_Combined, c('UUUUU_Input', 'UUUUU_Nuclear', 'UUUUU_Cytoplasm'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('AAAAA_Input', 'AAAAA_Nuclear', 'AAAAA_Cytoplasm'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_Nuc', 'UUUUU_Cyt'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_lims = c(0, 0.15))
 ################################################################################
 
 
