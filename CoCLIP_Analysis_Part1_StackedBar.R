@@ -131,8 +131,8 @@ fillAnnotation = function(annotation_counts, annotation_list) {
 }
 
 ## Plot Stacked bar:
-plotStackedBar = function(annotation_counts, sample_list, sample_label, title) {
-  ggplot(annotation_counts %>% filter(Source %in% sample_list), aes(fill = Annotation, y=Freq, x=Source)) + 
+plotStackedBar = function(annotation_counts, sample_list, sample_label, title, y_lim = NULL, y_tick = NULL) {
+  plot = ggplot(annotation_counts %>% filter(Source %in% sample_list), aes(fill = Annotation, y=Freq, x=Source)) + 
     geom_bar(position='stack', stat='identity') +
     scale_x_discrete(labels = sample_label) +
     ggtitle(title) +
@@ -142,6 +142,16 @@ plotStackedBar = function(annotation_counts, sample_list, sample_label, title) {
     theme(axis.text = element_text(size=14), 
           axis.title = element_text(size=14, face = 'bold'), 
           legend.text = element_text(size=14))
+  
+  if(!is.null(y_lim)) {
+    plot = plot + ylim(y_lim)
+  }
+  
+  if (!is.null(y_tick)) {
+    plot = plot + scale_y_continuous(breaks = seq(0, y_lim[2], by=y_tick), limits=c(0, y_lim[2]))
+  }
+  
+  return(plot)
 }
 ####################################################################################################################
 
@@ -227,9 +237,9 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = All_Annotation_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution') 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 30000), y_tick = 5000)
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M, 'grouped_annotation', 'Co_M_Input', 'UnAn', fraction = TRUE)
@@ -289,9 +299,10 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = mRNA_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution') 
+## break 2000 up to 10K
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M_mRNA, 'finalized_annotation', 'Co_M_Input', 'UnAn', fraction = T)
@@ -360,8 +371,8 @@ PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = ncRNA_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock ncRNA Peak Distribution')
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution') 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M_ncRNA, 'finalized_annotation', 'Co_M_Input', 'UnAn', fraction = T)
