@@ -9,8 +9,6 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(data.table)
-library(corrplot)
-library(pheatmap)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
@@ -178,6 +176,16 @@ Peak_Co_G3BP_M = filterPeakMatrix(peaksMatrix, G3BP_E_M, c(inert_columns, BC_col
 Peak_Co_G3BP_S = filterPeakMatrix(peaksMatrix, G3BP_E_S, c(inert_columns, BC_columns), BC_Threshold_E_SG, rowSum_Multiplier_E)
 ####################################################################################################################
 
+## Global Variables:
+####################################################################################################################
+CoCLIP_List = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP')
+F_CoCLIP_List = c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES', 'F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES')
+
+All_Annotation_List = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", 'ncRNA', "TE", "Other", "DS10K", 'UnAn')
+mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
+ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
+####################################################################################################################
+
 ## Peak Counts per Gene:
 ####################################################################################################################
 ## Fractionation CLIP
@@ -195,16 +203,6 @@ PPG_Co_NES_M = peaksPerGene(Peak_Co_NES_M, NES_E_M)
 PPG_Co_NES_S = peaksPerGene(Peak_Co_NES_S, NES_E_S)
 PPG_Co_G3BP_M = peaksPerGene(Peak_Co_G3BP_M, G3BP_E_M)
 PPG_Co_G3BP_S = peaksPerGene(Peak_Co_G3BP_S, G3BP_E_S)
-####################################################################################################################
-
-## Global Variables:
-####################################################################################################################
-CoCLIP_List = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 'Co_S_NES', 'Co_M_G3BP', 'Co_S_G3BP')
-F_CoCLIP_List = c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES', 'F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES')
-
-All_Annotation_List = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", 'ncRNA', "TE", "Other", "DS10K", 'UnAn')
-mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
-ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
 ####################################################################################################################
 
 ## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP Peaks:
