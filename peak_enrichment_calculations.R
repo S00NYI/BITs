@@ -1605,7 +1605,7 @@ ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_S_Input' | Source =
 
 ####################################################################################################################
 
-## FIGURE1 Exploratory Stacked Bar Plots For CoCLIP Tags:
+## Exploratory Stacked Bar Plots For CoCLIP Tags:
 ####################################################################################################################
 ## Mock vs Stress for Each Fraction
 PeakDistribution_Co_Input_M = data.frame(data.frame(annotation = Peak_Co_Input_M$grouped_annotation, 
@@ -1710,7 +1710,7 @@ ggplot(PeakDistribution_Co_combined %>% filter(Source == 'Co_M_Input' | Source =
         legend.text = element_text(size=14))
 ####################################################################################################################
 
-## FIGURE1 Exploratory Stacked Bar Plots For CoCLIP Tags: Specific RNA biotypes ONLY
+## Exploratory Stacked Bar Plots For CoCLIP Tags: Specific RNA biotypes ONLY
 ####################################################################################################################
 ## mRNA Features Only
 ## Mock vs Stress for Each Fraction
