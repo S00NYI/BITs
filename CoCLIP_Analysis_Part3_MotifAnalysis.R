@@ -379,6 +379,168 @@ pheatmap((all_ranks %>% arrange(CoCLIP_Input_Mock))[, col_selection], cluster_ro
 pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
 ####################################################################################################################
 
+## Build peak sequence table and motif enrichment ranks based on peaksMatrix:
+## Build peaksMatrix from other Analysis script.
+####################################################################################################################
+library(GenomicRanges)
+library(IRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.UCSC.hg38)
+
+## (extension + 10nt)*2 centered at peak
+# extension = 15
+# extension = 65
+extension = 0
+
+peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
+peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
+peaksGR$start = as.integer(peaksGR$start) + 1 - extension
+peaksGR$end = as.integer(peaksGR$end) + extension
+peaksGR = GRanges(peaksGR)
+
+peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
+peaksGR_seqs = cbind(peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names', BC_columns, 'grouped_annotation', 'finalized_annotation')], data.frame(sequence = peaksGR_seqs))
+
+motifs = c("UUUUU", "AAAAA", 
+           "WUUUA", "YUUUA", "AUUUY", "WUUAA", "UUAAW", "UWUAA", 
+           "YUUAA", "UYUAA", "AWUUA", "WAAUU", "AUWUA", "WUAAU", 
+           "UAAUW", "AAUWU", "AAUUY", "AUUYA", "AAUYU", "AYUUA", 
+           "WUAAA", "UAAAW", "UAUYA", "WAAAU", "YAUUA", "AUUAY", 
+           "AYUAU", "UYAAA", "YUUCA", "ACUUY", "AUAUY", "AAAYU", 
+           "AAAUW", "AAUWA", "WAAAA", "AACWU")
+
+
+motif_ranks = data.frame(PAR_CLIP = c(0, 0, 1:34))
+rownames(motif_ranks) = motifs
+
+ALL_M = peaksGR_seqs %>% filter((Nuc_F_M_BC + Cyto_F_M_BC + NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC + NLS_E_M_BC + NES_E_M_BC + G3BP_E_M_BC) >= 10)
+I_M = peaksGR_seqs %>% filter((NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC) >= BC_Threshold_I)
+NUC_M = peaksGR_seqs %>% filter(Nuc_F_M_BC >= BC_Threshold_F)
+CYT_M = peaksGR_seqs %>% filter(Cyto_F_M_BC >= BC_Threshold_F)
+NLS_M = peaksGR_seqs %>% filter(NLS_E_M_BC >= BC_Threshold_E)
+NES_M = peaksGR_seqs %>% filter(NES_E_M_BC >= BC_Threshold_E)
+G3BP_M = peaksGR_seqs %>% filter(G3BP_E_M_BC >= BC_Threshold_E)
+
+ALL_S = peaksGR_seqs %>% filter((Nuc_F_S_BC + Cyto_F_S_BC + NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC + NLS_E_S_BC + NES_E_S_BC + G3BP_E_S_BC) >= 10)
+I_S = peaksGR_seqs %>% filter((NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC) >= BC_Threshold_I)
+NUC_S = peaksGR_seqs %>% filter(Nuc_F_S_BC >= BC_Threshold_F)
+CYT_S = peaksGR_seqs %>% filter(Cyto_F_S_BC >= BC_Threshold_F)
+NLS_S = peaksGR_seqs %>% filter(NLS_E_S_BC >= BC_Threshold_E)
+NES_S = peaksGR_seqs %>% filter(NES_E_S_BC >= BC_Threshold_E)
+G3BP_S = peaksGR_seqs %>% filter(G3BP_E_S_BC >= BC_Threshold_E)
+
+Samples = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S') 
+
+for (sample in Samples) {
+  INPUT = get(sample)
+  for (motif in motifs) {
+    if (sum(unlist(strsplit(motif, split = "")) %in% c('W', 'Y'))) {
+      original_motif = motif
+      NonStandard_nt = unlist(strsplit(motif, split = ""))[unlist(strsplit(motif, split = "")) %in% c('W', 'Y')]
+      if (NonStandard_nt == 'W') {
+        temp = sub('W', 'A', motif)
+        motif = c(temp, sub('W', 'U', motif))
+        motif_counts = motifCounts(INPUT, motif)
+        motif_counts = data.frame(rowSums(motif_counts))
+        colnames(motif_counts) = original_motif
+        INPUT = cbind(INPUT, motif_counts)
+      } else if (NonStandard_nt == 'Y') {
+        temp = sub('Y', 'C', motif)
+        motif = c(temp, sub('Y', 'U', motif))
+        motif_counts = motifCounts(INPUT, motif)
+        motif_counts = data.frame(rowSums(motif_counts))
+        colnames(motif_counts) = original_motif
+        INPUT = cbind(INPUT, motif_counts)
+      }
+    } else {
+      motif_counts = motifCounts(INPUT, motif)
+      INPUT = cbind(INPUT, motif_counts)
+    }
+  }
+  motif_rank = data.frame(rank(-colSums(INPUT[, motifs])))
+  colnames(motif_rank) = sample
+  motif_ranks = cbind(motif_ranks, motif_rank)
+}
+
+
+eCLIP = read.delim('/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/eCLIP_bed/ELAVL1_eCLIP_ENCFF566LNK.bed', header = F)
+eCLIP = eCLIP[, c('V1', 'V2', 'V3', 'V4', 'V6')]
+colnames(eCLIP) = c('chrom', 'start', 'end', 'name', 'strand')
+eCLIP = eCLIP %>% filter(chrom %in% c('chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrM'))
+peaksGR = eCLIP[, c('chrom', 'start', 'end', 'strand', 'name')]
+peaksGR$start = as.integer(peaksGR$start) + 1 - extension
+peaksGR$end = as.integer(peaksGR$end) + extension
+peaksGR = GRanges(peaksGR)
+peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
+peaksGR_seqs = cbind(eCLIP, data.frame(sequence = peaksGR_seqs))
+
+for (motif in motifs) {
+  print(paste0('processing ', motif))
+  if (sum(unlist(strsplit(motif, split = "")) %in% c('W', 'Y'))) {
+    original_motif = motif
+    NonStandard_nt = unlist(strsplit(motif, split = ""))[unlist(strsplit(motif, split = "")) %in% c('W', 'Y')]
+    if (NonStandard_nt == 'W') {
+      temp = sub('W', 'A', motif)
+      motif = c(temp, sub('W', 'U', motif))
+      motif_counts = motifCounts(peaksGR_seqs, motif)
+      motif_counts = data.frame(rowSums(motif_counts))
+      colnames(motif_counts) = original_motif
+      peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
+    } else if (NonStandard_nt == 'Y') {
+      temp = sub('Y', 'C', motif)
+      motif = c(temp, sub('Y', 'U', motif))
+      motif_counts = motifCounts(peaksGR_seqs, motif)
+      motif_counts = data.frame(rowSums(motif_counts))
+      colnames(motif_counts) = original_motif
+      peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
+    }
+  } else {
+    motif_counts = motifCounts(peaksGR_seqs, motif)
+    peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
+  }
+}
+
+motif_rank = data.frame(rank(-colSums(peaksGR_seqs[, motifs])))
+colnames(motif_rank) = 'eCLIP'
+
+motif_ranks = cbind(motif_ranks, motif_rank)
+motif_ranks = cbind(motifs, motif_ranks)
+
+####################################################################################################################
+
+## Make heatmap:
+####################################################################################################################
+col_selection = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
+                  'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
+
+CorrMatrix = cor(motif_ranks[, col_selection])
+CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
+colnames(CorrMatrix) = col_selection
+rownames(CorrMatrix) = col_selection
+
+pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
+# pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = (colorRampPalette(c("lemonchiffon1", "skyblue", "skyblue4"))(100)))
+# pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=T, cluster_cols=T, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
+
+
+col_selection = c('PAR_CLIP', 'eCLIP', 
+                  'ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
+                  'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
+
+# pheatmap(motif_ranks[, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
+
+pheatmap(motif_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
+
+## Figure 5
+col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_G3BP_Mock', 
+                  'CoCLIP_Input_Arsenite', 'CoCLIP_G3BP_Arsenite')
+
+pheatmap((all_ranks %>% arrange(CoCLIP_G3BP_Arsenite))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
+pheatmap((all_ranks %>% arrange(CoCLIP_Input_Mock))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
+pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
+####################################################################################################################
+
+
 
 
 ## Data processing for motif density
