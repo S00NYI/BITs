@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Enrichment Analysis
 ## Written by Soon Yi
-## Last Edit: 2023-09-13
+## Last Edit: 2023-09-15
 
 library(stringr)
 library(readr)
@@ -164,13 +164,13 @@ plotScatter = function(peak_matrix, annotation_level, x_axis, y_axis, x_label = 
 }
 
 ## Plot cumulative distribution:
-plot_CD = function(count_table, y_data, colormaps, linetypes) {
+plot_CD = function(count_table, y_data, colormaps, linetypes, linesize) {
   plot_data = count_table %>% select(counts, {{y_data}})
   plot_data_long = plot_data %>% pivot_longer(cols = {{y_data}}, names_to = "Sample", values_to = "nCounts")
   plot_data_long$Sample = factor(plot_data_long$Sample, levels = unique(plot_data_long$Sample)) # Use unique() to ensure correct order of levels
   
   plot = ggplot(plot_data_long, aes(x = counts, y = nCounts, color = Sample, linetype = Sample)) +
-    geom_line() +
+    geom_line(linewidth = linesize) +
     theme_minimal() +
     theme_bw() +
     theme(axis.text = element_text(size = 14),
@@ -180,6 +180,54 @@ plot_CD = function(count_table, y_data, colormaps, linetypes) {
     scale_linetype_manual(values = linetypes)
   
   return(plot)
+}
+
+## Count motif occurence:
+# motifCounts = function(peak_matrix, motifs) {
+#   num_motifs = length(motifs)
+#   num_seqs = nrow(peak_matrix)
+#   
+#   counts = data.frame(matrix(0, ncol = num_motifs, nrow = num_seqs))
+#   colnames(counts) = motifs
+#   
+#   for(idx in 1:num_seqs) {
+#     seq = peak_matrix$sequence[idx]
+#     seq = gsub("T", "U", seq)
+#     motif_count = data.frame(matrix(0, ncol = num_motifs, nrow = 1))
+#     colnames(motif_count) = motifs
+#     for (start in 1:(nchar(seq)-4)) {
+#       seq_window = substr(seq, start, start + 4)
+#       if (seq_window %in% motifs) {
+#         motif_count[, seq_window] = motif_count[, seq_window] + 1
+#       }
+#     }
+#     counts[idx, ] = motif_count
+#   }
+#   peak_matrix = cbind(peak_matrix, counts)
+#   return(peak_matrix)
+# }
+
+motifCounts = function(peak_matrix, motifs) {
+  result_container = list()
+  for (motif in motifs) {
+    org_motif = motif
+    motif = gsub("U", "T", motif)
+    motif_positions = sapply(motif, function(motif) gregexpr(paste0("(?=", motif, ")"), peak_matrix$sequence, perl=TRUE))
+    motif_positions = lapply(motif_positions, function(x) { attributes(x) <- NULL; x })
+    counts = numeric(length(motif_positions))
+    for (i in 1:length(motif_positions)) {
+      sublist = motif_positions[[i]]
+      if (length(sublist) == 1 && sublist[[1]] == -1) {
+        counts[i] = 0
+      } else {
+        counts[i] = length(sublist)
+      }
+    }
+    result_container[[org_motif]] = counts
+  }
+  result_df = data.frame(result_container)
+  colnames(result_df) = motifs
+  return(result_df)
 }
 ####################################################################################################################
 
@@ -450,7 +498,7 @@ plotScatter(Peak_SG_SvM_S, grouped_annotation,
             log2(E_NvC_S), log2(G3BP_SvM),
             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule Stress/Mock)',
             x_lim, y_lim,
-            paste0('Arsenite HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_SvM), ' peaks)'))
+            paste0('Arsenite HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_SvM_S), ' peaks)'))
 
 
 Peak_SG_SvM_S_mRNA = Peak_SG_SvM_S %>% filter((finalized_annotation == "5'UTR" | 
@@ -484,88 +532,257 @@ plotScatter(Peak_SG_SvM_S_ncRNA, finalized_annotation,
 
 ####################################################################################################################
 
+## FIGURE SG to Nuclear and/or Cytoplasm comparison (SG Mock v Stress) vs (Cytoplasm Mock v Stress)
+####################################################################################################################
+x_lim = c(-7, 7)
+y_lim = c(-7, 7)
+
+Peak_SG_C_SvM = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                            (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
+                                                (G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E)) |
+                                               ((NES_E_M_BC >= BC_Threshold_E & NES_E_M > median(NES_E_M) * rowSum_Multiplier_E) & 
+                                                  (NES_E_S_BC >= BC_Threshold_E & NES_E_S > median(NES_E_S) * rowSum_Multiplier_E))))
+
+Peak_SG_C_SvM$grouped_annotation = factor(Peak_SG_C_SvM$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_SG_C_SvM, grouped_annotation,
+            log2(NES_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NES Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Stress Granule and Cytoplasm CoCLIP Enrichment (',  nrow(Peak_SG_C_SvM), ' peaks)'))
 
 
+Peak_SG_C_SvM_mRNA = Peak_SG_C_SvM %>% filter((finalized_annotation == "5'UTR" | 
+                                                 finalized_annotation == "3'UTR" | 
+                                                 finalized_annotation == "CDS" | 
+                                                 finalized_annotation == "intron" | 
+                                                 finalized_annotation == "CDS_RI" |
+                                                 finalized_annotation == "DS10K"))
+Peak_SG_C_SvM_mRNA$finalized_annotation = factor(Peak_SG_C_SvM_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_SG_C_SvM_mRNA, finalized_annotation,
+            log2(NES_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NES Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Stress Granule and Cytoplasm CoCLIP Enrichment (',  nrow(Peak_SG_C_SvM_mRNA), ' peaks)'))
+
+Peak_SG_C_SvM_ncRNA = Peak_SG_C_SvM %>% filter((finalized_annotation != "5'UTR" & 
+                                                  finalized_annotation != "3'UTR" & 
+                                                  finalized_annotation != "CDS" & 
+                                                  finalized_annotation != "intron" &  
+                                                  finalized_annotation != "CDS_RI" &
+                                                  finalized_annotation != "DS10K" &
+                                                  finalized_annotation != "UnAn"))
+Peak_SG_C_SvM_ncRNA$finalized_annotation = factor(Peak_SG_C_SvM_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_SG_C_SvM_ncRNA, finalized_annotation,
+            log2(NES_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NES Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Stress Granule and Cytoplasm CoCLIP Enrichment (',  nrow(Peak_SG_C_SvM_ncRNA), ' peaks)'))
+
+####################################################################################################################
+
+## FIGURE SG to Nuclear and/or Cytoplasm comparison (SG Mock v Stress) vs (Nuclear Mock v Stress)
+####################################################################################################################
+Peak_SG_N_SvM = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                            (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
+                                                (G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E)) |
+                                               ((NLS_E_M_BC >= BC_Threshold_E & NLS_E_M > median(NLS_E_M) * rowSum_Multiplier_E) & 
+                                                  (NLS_E_S_BC >= BC_Threshold_E & NLS_E_S > median(NLS_E_S) * rowSum_Multiplier_E))))
+
+Peak_SG_N_SvM$grouped_annotation = factor(Peak_SG_N_SvM$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_SG_N_SvM, grouped_annotation,
+            log2(NLS_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NLS Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Stress Granule and Nucleus CoCLIP Enrichment (',  nrow(Peak_SG_N_SvM), ' peaks)'))
+
+
+Peak_SG_N_SvM_mRNA = Peak_SG_N_SvM %>% filter((finalized_annotation == "5'UTR" | 
+                                                 finalized_annotation == "3'UTR" | 
+                                                 finalized_annotation == "CDS" | 
+                                                 finalized_annotation == "intron" | 
+                                                 finalized_annotation == "CDS_RI" |
+                                                 finalized_annotation == "DS10K"))
+Peak_SG_N_SvM_mRNA$finalized_annotation = factor(Peak_SG_N_SvM_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_SG_N_SvM_mRNA, finalized_annotation,
+            log2(NLS_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NLS Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Stress Granule and Nucleus CoCLIP Enrichment (',  nrow(Peak_SG_N_SvM_mRNA), ' peaks)'))
+
+Peak_SG_N_SvM_ncRNA = Peak_SG_N_SvM %>% filter((finalized_annotation != "5'UTR" & 
+                                                  finalized_annotation != "3'UTR" & 
+                                                  finalized_annotation != "CDS" & 
+                                                  finalized_annotation != "intron" &  
+                                                  finalized_annotation != "CDS_RI" &
+                                                  finalized_annotation != "DS10K" &
+                                                  finalized_annotation != "UnAn"))
+Peak_SG_N_SvM_ncRNA$finalized_annotation = factor(Peak_SG_N_SvM_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_SG_N_SvM_ncRNA, finalized_annotation,
+            log2(NLS_SvM), log2(G3BP_SvM),
+            x_label = 'log2(CoCLIP NLS Stress/Mock)', 'log2(CoCLIP Stress Granule Stress/Mock)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Stress Granule and Nucleus CoCLIP Enrichment (',  nrow(Peak_SG_N_SvM_ncRNA), ' peaks)'))
+
+####################################################################################################################
+
+## Localization Specific Motifs
+####################################################################################################################
+
+Gene_Co_NLS_M = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_NLS_M$gene, SYMBOL = Peak_Co_NLS_M$external_gene_name)))
+Gene_Co_NLS_S = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_NLS_S$gene, SYMBOL = Peak_Co_NLS_S$external_gene_name)))
+
+Gene_Co_NES_M = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_NES_M$gene, SYMBOL = Peak_Co_NES_M$external_gene_name)))
+Gene_Co_NES_S = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_NES_S$gene, SYMBOL = Peak_Co_NES_S$external_gene_name)))
+
+Gene_Co_G3BP_M = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_G3BP_M$gene, SYMBOL = Peak_Co_G3BP_M$external_gene_name)))
+Gene_Co_G3BP_S = na.omit(distinct(data.frame(ENSEMBL = Peak_Co_G3BP_S$gene, SYMBOL = Peak_Co_G3BP_S$external_gene_name)))
+
+
+## Genes that move from cytoplasm to SG with arsenite:
+Gene_Co_NES_M_to_G3BP_S = Gene_Co_G3BP_S %>% intersect(Gene_Co_NES_M)
+Gene_Co_NES_M_to_G3BP_S = Gene_Co_NES_M_to_G3BP_S %>% anti_join(Gene_Co_G3BP_M)
+
+## Genes that move from nucleus to SG with arsenite:
+Gene_Co_NLS_M_to_G3BP_S = Gene_Co_G3BP_S %>% intersect(Gene_Co_NLS_M)
+Gene_Co_NLS_M_to_G3BP_S = Gene_Co_NLS_M_to_G3BP_S %>% anti_join(Gene_Co_G3BP_M)
+
+## Genes that denovo appear in SG with arsenite:
+Gene_Co_denovo_to_G3BP_S = Gene_Co_G3BP_S %>% anti_join(Gene_Co_G3BP_M)
+Gene_Co_denovo_to_G3BP_S = Gene_Co_denovo_to_G3BP_S %>% anti_join(Gene_Co_NES_M_to_G3BP_S)
+Gene_Co_denovo_to_G3BP_S = Gene_Co_denovo_to_G3BP_S %>% anti_join(Gene_Co_NLS_M_to_G3BP_S)
+
+
+## Genes that move from nucleus to cytoplasm with arsenite:
+Gene_Co_NLS_M_to_NES_S = Gene_Co_NES_S %>% intersect(Gene_Co_NLS_M)
+Gene_Co_NLS_M_to_NES_S = Gene_Co_NLS_M_to_NES_S %>% anti_join(Gene_Co_NES_M)
+
+## Genes that move from SG to cytoplasm with arsenite:
+Gene_Co_G3BP_M_to_NES_S = Gene_Co_NES_S %>% intersect(Gene_Co_G3BP_M)
+Gene_Co_G3BP_M_to_NES_S = Gene_Co_G3BP_M_to_NES_S %>% anti_join(Gene_Co_NES_M)
+
+## Genes that denovo appear in cytoplasm with arsenite:
+Gene_Co_denovo_to_NES_S = Gene_Co_NES_S %>% anti_join(Gene_Co_NES_M)
+Gene_Co_denovo_to_NES_S = Gene_Co_denovo_to_NES_S %>% anti_join(Gene_Co_NLS_M_to_NES_S)
+Gene_Co_denovo_to_NES_S = Gene_Co_denovo_to_NES_S %>% anti_join(Gene_Co_G3BP_M_to_NES_S)
+
+
+## Genes that move from cytoplasm to nucleus with arsenite:
+Gene_Co_NES_M_to_NLS_S = Gene_Co_NLS_S %>% intersect(Gene_Co_NES_M)
+Gene_Co_NES_M_to_NLS_S = Gene_Co_NES_M_to_NLS_S %>% anti_join(Gene_Co_NLS_M)
+
+## Genes that move from SG to nucleus with arsenite:
+Gene_Co_G3BP_M_to_NLS_S = Gene_Co_NLS_S %>% intersect(Gene_Co_G3BP_M)
+Gene_Co_G3BP_M_to_NLS_S = Gene_Co_G3BP_M_to_NLS_S %>% anti_join(Gene_Co_NLS_M)
+
+## Genes that denovo appear in nucleus with arsenite:
+Gene_Co_denovo_to_NLS_S = Gene_Co_NLS_S %>% anti_join(Gene_Co_NLS_M)
+Gene_Co_denovo_to_NLS_S = Gene_Co_denovo_to_NLS_S %>% anti_join(Gene_Co_NES_M_to_NLS_S)
+Gene_Co_denovo_to_NLS_S = Gene_Co_denovo_to_NLS_S %>% anti_join(Gene_Co_G3BP_M_to_NLS_S)
+
+####################################################################################################################
 
 
 ## SG Enrichment and Motif High Order Analysis
+## Sanity Check 
 ####################################################################################################################
-baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/motifs/counts'
-# baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs/counts'
-setwd(baseDir)
-countFiles = list.files(baseDir)
-countFiles = countFiles[grep('MotifCounts.txt', countFiles)]
+library(GenomicRanges)
+library(IRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.UCSC.hg38)
 
-## G3BP Mock
-countFile = countFiles[4]
-motifCounts = read.delim(countFile, header = T)
-motifCounts_M_AAAAA = motifCounts %>% filter(Motif.Name == '0-AAAAA')
-motifCounts_M_UUUUU = motifCounts %>% filter(Motif.Name == '0-UUUUU')
+peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
+peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
+peaksGR$start = as.integer(peaksGR$start) + 1 - 15
+peaksGR$end = as.integer(peaksGR$end) + 15
+peaksGR = GRanges(peaksGR)
 
-motifCounts_perPeak_M_AAAAA = data.frame(table(motifCounts_M_AAAAA$PositionID))
-motifCounts_perPeak_M_UUUUU = data.frame(table(motifCounts_M_UUUUU$PositionID))
+peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
+peaksGR_seqs = cbind(peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names', BC_columns, 'grouped_annotation', 'finalized_annotation')], data.frame(sequence = peaksGR_seqs))
+
+motifs = c('AAAAA', 'UUUUU')
+motif_counts = motifCounts(peaksGR_seqs, motifs)
+peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
+
+## Also add search for all 1024 5-mers --> motif occurence distribution
+## normalize to respective depth
+## normalize to input
 
 
-## G3BP Arsenite
-countFile = countFiles[3]
-motifCounts = read.delim(countFile, header = T)
-motifCounts_S_AAAAA = motifCounts %>% filter(Motif.Name == '0-AAAAA')
-motifCounts_S_UUUUU = motifCounts %>% filter(Motif.Name == '0-UUUUU')
-
-motifCounts_perPeak_S_AAAAA = data.frame(table(motifCounts_S_AAAAA$PositionID))
-motifCounts_perPeak_S_UUUUU = data.frame(table(motifCounts_S_UUUUU$PositionID))
-
-## Plot Cumulative Distribution
-
-## freq_table will look like:
-## counts sample1 sample2
-## counts: individual motif counts per peaks
-## sample1: freq of the motif counts per peaks in sample1
-
-freq_table = data.frame(
-  counts = 0:50,
-  M_AAAAA = rep(NA, 51),
-  M_UUUUU = rep(NA, 51),
-  S_AAAAA = rep(NA, 51),
-  S_UUUUU = rep(NA, 51))
-
-freq_table$M_AAAAA[freq_table$counts %in% rownames(table(motifCounts_perPeak_M_AAAAA$Freq))] = table(motifCounts_perPeak_M_AAAAA$Freq)
-freq_table$M_UUUUU[freq_table$counts %in% rownames(table(motifCounts_perPeak_M_UUUUU$Freq))] = table(motifCounts_perPeak_M_UUUUU$Freq)
-freq_table$S_AAAAA[freq_table$counts %in% rownames(table(motifCounts_perPeak_S_AAAAA$Freq))] = table(motifCounts_perPeak_S_AAAAA$Freq)
-freq_table$S_UUUUU[freq_table$counts %in% rownames(table(motifCounts_perPeak_S_UUUUU$Freq))] = table(motifCounts_perPeak_S_UUUUU$Freq)
-freq_table[is.na(freq_table)] = 0
-
-cumulative_table = cbind(freq_table$counts, cumsum(freq_table[, c('M_AAAAA', 'M_UUUUU', 'S_AAAAA', 'S_UUUUU')]))
-colnames(cumulative_table)[1] = 'counts'
-
-normed_table = cbind(freq_table$counts, data.frame(sapply(cumsum(freq_table[, c('M_AAAAA', 'M_UUUUU', 'S_AAAAA', 'S_UUUUU')]), rescale)))
-colnames(normed_table)[1] = 'counts'
-
-plot_CD(normed_table, y_data = c('M_AAAAA', 'M_UUUUU', 'S_AAAAA', 'S_UUUUU'), colormaps = c('blue', 'blue', 'red', 'red'), linetypes = c(1, 2, 1, 2))
-
+## Genes that are in cytoplasm mock --> stress granule arsenite (but not in cytoplasm arsenite)
+## Genes that are in cytoplasm mock --> cytoplasm arsenite (but not in stress granule arsenite)
 ####################################################################################################################
 
+## Filter peaksGR by BC
+####################################################################################################################
+peaksGR_seqs_org = peaksGR_seqs
+
+peaksGR_seqs = peaksGR_seqs_org
+peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation != 'UnAn')
+
+# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% mRNA_List)
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "5'UTR")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "CDS")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "3'UTR")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "intron")
+# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% ncRNA_List)
+
+peaksGR_Co_Input_M = peaksGR_seqs %>% filter((NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC) >= BC_Threshold_I)
+peaksGR_Co_Input_S = peaksGR_seqs %>% filter((NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC) >= BC_Threshold_I)
+
+peaksGR_Co_NLS_M = peaksGR_seqs %>% filter((NLS_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_NLS_S = peaksGR_seqs %>% filter((NLS_E_S_BC) >= BC_Threshold_E)
+
+peaksGR_Co_NES_M = peaksGR_seqs %>% filter((NES_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_NES_S = peaksGR_seqs %>% filter((NES_E_S_BC) >= BC_Threshold_E)
+
+peaksGR_Co_G3BP_M = peaksGR_seqs %>% filter((G3BP_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_G3BP_S = peaksGR_seqs %>% filter((G3BP_E_S_BC) >= BC_Threshold_E)
+
+
+## Filter peaks to specific genomic locus
 freq_table = data.frame(counts = 0:50)
-freq_table = freq_table %>% mutate(temp5A = rep(NA, 51))
 
-for (countFile in countFiles[c(6, 10, 8, 4, 5, 9, 7, 3)]) {
-  freq_table = freq_table %>% mutate(temp5A = rep(NA, 51))
-  freq_table = freq_table %>% mutate(temp5U = rep(NA, 51))
-  
-  motifCounts = read.delim(countFile, header = T)
-  temp5A_Counts = motifCounts %>% filter(Motif.Name == '0-AAAAA')
-  temp5U_Counts = motifCounts %>% filter(Motif.Name == '0-UUUUU')
-  temp5A_CountsPerPeak = data.frame(table(temp5A_Counts$PositionID))
-  temp5U_CountsPerPeak = data.frame(table(temp5U_Counts$PositionID))
-  
-  freq_table$temp5A[freq_table$counts %in% rownames(table(temp5A_CountsPerPeak$Freq))] = table(temp5A_CountsPerPeak$Freq)
-  rownames(table(temp5A_CountsPerPeak$Freq))[length(rownames(table(temp5A_CountsPerPeak$Freq)))]
-  freq_table$temp5U[freq_table$counts %in% rownames(table(temp5U_CountsPerPeak$Freq))] = table(temp5U_CountsPerPeak$Freq)
-  rownames(table(temp5U_CountsPerPeak$Freq))[length(rownames(table(temp5U_CountsPerPeak$Freq)))]
-  
-  freq_table = freq_table %>% rename(!!paste0(str_split(countFile, '\\.')[[1]][1], '_AAAAA') := temp5A)
-  freq_table = freq_table %>% rename(!!paste0(str_split(countFile, '\\.')[[1]][1], '_UUUUU') := temp5U)
-}
+freq_table = freq_table %>% mutate(I_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(I_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_M_UUUUU = rep(NA, 51))
+
+freq_table = freq_table %>% mutate(I_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(I_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_S_UUUUU = rep(NA, 51))
+
+freq_table$I_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_Input_M$AAAAA))$Freq
+freq_table$I_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_Input_M$UUUUU))$Freq
+freq_table$NLS_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NLS_M$AAAAA))$Freq
+freq_table$NLS_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NLS_M$UUUUU))$Freq
+freq_table$NES_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NES_M$AAAAA))$Freq
+freq_table$NES_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NES_M$UUUUU))$Freq
+freq_table$G3BP_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_G3BP_M$AAAAA))$Freq
+freq_table$G3BP_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_G3BP_M$UUUUU))$Freq
+
+freq_table$I_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_Input_S$AAAAA))$Freq
+freq_table$I_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_Input_S$UUUUU))$Freq
+freq_table$NLS_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NLS_S$AAAAA))$Freq
+freq_table$NLS_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NLS_S$UUUUU))$Freq
+freq_table$NES_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NES_S$AAAAA))$Freq
+freq_table$NES_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NES_S$UUUUU))$Freq
+freq_table$G3BP_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_G3BP_S$AAAAA))$Freq
+freq_table$G3BP_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_G3BP_S$UUUUU))$Freq
 
 freq_table[is.na(freq_table)] = 0
 
@@ -575,17 +792,32 @@ colnames(cumulative_table)[1] = 'counts'
 normed_table = cbind(freq_table$counts, data.frame(sapply(cumsum(freq_table[, colnames(freq_table)[2:ncol(freq_table)]]), rescale)))
 colnames(normed_table)[1] = 'counts'
 
-plot_CD(normed_table, y_data = c('CoCLIP_NLS_Mock_AAAAA', 'CoCLIP_NLS_Mock_UUUUU', 'CoCLIP_NLS_Arsenite_AAAAA', 'CoCLIP_NLS_Arsenite_UUUUU'), colormaps = c('blue', 'blue', 'red', 'red'), linetypes = c(1, 2, 1, 2))
+# CD plots and accompanying KS-test
+plot_CD(normed_table, y_data = c('I_M_AAAAA', 'I_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$I_M_AAAAA, freq_table$I_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('I_M_UUUUU', 'I_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$I_M_UUUUU, freq_table$I_S_UUUUU)$p.value < 0.05
 
-plot_CD(normed_table, y_data = c('CoCLIP_NES_Mock_AAAAA', 'CoCLIP_NES_Mock_UUUUU', 'CoCLIP_NES_Arsenite_AAAAA', 'CoCLIP_NES_Arsenite_UUUUU'), colormaps = c('blue', 'blue', 'red', 'red'), linetypes = c(1, 2, 1, 2))
-plot_CD(normed_table, y_data = c('CoCLIP_NES_Mock_AAAAA', 'CoCLIP_NES_Mock_UUUUU'), colormaps = c('blue', 'blue'), linetypes = c(1, 2))
-plot_CD(normed_table, y_data = c('CoCLIP_NES_Arsenite_AAAAA', 'CoCLIP_NES_Arsenite_UUUUU'), colormaps = c('red', 'red'), linetypes = c(1, 2))
+plot_CD(normed_table, y_data = c('NLS_M_AAAAA', 'NLS_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NLS_M_AAAAA, freq_table$NLS_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('NLS_M_UUUUU', 'NLS_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NLS_M_UUUUU, freq_table$NLS_S_UUUUU)$p.value < 0.05
 
-plot_CD(normed_table, y_data = c('CoCLIP_G3BP_Mock_AAAAA', 'CoCLIP_G3BP_Mock_UUUUU', 'CoCLIP_G3BP_Arsenite_AAAAA', 'CoCLIP_G3BP_Arsenite_UUUUU'), colormaps = c('blue', 'blue', 'red', 'red'), linetypes = c(1, 2, 1, 2))
-plot_CD(normed_table, y_data = c('CoCLIP_G3BP_Mock_AAAAA', 'CoCLIP_G3BP_Mock_UUUUU'), colormaps = c('blue', 'blue'), linetypes = c(1, 2))
-plot_CD(normed_table, y_data = c('CoCLIP_G3BP_Arsenite_AAAAA', 'CoCLIP_G3BP_Arsenite_UUUUU'), colormaps = c('red', 'red'), linetypes = c(1, 2))
+plot_CD(normed_table, y_data = c('NES_M_AAAAA', 'NES_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NES_M_AAAAA, freq_table$NES_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('NES_M_UUUUU', 'NES_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NES_M_UUUUU, freq_table$NES_S_UUUUU)$p.value < 0.05
 
+plot_CD(normed_table, y_data = c('G3BP_M_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$G3BP_M_AAAAA, freq_table$G3BP_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('G3BP_M_UUUUU', 'G3BP_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$G3BP_M_UUUUU, freq_table$G3BP_S_UUUUU)$p.value < 0.05
 
+plot_CD(normed_table, y_data = c('I_M_AAAAA', 'NLS_M_AAAAA', 'NES_M_AAAAA', 'G3BP_M_AAAAA'), colormaps = c('grey', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_S_AAAAA', 'NLS_S_AAAAA', 'NES_S_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('grey', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_M_UUUUU', 'NLS_M_UUUUU', 'NES_M_UUUUU', 'G3BP_M_UUUUU'), colormaps = c('grey', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_S_UUUUU', 'NLS_S_UUUUU', 'NES_S_UUUUU', 'G3BP_S_UUUUU'), colormaps = c('grey', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+####################################################################################################################
 
 
 ## Plot peaks containing the motifs:
