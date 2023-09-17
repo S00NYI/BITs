@@ -179,29 +179,25 @@ return_Density = function(FILE, strand = NULL, normalize = NULL) {
 }
 
 ## Plot density plot:
-plot_Density = function(density_data, motif_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, sampleName = NULL) {
-  # Select the columns based on the motif_list
-  plot_data = density_data %>% select(position, {{motif_list}})
+plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, densityType = NULL, sampleName = NULL, featureName = NULL) {
+  # Select the columns based on the columns_list
+  plot_data = density_data %>% select(position, {{columns_list}})
   
   # Create a long-format dataframe for better legend handling
   plot_data_long = plot_data %>%
-    pivot_longer(cols = {{motif_list}}, names_to = "Motif", values_to = "Density")
+    pivot_longer(cols = {{columns_list}}, names_to = "Data", values_to = "Density")
   
-  # Define the order of levels for the Motif factor
-  plot_data_long$Motif = factor(plot_data_long$Motif, levels = motif_list)
+  # Define the order of levels for the Data factor
+  plot_data_long$Data = factor(plot_data_long$Data, levels = columns_list)
   
   # Create the ggplot object
-  plot = ggplot(plot_data_long, aes(x = position, y = Density, color = Motif)) +
+  plot = ggplot(plot_data_long, aes(x = position, y = Density, color = Data)) +
     geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
-    # ylim(yaxis_lims) +
-    # xlim(xaxis_lims) +
-    # labs(title = "Metagene Plot: Motif Density around Peaks",
-    #      x = "Distance to peak center (nucleotides)",
-    #      y = "Peak Density") +
     theme_minimal() +
     theme_bw() +
     theme(axis.text = element_text(size = 14),
-          axis.title = element_text(size = 14, face = 'bold'))
+          axis.title = element_text(size = 14, face = 'bold')) +
+    labs(y = "Peak Density")
   
   # Add smoothed lines
   plot = plot + geom_smooth(span = 0.2, se = FALSE)
@@ -218,14 +214,42 @@ plot_Density = function(density_data, motif_list, xaxis_lims = NULL, yaxis_lims 
     plot = plot + ylim(yaxis_lims)
   }
   
-  if (!is.null(sampleName)) {
-    plot = plot + labs(title = paste0(sampleName, ": Motif Density around Peaks"),
-                       x = "Distance to peak center (nucleotides)",
-                       y = "Peak Density")
-  } else {
-    plot = plot + labs("Metagene Plot: Motif Density around Peaks",
-                       x = "Distance to peak center (nucleotides)",
-                       y = "Peak Density")
+  if (is.null(densityType)) {
+    if (!is.null(sampleName)) {
+      plot = plot + labs(title = paste0('Density for ', sampleName),
+                         x = "Distance from center (nucleotides)")
+      
+    } else {
+      plot = plot + labs(title = 'Density Plot',
+                         x = "Distance from center (nucleotides)")
+    }
+    
+  } else if (densityType == 'motif_density') {
+    if (!is.null(sampleName)) {
+      plot = plot + labs(title = paste0('Motif Density around Peaks for ', sampleName),
+                         x = "Distance from peak center (nucleotides)")
+    } else {
+      plot = plot + labs(title = 'Motif Density around Peaks',
+                         x = "Distance from peak center (nucleotides)")
+    }
+  } else if (densityType == 'feature_metagene') {
+    if (!is.null(sampleName)) {
+      if (!is.null(featureName)) {
+        plot = plot + labs(title = paste0('Peaks density around ', featureName, ' for ', sampleName),
+                           x = paste0("Distance from ", featureName, " (nucleotides)"))
+      } else {
+        plot = plot + labs(title = 'Peaks density around feature',
+                           x = "Distance from feature (nucleotides)")
+      }
+    } else {
+      if (!is.null(featureName)) {
+        plot = plot + labs(title = paste0('Peaks density around ', featureName),
+                           x = paste0("Distance from ", featureName, " (nucleotides)"))
+      } else {
+        plot = plot + labs(title = 'Peaks density around feature',
+                           x = "Distance from feature (nucleotides)")
+      }
+    }
   }
   
   return(plot)
@@ -558,11 +582,11 @@ densityFiles_FracCLIP  = densityFiles[grep("FracCLIP", densityFiles)]
 ################################################################################
 ## Mock
 densityFile = return_Density(densityFiles[2], strand = '+', normalize = T)
-plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06))
+plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06), densityType = 'motif_density', sampleName = 'All Mocks')
 
 ## Arsenite
 densityFile = return_Density(densityFiles[1], strand = '+', normalize = T)
-plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06))
+plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06), densityType = 'motif_density', sampleName = 'All Mocks')
 ################################################################################
 
 ## FIGURE3/5 C Metagene Plot from Input vs CoCLIP for Top Motifs UUUUU AAAAA 
@@ -584,8 +608,19 @@ colnames(Mock_Combined) = c('position',
                             'UUUUU_All', 'UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuc', 'UUUUU_Cyt',
                             'AAAAA_All', 'AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuc', 'AAAAA_Cyt')
 
-plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS'), yaxis_lims = c(0, 0.15))
-plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS'), yaxis_lims = c(0, 0.15))
+plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_NLS', 'UUUUU_NES', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'UUUUU')
+plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_NLS', 'AAAAA_NES', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'AAAAA')
+
+plot_Density(Mock_Combined, c('UUUUU_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
+plot_Density(Mock_Combined, c('UUUUU_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
+plot_Density(Mock_Combined, c('UUUUU_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
+plot_Density(Mock_Combined, c('UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
+
+plot_Density(Mock_Combined, c('AAAAA_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
+plot_Density(Mock_Combined, c('AAAAA_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
+plot_Density(Mock_Combined, c('AAAAA_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
+plot_Density(Mock_Combined, c('AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
+
 
 ## Arsenite
 Arsenite_All = return_Density(densityFiles[1], strand = '+', normalize = T) 
@@ -604,10 +639,20 @@ colnames(Arsenite_Combined) = c('position',
                                 'UUUUU_All', 'UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS', 'UUUUU_G3BP', 'UUUUU_Nuc', 'UUUUU_Cyt',
                                 'AAAAA_All', 'AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS', 'AAAAA_G3BP', 'AAAAA_Nuc', 'AAAAA_Cyt')
 
-plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_NES', 'UUUUU_NLS'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_NES', 'AAAAA_NLS'), yaxis_lims = c(0, 0.15))
+plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_NLS', 'UUUUU_NES', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'UUUUU')
+plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_NLS', 'AAAAA_NES', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'AAAAA')
 
-## Figure 5
+plot_Density(Arsenite_Combined, c('UUUUU_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
+plot_Density(Arsenite_Combined, c('UUUUU_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
+plot_Density(Arsenite_Combined, c('UUUUU_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
+plot_Density(Arsenite_Combined, c('UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
+
+plot_Density(Arsenite_Combined, c('AAAAA_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
+plot_Density(Arsenite_Combined, c('AAAAA_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
+plot_Density(Arsenite_Combined, c('AAAAA_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
+plot_Density(Arsenite_Combined, c('AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
+
+
 plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
 plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
 plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
@@ -639,9 +684,54 @@ plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_
 ###################################DEPRECATED###################################
 ################################################################################
 
-
-
-
+################################################################################
+# plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, sampleName = NULL) {
+#   # Select the columns based on the columns_list
+#   plot_data = density_data %>% select(position, {{columns_list}})
+#   
+#   # Create a long-format dataframe for better legend handling
+#   plot_data_long = plot_data %>%
+#     pivot_longer(cols = {{columns_list}}, names_to = "Motif", values_to = "Density")
+#   
+#   # Define the order of levels for the Motif factor
+#   plot_data_long$Motif = factor(plot_data_long$Motif, levels = columns_list)
+#   
+#   # Create the ggplot object
+#   plot = ggplot(plot_data_long, aes(x = position, y = Density, color = Motif)) +
+#     geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+#     theme_minimal() +
+#     theme_bw() +
+#     theme(axis.text = element_text(size = 14),
+#           axis.title = element_text(size = 14, face = 'bold'))
+#   
+#   # Add smoothed lines
+#   plot = plot + geom_smooth(span = 0.2, se = FALSE)
+#   
+#   if (!is.null(custom_colors)) {
+#     plot = plot + scale_color_manual(values = custom_colors)
+#   }
+#   
+#   if (!is.null(xaxis_lims)) {
+#     plot = plot + xlim(xaxis_lims)
+#   }
+#   
+#   if (!is.null(yaxis_lims)) {
+#     plot = plot + ylim(yaxis_lims)
+#   }
+#   
+#   if (!is.null(sampleName)) {
+#     plot = plot + labs(title = paste0(sampleName, ": Motif Density around Peaks"),
+#                        x = "Distance to peak center (nucleotides)",
+#                        y = "Peak Density")
+#   } else {
+#     plot = plot + labs("Metagene Plot: Motif Density around Peaks",
+#                        x = "Distance to peak center (nucleotides)",
+#                        y = "Peak Density")
+#   }
+#   
+#   return(plot)
+# }
+################################################################################
 
 
 
