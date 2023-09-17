@@ -179,9 +179,10 @@ return_Density = function(FILE, strand = NULL, normalize = NULL) {
 }
 
 ## Plot density plot:
-plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, densityType = NULL, sampleName = NULL, featureName = NULL) {
+plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, densityType = NULL, sampleName = NULL, featureName = NULL, smoothing = NULL) {
   # Select the columns based on the columns_list
-  plot_data = density_data %>% select(position, {{columns_list}})
+  # plot_data = density_data %>% select(position, {{columns_list}})
+  plot_data = density_data[, c('position', columns_list)]
   
   # Create a long-format dataframe for better legend handling
   plot_data_long = plot_data %>%
@@ -200,7 +201,11 @@ plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lim
     labs(y = "Peak Density")
   
   # Add smoothed lines
-  plot = plot + geom_smooth(span = 0.2, se = FALSE)
+  if (!is.null(smoothing)) {
+    plot = plot + geom_smooth(span = smoothing, se = FALSE)
+  } else {
+    plot = plot + geom_line()
+  }
   
   if (!is.null(custom_colors)) {
     plot = plot + scale_color_manual(values = custom_colors)
@@ -251,7 +256,6 @@ plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lim
       }
     }
   }
-  
   return(plot)
 }
 ####################################################################################################################
