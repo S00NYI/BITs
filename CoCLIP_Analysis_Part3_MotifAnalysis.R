@@ -683,6 +683,143 @@ plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_
 
 
 
+## Motif High Order Analysis
+## Sanity Check 
+####################################################################################################################
+library(GenomicRanges)
+library(IRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.UCSC.hg38)
+
+peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
+peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
+peaksGR$start = as.integer(peaksGR$start) + 1 - 15
+peaksGR$end = as.integer(peaksGR$end) + 15
+peaksGR = GRanges(peaksGR)
+
+peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
+peaksGR_seqs = cbind(peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names', BC_columns, 'grouped_annotation', 'finalized_annotation')], data.frame(sequence = peaksGR_seqs))
+
+motifs = c('AAAAA', 'UUUUU')
+motif_counts = motifCounts(peaksGR_seqs, motifs)
+peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
+
+## Also add search for all 1024 5-mers --> motif occurence distribution
+## normalize to respective depth
+## normalize to input
+
+
+## Genes that are in cytoplasm mock --> stress granule arsenite (but not in cytoplasm arsenite)
+## Genes that are in cytoplasm mock --> cytoplasm arsenite (but not in stress granule arsenite)
+####################################################################################################################
+
+## Filter peaksGR by BC
+####################################################################################################################
+peaksGR_seqs_org = peaksGR_seqs
+
+peaksGR_seqs = peaksGR_seqs_org
+peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation != 'UnAn')
+
+# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% mRNA_List)
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "5'UTR")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "CDS")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "3'UTR")
+# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "intron")
+# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% ncRNA_List)
+
+peaksGR_Co_Input_M = peaksGR_seqs %>% filter((NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC) >= BC_Threshold_I)
+peaksGR_Co_Input_S = peaksGR_seqs %>% filter((NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC) >= BC_Threshold_I)
+
+peaksGR_Co_NLS_M = peaksGR_seqs %>% filter((NLS_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_NLS_S = peaksGR_seqs %>% filter((NLS_E_S_BC) >= BC_Threshold_E)
+
+peaksGR_Co_NES_M = peaksGR_seqs %>% filter((NES_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_NES_S = peaksGR_seqs %>% filter((NES_E_S_BC) >= BC_Threshold_E)
+
+peaksGR_Co_G3BP_M = peaksGR_seqs %>% filter((G3BP_E_M_BC) >= BC_Threshold_E)
+peaksGR_Co_G3BP_S = peaksGR_seqs %>% filter((G3BP_E_S_BC) >= BC_Threshold_E)
+
+
+## Filter peaks to specific genomic locus
+freq_table = data.frame(counts = 0:50)
+
+freq_table = freq_table %>% mutate(I_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(I_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_M_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_M_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_M_UUUUU = rep(NA, 51))
+
+freq_table = freq_table %>% mutate(I_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(I_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NLS_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(NES_S_UUUUU = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_S_AAAAA = rep(NA, 51))
+freq_table = freq_table %>% mutate(G3BP_S_UUUUU = rep(NA, 51))
+
+freq_table$I_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_Input_M$AAAAA))$Freq
+freq_table$I_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_Input_M$UUUUU))$Freq
+freq_table$NLS_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NLS_M$AAAAA))$Freq
+freq_table$NLS_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NLS_M$UUUUU))$Freq
+freq_table$NES_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NES_M$AAAAA))$Freq
+freq_table$NES_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NES_M$UUUUU))$Freq
+freq_table$G3BP_M_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_M$AAAAA))$Var1] = data.frame(table(peaksGR_Co_G3BP_M$AAAAA))$Freq
+freq_table$G3BP_M_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_M$UUUUU))$Var1] = data.frame(table(peaksGR_Co_G3BP_M$UUUUU))$Freq
+
+freq_table$I_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_Input_S$AAAAA))$Freq
+freq_table$I_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_Input_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_Input_S$UUUUU))$Freq
+freq_table$NLS_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NLS_S$AAAAA))$Freq
+freq_table$NLS_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NLS_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NLS_S$UUUUU))$Freq
+freq_table$NES_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_NES_S$AAAAA))$Freq
+freq_table$NES_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_NES_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_NES_S$UUUUU))$Freq
+freq_table$G3BP_S_AAAAA[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_S$AAAAA))$Var1] = data.frame(table(peaksGR_Co_G3BP_S$AAAAA))$Freq
+freq_table$G3BP_S_UUUUU[freq_table$counts %in% data.frame(table(peaksGR_Co_G3BP_S$UUUUU))$Var1] = data.frame(table(peaksGR_Co_G3BP_S$UUUUU))$Freq
+
+freq_table[is.na(freq_table)] = 0
+
+cumulative_table = cbind(freq_table$counts, cumsum(freq_table[, colnames(freq_table)[2:ncol(freq_table)]]))
+colnames(cumulative_table)[1] = 'counts'
+
+normed_table = cbind(freq_table$counts, data.frame(sapply(cumsum(freq_table[, colnames(freq_table)[2:ncol(freq_table)]]), rescale)))
+colnames(normed_table)[1] = 'counts'
+
+# CD plots and accompanying KS-test
+plot_CD(normed_table, y_data = c('I_M_AAAAA', 'I_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$I_M_AAAAA, freq_table$I_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('I_M_UUUUU', 'I_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$I_M_UUUUU, freq_table$I_S_UUUUU)$p.value < 0.05
+
+plot_CD(normed_table, y_data = c('NLS_M_AAAAA', 'NLS_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NLS_M_AAAAA, freq_table$NLS_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('NLS_M_UUUUU', 'NLS_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NLS_M_UUUUU, freq_table$NLS_S_UUUUU)$p.value < 0.05
+
+plot_CD(normed_table, y_data = c('NES_M_AAAAA', 'NES_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NES_M_AAAAA, freq_table$NES_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('NES_M_UUUUU', 'NES_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$NES_M_UUUUU, freq_table$NES_S_UUUUU)$p.value < 0.05
+
+plot_CD(normed_table, y_data = c('G3BP_M_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$G3BP_M_AAAAA, freq_table$G3BP_S_AAAAA)$p.value < 0.05
+plot_CD(normed_table, y_data = c('G3BP_M_UUUUU', 'G3BP_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
+ks.test(freq_table$G3BP_M_UUUUU, freq_table$G3BP_S_UUUUU)$p.value < 0.05
+
+plot_CD(normed_table, y_data = c('I_M_AAAAA', 'NLS_M_AAAAA', 'NES_M_AAAAA', 'G3BP_M_AAAAA'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_S_AAAAA', 'NLS_S_AAAAA', 'NES_S_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_M_UUUUU', 'NLS_M_UUUUU', 'NES_M_UUUUU', 'G3BP_M_UUUUU'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+plot_CD(normed_table, y_data = c('I_S_UUUUU', 'NLS_S_UUUUU', 'NES_S_UUUUU', 'G3BP_S_UUUUU'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
+####################################################################################################################
+
+
+
+
+
+
+
 
 ################################################################################
 ###################################DEPRECATED###################################
