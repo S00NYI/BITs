@@ -322,7 +322,7 @@ Peak_SG_M$grouped_annotation = factor(Peak_SG_M$grouped_annotation, levels = All
 
 plotScatter(Peak_SG_M, grouped_annotation,
             log2(E_NvC_M), log2(G3BP_EvI_M),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Mock HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_M), ' peaks)'))
 
@@ -337,7 +337,7 @@ Peak_SG_M_mRNA$finalized_annotation = factor(Peak_SG_M_mRNA$finalized_annotation
 
 plotScatter(Peak_SG_M_mRNA, finalized_annotation,
             log2(E_NvC_M), log2(G3BP_EvI_M),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Mock HuR mRNA Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_M_mRNA), ' peaks)'))
 
@@ -352,7 +352,7 @@ Peak_SG_M_ncRNA$finalized_annotation = factor(Peak_SG_M_ncRNA$finalized_annotati
 
 plotScatter(Peak_SG_M_ncRNA, finalized_annotation,
             log2(E_NvC_M), log2(G3BP_EvI_M),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Mock HuR ncRNA Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_M_ncRNA), ' peaks)'))
 
@@ -376,7 +376,7 @@ Peak_SG_S$grouped_annotation = factor(Peak_SG_S$grouped_annotation, levels = All
 
 plotScatter(Peak_SG_S, grouped_annotation,
             log2(E_NvC_S), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Arsenite HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_S), ' peaks)'))
 
@@ -390,7 +390,7 @@ Peak_SG_S_mRNA$finalized_annotation = factor(Peak_SG_S_mRNA$finalized_annotation
 
 plotScatter(Peak_SG_S_mRNA, finalized_annotation,
             log2(E_NvC_S), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Arsenite HuR mRNA Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_S_mRNA), ' peaks)'))
 
@@ -405,7 +405,7 @@ Peak_SG_S_ncRNA$finalized_annotation = factor(Peak_SG_S_ncRNA$finalized_annotati
 
 plotScatter(Peak_SG_S_ncRNA, finalized_annotation,
             log2(E_NvC_S), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+            x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
             x_lim, y_lim,
             paste0('Arsenite HuR ncRNA Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_S_ncRNA), ' peaks)'))
 
@@ -673,7 +673,7 @@ Peak_SG_I_SvM$grouped_annotation = factor(Peak_SG_I_SvM$grouped_annotation, leve
 
 plotScatter(Peak_SG_I_SvM, grouped_annotation,
             log2(G3BP_EvI_M), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Mock G3BP/Input)', 'log2(CoCLIP Stress G3BP/Input)',
+            x_label = 'log2(CoCLIP Mock SG/Input)', 'log2(CoCLIP Stress SG/Input)',
             x_lim, y_lim,
             title = paste0('HuR Peaks: Mock G3BP over Input (',  nrow(Peak_SG_I_SvM), ' peaks)'))
 
@@ -687,7 +687,7 @@ Peak_SG_I_SvM_mRNA$finalized_annotation = factor(Peak_SG_I_SvM_mRNA$finalized_an
 
 plotScatter(Peak_SG_I_SvM_mRNA, finalized_annotation,
             log2(G3BP_EvI_M), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Mock G3BP/Input)', 'log2(CoCLIP Stress G3BP/Input)',
+            x_label = 'log2(CoCLIP Mock SG/Input)', 'log2(CoCLIP Stress SG/Input)',
             x_lim, y_lim,
             paste0('HuR mRNA Peaks: Mock G3BP over Input (',  nrow(Peak_SG_I_SvM_mRNA), ' peaks)'))
 
@@ -702,7 +702,7 @@ Peak_SG_N_SvM_ncRNA$finalized_annotation = factor(Peak_SG_N_SvM_ncRNA$finalized_
 
 plotScatter(Peak_SG_N_SvM_ncRNA, finalized_annotation,
             log2(G3BP_EvI_M), log2(G3BP_EvI_S),
-            x_label = 'log2(CoCLIP Mock G3BP/Input)', 'log2(CoCLIP Stress G3BP/Input)',
+            x_label = 'log2(CoCLIP Mock SG/Input)', 'log2(CoCLIP Stress SG/Input)',
             x_lim, y_lim,
             paste0('HuR ncRNA Peaks: Mock G3BP over Input (',  nrow(Peak_SG_N_SvM_ncRNA), ' peaks)'))
 ####################################################################################################################
@@ -719,7 +719,7 @@ Peak_NLS_I_SvM$grouped_annotation = factor(Peak_NLS_I_SvM$grouped_annotation, le
 
 plotScatter(Peak_NLS_I_SvM, grouped_annotation,
             log2(NLS_EvI_M), log2(NLS_EvI_S),
-            x_label = 'log2(CoCLIP Mock NLS/Input)', 'log2(CoCLIP Stress NLS/Input)',
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
             x_lim, y_lim,
             title = paste0('HuR Peaks: Mock NLS over Input (',  nrow(Peak_NLS_I_SvM), ' peaks)'))
 
@@ -733,7 +733,7 @@ Peak_NLS_I_SvM_mRNA$finalized_annotation = factor(Peak_NLS_I_SvM_mRNA$finalized_
 
 plotScatter(Peak_NLS_I_SvM_mRNA, finalized_annotation,
             log2(NLS_EvI_M), log2(NLS_EvI_S),
-            x_label = 'log2(CoCLIP Mock NLS/Input)', 'log2(CoCLIP Stress NLS/Input)',
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
             x_lim, y_lim,
             paste0('HuR mRNA Peaks: Mock NLS over Input (',  nrow(Peak_NLS_I_SvM_mRNA), ' peaks)'))
 
@@ -748,7 +748,7 @@ Peak_NLS_N_SvM_ncRNA$finalized_annotation = factor(Peak_NLS_N_SvM_ncRNA$finalize
 
 plotScatter(Peak_NLS_N_SvM_ncRNA, finalized_annotation,
             log2(NLS_EvI_M), log2(NLS_EvI_S),
-            x_label = 'log2(CoCLIP Mock NLS/Input)', 'log2(CoCLIP Stress NLS/Input)',
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
             x_lim, y_lim,
             paste0('HuR ncRNA Peaks: Mock NLS over Input (',  nrow(Peak_NLS_N_SvM_ncRNA), ' peaks)'))
 ####################################################################################################################
@@ -765,7 +765,7 @@ Peak_NES_I_SvM$grouped_annotation = factor(Peak_NES_I_SvM$grouped_annotation, le
 
 plotScatter(Peak_NES_I_SvM, grouped_annotation,
             log2(NES_EvI_M), log2(NES_EvI_S),
-            x_label = 'log2(CoCLIP Mock NES/Input)', 'log2(CoCLIP Stress NES/Input)',
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Stress Cytoplasm/Input)',
             x_lim, y_lim,
             title = paste0('HuR Peaks: Mock NES over Input (',  nrow(Peak_NES_I_SvM), ' peaks)'))
 
@@ -779,7 +779,7 @@ Peak_NES_I_SvM_mRNA$finalized_annotation = factor(Peak_NES_I_SvM_mRNA$finalized_
 
 plotScatter(Peak_NES_I_SvM_mRNA, finalized_annotation,
             log2(NES_EvI_M), log2(NES_EvI_S),
-            x_label = 'log2(CoCLIP Mock NES/Input)', 'log2(CoCLIP Stress NES/Input)',
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Stress Cytoplasm/Input)',
             x_lim, y_lim,
             paste0('HuR mRNA Peaks: Mock NES over Input (',  nrow(Peak_NES_I_SvM_mRNA), ' peaks)'))
 
@@ -794,10 +794,299 @@ Peak_NES_N_SvM_ncRNA$finalized_annotation = factor(Peak_NES_N_SvM_ncRNA$finalize
 
 plotScatter(Peak_NES_N_SvM_ncRNA, finalized_annotation,
             log2(NES_EvI_M), log2(NES_EvI_S),
-            x_label = 'log2(CoCLIP Mock NES/Input)', 'log2(CoCLIP Stress NES/Input)',
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Stress Cytoplasm/Input)',
             x_lim, y_lim,
             paste0('HuR ncRNA Peaks: Mock NES over Input (',  nrow(Peak_NES_N_SvM_ncRNA), ' peaks)'))
 ####################################################################################################################
+
+
+
+## FIGURE Mock Cytoplasm E/I vs Mock Nucleus E/I 
+####################################################################################################################
+Peak_Cyto_Nuc_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                                  (((NES_E_M_BC >= BC_Threshold_E_SG & NES_E_M > median(NES_E_M) * rowSum_Multiplier_E) & 
+                                                      (NES_I_M_BC >= BC_Threshold_E & NES_I_M > median(NES_I_M) * rowSum_Multiplier_I)) | 
+                                                     ((NLS_E_M_BC >= BC_Threshold_E & NLS_E_M > median(NLS_E_M) * rowSum_Multiplier_E) & 
+                                                        (NLS_I_M_BC >= 1 & NLS_I_M > median(NLS_I_M) * rowSum_Multiplier_I))))
+
+Peak_Cyto_Nuc_M_EvI$grouped_annotation = factor(Peak_Cyto_Nuc_M_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_Cyto_Nuc_M_EvI, grouped_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock Nuclear/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Mock Cytoplasm vs Nuclear Enriched over Input (',  nrow(Peak_Cyto_Nuc_M_EvI), ' peaks)'))
+
+Peak_Cyto_Nuc_M_EvI_mRNA = Peak_Cyto_Nuc_M_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                             finalized_annotation == "3'UTR" | 
+                                                             finalized_annotation == "CDS" | 
+                                                             finalized_annotation == "intron" | 
+                                                             finalized_annotation == "CDS_RI" |
+                                                             finalized_annotation == "DS10K"))
+Peak_Cyto_Nuc_M_EvI_mRNA$finalized_annotation = factor(Peak_Cyto_Nuc_M_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_Cyto_Nuc_M_EvI_mRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock Nuclear/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Mock Cytoplasm vs Nuclear Enriched over Input',  nrow(Peak_Cyto_Nuc_M_EvI_mRNA), ' peaks)'))
+
+Peak_Cyto_Nuc_M_EvI_ncRNA = Peak_Cyto_Nuc_M_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                              finalized_annotation != "3'UTR" & 
+                                                              finalized_annotation != "CDS" & 
+                                                              finalized_annotation != "intron" &  
+                                                              finalized_annotation != "CDS_RI" &
+                                                              finalized_annotation != "DS10K" &
+                                                              finalized_annotation != "UnAn"))
+Peak_Cyto_Nuc_M_EvI_ncRNA$finalized_annotation = factor(Peak_Cyto_Nuc_M_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_Cyto_Nuc_M_EvI_ncRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock Nuclear/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Mock Cytoplasm vs Nuclear Enriched over Input',  nrow(Peak_Cyto_Nuc_M_EvI_ncRNA), ' peaks)'))
+#################################################################################################################### 
+
+## FIGURE Stress NES E/I vs Stress Nucleus E/I 
+####################################################################################################################
+Peak_Cyto_Nuc_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                                  (((NES_E_S_BC >= BC_Threshold_E_SG & NES_E_S > median(NES_E_S) * rowSum_Multiplier_E) & 
+                                                      (NES_I_S_BC >= BC_Threshold_E & NES_I_S > median(NES_I_S) * rowSum_Multiplier_I)) | 
+                                                     ((NLS_E_S_BC >= BC_Threshold_E & NLS_E_S > median(NLS_E_S) * rowSum_Multiplier_E) & 
+                                                        (NLS_I_S_BC >= 1 & NLS_I_S > median(NLS_I_S) * rowSum_Multiplier_I))))
+
+Peak_Cyto_Nuc_S_EvI$grouped_annotation = factor(Peak_Cyto_Nuc_S_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_Cyto_Nuc_S_EvI, grouped_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Stress Cytoplasm vs Nuclear Enriched over Input (',  nrow(Peak_Cyto_Nuc_S_EvI), ' peaks)'))
+
+Peak_Cyto_Nuc_S_EvI_mRNA = Peak_Cyto_Nuc_S_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                             finalized_annotation == "3'UTR" | 
+                                                             finalized_annotation == "CDS" | 
+                                                             finalized_annotation == "intron" | 
+                                                             finalized_annotation == "CDS_RI" |
+                                                             finalized_annotation == "DS10K"))
+Peak_Cyto_Nuc_S_EvI_mRNA$finalized_annotation = factor(Peak_Cyto_Nuc_S_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_Cyto_Nuc_S_EvI_mRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Stress Cytoplasm vs Nuclear Enriched over Input',  nrow(Peak_Cyto_Nuc_S_EvI_mRNA), ' peaks)'))
+
+Peak_Cyto_Nuc_S_EvI_ncRNA = Peak_Cyto_Nuc_S_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                              finalized_annotation != "3'UTR" & 
+                                                              finalized_annotation != "CDS" & 
+                                                              finalized_annotation != "intron" &  
+                                                              finalized_annotation != "CDS_RI" &
+                                                              finalized_annotation != "DS10K" &
+                                                              finalized_annotation != "UnAn"))
+Peak_Cyto_Nuc_S_EvI_ncRNA$finalized_annotation = factor(Peak_Cyto_Nuc_S_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_Cyto_Nuc_S_EvI_ncRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(NLS_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress Nuclear/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Stress Cytoplasm vs Nuclear Enriched over Input',  nrow(Peak_Cyto_Nuc_S_EvI_ncRNA), ' peaks)'))
+####################################################################################################################
+
+
+
+## FIGURE Mock G3BP E/I vs Mock Nucleus E/I 
+####################################################################################################################
+Peak_G3BP_Nuc_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                                   (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
+                                                       (G3BP_I_M_BC >= BC_Threshold_E & G3BP_I_M > median(G3BP_I_M) * rowSum_Multiplier_I)) | 
+                                                      ((NLS_E_M_BC >= BC_Threshold_E & NLS_E_M > median(NLS_E_M) * rowSum_Multiplier_E) & 
+                                                         (NLS_I_M_BC >= 1 & NLS_I_M > median(NLS_I_M) * rowSum_Multiplier_I))))
+
+Peak_G3BP_Nuc_M_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_M_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_G3BP_Nuc_M_EvI, grouped_annotation,
+            log2(NLS_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Mock SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_M_EvI), ' peaks)'))
+
+Peak_G3BP_Nuc_M_EvI_mRNA = Peak_G3BP_Nuc_M_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                               finalized_annotation == "3'UTR" | 
+                                                               finalized_annotation == "CDS" | 
+                                                               finalized_annotation == "intron" | 
+                                                               finalized_annotation == "CDS_RI" |
+                                                               finalized_annotation == "DS10K"))
+Peak_G3BP_Nuc_M_EvI_mRNA$finalized_annotation = factor(Peak_G3BP_Nuc_M_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_G3BP_Nuc_M_EvI_mRNA, finalized_annotation,
+            log2(NLS_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Mock SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_M_EvI_mRNA), ' peaks)'))
+
+Peak_G3BP_Nuc_M_EvI_ncRNA = Peak_G3BP_Nuc_M_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                                finalized_annotation != "3'UTR" & 
+                                                                finalized_annotation != "CDS" & 
+                                                                finalized_annotation != "intron" &  
+                                                                finalized_annotation != "CDS_RI" &
+                                                                finalized_annotation != "DS10K" &
+                                                                finalized_annotation != "UnAn"))
+Peak_G3BP_Nuc_M_EvI_ncRNA$finalized_annotation = factor(Peak_G3BP_Nuc_M_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_G3BP_Nuc_M_EvI_ncRNA, finalized_annotation,
+            log2(NLS_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Mock SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_M_EvI_ncRNA), ' peaks)'))
+#################################################################################################################### 
+
+## FIGURE Stress G3BP E/I vs Stress Nucleus E/I 
+####################################################################################################################
+Peak_G3BP_Nuc_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                                   (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
+                                                       (G3BP_I_S_BC >= BC_Threshold_E & G3BP_I_S > median(G3BP_I_S) * rowSum_Multiplier_I)) | 
+                                                      ((NLS_E_S_BC >= BC_Threshold_E & NLS_E_S > median(NLS_E_S) * rowSum_Multiplier_E) & 
+                                                         (NLS_I_S_BC >= 1 & NLS_I_S > median(NLS_I_S) * rowSum_Multiplier_I))))
+
+Peak_G3BP_Nuc_S_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_S_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_G3BP_Nuc_S_EvI, grouped_annotation,
+            log2(NLS_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Nuclear/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Stress SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_S_EvI), ' peaks)'))
+
+Peak_G3BP_Nuc_S_EvI_mRNA = Peak_G3BP_Nuc_S_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                               finalized_annotation == "3'UTR" | 
+                                                               finalized_annotation == "CDS" | 
+                                                               finalized_annotation == "intron" | 
+                                                               finalized_annotation == "CDS_RI" |
+                                                               finalized_annotation == "DS10K"))
+Peak_G3BP_Nuc_S_EvI_mRNA$finalized_annotation = factor(Peak_G3BP_Nuc_S_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_G3BP_Nuc_S_EvI_mRNA, finalized_annotation,
+            log2(NLS_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Nuclear/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Stress SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_S_EvI_mRNA), ' peaks)'))
+
+Peak_G3BP_Nuc_S_EvI_ncRNA = Peak_G3BP_Nuc_S_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                                finalized_annotation != "3'UTR" & 
+                                                                finalized_annotation != "CDS" & 
+                                                                finalized_annotation != "intron" &  
+                                                                finalized_annotation != "CDS_RI" &
+                                                                finalized_annotation != "DS10K" &
+                                                                finalized_annotation != "UnAn"))
+Peak_G3BP_Nuc_S_EvI_ncRNA$finalized_annotation = factor(Peak_G3BP_Nuc_S_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_G3BP_Nuc_S_EvI_ncRNA, finalized_annotation,
+            log2(NLS_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Nuclear/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Stress SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_S_EvI_ncRNA), ' peaks)'))
+####################################################################################################################
+
+## FIGURE Mock G3BP E/I vs Mock Cyto E/I 
+####################################################################################################################
+Peak_G3BP_Cyto_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                                 (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
+                                                     (G3BP_I_M_BC >= BC_Threshold_E & G3BP_I_M > median(G3BP_I_M) * rowSum_Multiplier_I)) | 
+                                                    ((NES_E_M_BC >= BC_Threshold_E & NES_E_M > median(NES_E_M) * rowSum_Multiplier_E) & 
+                                                       (NES_I_M_BC >= 1 & NES_I_M > median(NES_I_M) * rowSum_Multiplier_I))))
+
+Peak_G3BP_Cyto_M_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_M_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_G3BP_Cyto_M_EvI, grouped_annotation,
+            log2(NES_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Mock SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_M_EvI), ' peaks)'))
+
+Peak_G3BP_Cyto_M_EvI_mRNA = Peak_G3BP_Cyto_M_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                           finalized_annotation == "3'UTR" | 
+                                                           finalized_annotation == "CDS" | 
+                                                           finalized_annotation == "intron" | 
+                                                           finalized_annotation == "CDS_RI" |
+                                                           finalized_annotation == "DS10K"))
+Peak_G3BP_Cyto_M_EvI_mRNA$finalized_annotation = factor(Peak_G3BP_Cyto_M_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_G3BP_Cyto_M_EvI_mRNA, finalized_annotation,
+            log2(NES_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Mock SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_M_EvI_mRNA), ' peaks)'))
+
+Peak_G3BP_Cyto_M_EvI_ncRNA = Peak_G3BP_Cyto_M_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                            finalized_annotation != "3'UTR" & 
+                                                            finalized_annotation != "CDS" & 
+                                                            finalized_annotation != "intron" &  
+                                                            finalized_annotation != "CDS_RI" &
+                                                            finalized_annotation != "DS10K" &
+                                                            finalized_annotation != "UnAn"))
+Peak_G3BP_Cyto_M_EvI_ncRNA$finalized_annotation = factor(Peak_G3BP_Cyto_M_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_G3BP_Cyto_M_EvI_ncRNA, finalized_annotation,
+            log2(NES_EvI_M), log2(G3BP_EvI_M),
+            x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Mock SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_M_EvI_ncRNA), ' peaks)'))
+#################################################################################################################### 
+
+## FIGURE Stress G3BP E/I vs Stress Cyto E/I 
+####################################################################################################################
+Peak_G3BP_Cyto_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
+                                             (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
+                                                 (G3BP_I_S_BC >= BC_Threshold_E & G3BP_I_S > median(G3BP_I_S) * rowSum_Multiplier_I)) | 
+                                                ((NES_E_S_BC >= BC_Threshold_E & NES_E_S > median(NES_E_S) * rowSum_Multiplier_E) & 
+                                                   (NES_I_S_BC >= 1 & NES_I_S > median(NES_I_S) * rowSum_Multiplier_I))))
+
+Peak_G3BP_Cyto_S_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_S_EvI$grouped_annotation, levels = All_Annotation_List)
+
+plotScatter(Peak_G3BP_Cyto_S_EvI, grouped_annotation,
+            log2(NES_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            title = paste0('HuR Peaks: Stress SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_S_EvI), ' peaks)'))
+
+Peak_G3BP_Cyto_S_EvI_mRNA = Peak_G3BP_Cyto_S_EvI %>% filter((finalized_annotation == "5'UTR" | 
+                                                   finalized_annotation == "3'UTR" | 
+                                                   finalized_annotation == "CDS" | 
+                                                   finalized_annotation == "intron" | 
+                                                   finalized_annotation == "CDS_RI" |
+                                                   finalized_annotation == "DS10K"))
+Peak_G3BP_Cyto_S_EvI_mRNA$finalized_annotation = factor(Peak_G3BP_Cyto_S_EvI_mRNA$finalized_annotation, levels = mRNA_List)
+
+plotScatter(Peak_G3BP_Cyto_S_EvI_mRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR mRNA Peaks: Stress SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_S_EvI_mRNA), ' peaks)'))
+
+Peak_G3BP_Cyto_S_EvI_ncRNA = Peak_G3BP_Cyto_S_EvI %>% filter((finalized_annotation != "5'UTR" & 
+                                                    finalized_annotation != "3'UTR" & 
+                                                    finalized_annotation != "CDS" & 
+                                                    finalized_annotation != "intron" &  
+                                                    finalized_annotation != "CDS_RI" &
+                                                    finalized_annotation != "DS10K" &
+                                                    finalized_annotation != "UnAn"))
+Peak_G3BP_Cyto_S_EvI_ncRNA$finalized_annotation = factor(Peak_G3BP_Cyto_S_EvI_ncRNA$finalized_annotation, levels = ncRNA_List)
+
+plotScatter(Peak_G3BP_Cyto_S_EvI_ncRNA, finalized_annotation,
+            log2(NES_EvI_S), log2(G3BP_EvI_S),
+            x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress SG/Input)',
+            x_lim, y_lim,
+            paste0('HuR ncRNA Peaks: Stress SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_S_EvI_ncRNA), ' peaks)'))
+####################################################################################################################
+
+
+
+
+
+
+
+
+
 
 
 
@@ -986,7 +1275,7 @@ plot_CD(normed_table, y_data = c('I_S_UUUUU', 'NLS_S_UUUUU', 'NES_S_UUUUU', 'G3B
 # 
 # plotScatter(Peak_SG_M_AAAAA, grouped_annotation,
 #             log2(E_NvC_M), log2(G3BP_EvI_M),
-#             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+#             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
 #             x_lim, y_lim,
 #             paste0('Mock HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_M), ' peaks)'))
 
@@ -998,7 +1287,7 @@ plot_CD(normed_table, y_data = c('I_S_UUUUU', 'NLS_S_UUUUU', 'NES_S_UUUUU', 'G3B
 # 
 # plotScatter(Peak_SG_S_AAAAA, grouped_annotation,
 #             log2(E_NvC_S), log2(G3BP_EvI_S),
-#             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP Stress Granule/Input)',
+#             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(CoCLIP SG/Input)',
 #             x_lim, y_lim,
 #             paste0('Arsenite HuR Peaks: Stress Granule CoCLIP Enrichment (',  nrow(Peak_SG_S), ' peaks)'))
 ####################################################################################################################
