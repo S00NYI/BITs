@@ -1,7 +1,8 @@
 ## CoCLIP Analysis: 
-## Peak Processing for Enrichment Analysis
+## Peak Processing for Higher Order Analysis:
+## HUR movement and differential enrichment analysis
 ## Written by Soon Yi
-## Last Edit: 2023-09-15
+## Last Edit: 2023-09-19
 
 library(stringr)
 library(readr)
@@ -10,6 +11,7 @@ library(tidyr)
 library(dplyr)
 library(data.table)
 library(scales)
+library(biomaRt)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
@@ -309,6 +311,9 @@ peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]]
 
 ## Localization Specific Genes
 ####################################################################################################################
+Gene_Input_M = distinct(data.frame(ENSEMBL = Peak_Co_Input_M$gene, SYMBOL = Peak_Co_Input_M$external_gene_name))
+Gene_Input_S = distinct(data.frame(ENSEMBL = Peak_Co_Input_S$gene, SYMBOL = Peak_Co_Input_S$external_gene_name))
+
 Gene_Nuclear_M = distinct(data.frame(ENSEMBL = Peak_Co_NLS_M$gene, SYMBOL = Peak_Co_NLS_M$external_gene_name))
 Gene_Cytoplasm_M = distinct(data.frame(ENSEMBL = Peak_Co_NES_M$gene, SYMBOL = Peak_Co_NES_M$external_gene_name))
 Gene_SGranule_M = distinct(data.frame(ENSEMBL = Peak_Co_G3BP_M$gene, SYMBOL = Peak_Co_G3BP_M$external_gene_name))
@@ -325,19 +330,335 @@ Gene_Nuclear_Only_S = Gene_Nuclear_S %>% anti_join(Gene_Cytoplasm_S) %>% anti_jo
 Gene_Cytoplasm_Only_S = Gene_Cytoplasm_S %>% anti_join(Gene_Nuclear_S) %>% anti_join(Gene_SGranule_S)             # 5
 Gene_SGranule_Only_S = Gene_SGranule_S %>% anti_join(Gene_Nuclear_S) %>% anti_join(Gene_Cytoplasm_S)              # 6
 
+Gene_Input_Both_MS = Gene_Input_M %>% intersect(Gene_Input_S)
 Gene_Nuclear_Both_MS = Gene_Nuclear_Only_M %>% intersect(Gene_Nuclear_Only_S)                                     # 7
 Gene_Cytoplasm_Both_MS = Gene_Cytoplasm_Only_M %>% intersect(Gene_Cytoplasm_Only_S)                               # 8
 Gene_SGranule_Both_MS = Gene_SGranule_Only_M %>% intersect(Gene_SGranule_Only_S)                                  # 9
 
+Gene_Input_Only_M_Only = Gene_Input_M %>% anti_join(Gene_Input_Both_MS)
+Gene_Input_Only_S_Only = Gene_Input_S %>% anti_join(Gene_Input_Both_MS)
 Gene_Nuclear_Only_M_Only = Gene_Nuclear_Only_M %>% anti_join(Gene_Nuclear_Both_MS)                                # 10                
 Gene_Nuclear_Only_S_Only = Gene_Nuclear_Only_S %>% anti_join(Gene_Nuclear_Both_MS)                                # 11
 Gene_Cytoplasm_Only_M_Only = Gene_Cytoplasm_Only_M %>% anti_join(Gene_Cytoplasm_Both_MS)                          # 12   
 Gene_Cytoplasm_Only_S_Only = Gene_Cytoplasm_Only_S %>% anti_join(Gene_Cytoplasm_Both_MS)                          # 13
 Gene_SGranule_Only_M_Only = Gene_SGranule_Only_M %>% anti_join(Gene_SGranule_Both_MS)                             # 14
 Gene_SGranule_Only_S_Only = Gene_SGranule_Only_S %>% anti_join(Gene_SGranule_Both_MS)                             # 15
+
+
+
+
+####################################################################################################################
+
+## Transcript length comparison 
+####################################################################################################################
+# mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset = "hsapiens_gene_ensembl")
+mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+groups = c('Input', 'Nuclear', 'Cytoplasm', 'SGranule')
+
+gene_Lengths = list()
+gene_Lengths_longest = list()
+gene_Lengths_tsl1 = list()
+transcript_Counts = list()
+transcript_Counts_avg = list()
+transcript_Counts_med = list()
+
+for (group in groups) {
+  mock_DataName = paste0('Gene_', group, '_Only_M_Only')
+  arse_DataName = paste0('Gene_', group, '_Only_S_Only')
+  
+  mock_ListName = paste0('M_', group)
+  arse_ListName = paste0('S_', group)
+  
+  mock_Data = get(mock_DataName)
+  arse_Data = get(arse_DataName)
+  
+  mock_Length = getBM(attributes = c("ensembl_gene_id", "transcript_length", "transcript_tsl", "gene_biotype"),
+                     filters = "ensembl_gene_id",
+                     values = mock_Data$ENSEMBL,
+                     mart = mart.hs)
+  
+  arse_Length = getBM(attributes = c("ensembl_gene_id", "transcript_length", "transcript_tsl", "gene_biotype"),
+                     filters = "ensembl_gene_id",
+                     values = arse_Data$ENSEMBL,
+                     mart = mart.hs)
+  
+  ## filter by biotype
+  mock_Length = mock_Length %>% filter(gene_biotype == 'protein_coding')
+  arse_Length = arse_Length %>% filter(gene_biotype == 'protein_coding')
+  
+  mock_Length$transcript_tsl = as.integer(str_extract(mock_Length$transcript_tsl, "(?<=tsl)\\d+"))
+  arse_Length$transcript_tsl = as.integer(str_extract(arse_Length$transcript_tsl, "(?<=tsl)\\d+"))
+  
+  # mock_Length = mock_Length %>% filter(transcript_tsl != "" & transcript_tsl != 'tslNA')
+  # arse_Length = arse_Length %>% filter(transcript_tsl != "" & transcript_tsl != 'tslNA')
+  
+  mock_Length = mock_Length %>% filter(transcript_tsl != "")
+  arse_Length = arse_Length %>% filter(transcript_tsl != "")
+  
+  gene_Lengths[mock_ListName] = list(mock_Length)
+  gene_Lengths[arse_ListName] = list(arse_Length)
+  
+  gene_Lengths_longest[mock_ListName] = list(mock_Length %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length)))
+  gene_Lengths_longest[arse_ListName] = list(arse_Length %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length)))
+  
+  gene_Lengths_tsl1[mock_ListName] = list(mock_Length %>% group_by(ensembl_gene_id) %>% slice(which(transcript_tsl == 1 | transcript_tsl == NA)))
+  gene_Lengths_tsl1[arse_ListName] = list(arse_Length %>% group_by(ensembl_gene_id) %>% slice(which(transcript_tsl == 1 | transcript_tsl == NA)))
+  
+  transcript_Counts[mock_ListName] = list(mock_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))
+  transcript_Counts[arse_ListName] = list(arse_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))
+  
+  transcript_Counts_avg[mock_ListName] = mean((mock_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))$transcript_counts)
+  transcript_Counts_avg[arse_ListName] = mean((arse_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))$transcript_counts)
+  
+  transcript_Counts_med[mock_ListName] = median((mock_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))$transcript_counts)
+  transcript_Counts_med[arse_ListName] = median((arse_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))$transcript_counts)
+  
+}
+
+
+# Create a new data frame to store the selected data
+plotSelections = c('M_Input', 'M_Nuclear', 'M_Cytoplasm', 'M_SGranule')
+plotData = data.frame()
+
+# Loop through the selected lists and extract the data
+for (plotSelection in plotSelections) {
+  DataSubset = data.frame(matrix(NA, nrow = length(gene_Lengths_tsl1[[plotSelection]]$transcript_length), ncol = 2))
+  colnames(DataSubset) = c('transcript_lengths', 'sample_source')
+  DataSubset$transcript_lengths = gene_Lengths_tsl1[[plotSelection]]$transcript_length
+  DataSubset$sample_source = plotSelection
+    
+  plotData = rbind(plotData, DataSubset)
+}
+
+ggplot(plotData, aes(x = factor(sample_source, levels = plotSelections), y = transcript_lengths, fill = sample_source)) +
+  geom_boxplot(notch = T, outlier.shape = NA) +
+  labs(title = 'Mock Protein Coding Transcripts Length Comparison', x = "Samples", y = "Transcript Length") + 
+  theme_minimal() +
+  theme_bw() +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14, face = 'bold')) +
+  scale_fill_manual(values = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon')) +
+  scale_x_discrete(labels = c('Input', 'Nuclear', 'Cytoplasm', 'SGranule')) +
+  ylim(c(0, 15000)) +
+  geom_signif(comparisons = list(c("M_SGranule", "M_Input")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 11000, tip_length = 0) +
+  geom_signif(comparisons = list(c("M_SGranule", "M_Nuclear")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 10000, tip_length = 0) +
+  geom_signif(comparisons = list(c("M_SGranule", "M_Cytoplasm")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 9000, tip_length = 0)
+  
+ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Input', ]$transcript_lengths)$p.value
+ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Nuclear', ]$transcript_lengths)$p.value
+ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Cytoplasm', ]$transcript_lengths)$p.value
+
+wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Input', ]$transcript_lengths)$p.value
+wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Nuclear', ]$transcript_lengths)$p.value
+wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Cytoplasm', ]$transcript_lengths)$p.value
+
+
+# Create a new data frame to store the selected data
+plotData = data.frame()
+plotSelections = c('S_Input', 'S_Nuclear', 'S_Cytoplasm', 'S_SGranule')
+
+# Loop through the selected lists and extract the data
+for (plotSelection in plotSelections) {
+  DataSubset = data.frame(matrix(NA, nrow = length(gene_Lengths_tsl1[[plotSelection]]$transcript_length), ncol = 2))
+  colnames(DataSubset) = c('transcript_lengths', 'sample_source')
+  DataSubset$transcript_lengths = gene_Lengths_tsl1[[plotSelection]]$transcript_length
+  DataSubset$sample_source = plotSelection
+  
+  plotData = rbind(plotData, DataSubset)
+}
+
+ggplot(plotData, aes(x = factor(sample_source, levels = plotSelections), y = transcript_lengths, fill = sample_source)) +
+  geom_boxplot(notch = T, outlier.shape = NA) +
+  labs(title = 'Stress Protein Coding Transcripts Length Comparison', x = "Samples", y = "Transcript Length") + 
+  theme_minimal() +
+  theme_bw() +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14, face = 'bold')) +
+  scale_fill_manual(values = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon')) +
+  scale_x_discrete(labels = c('Input', 'Nuclear', 'Cytoplasm', 'SGranule')) +
+  ylim(c(0, 15000)) +
+  geom_signif(comparisons = list(c("S_SGranule", "S_Input")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 11000, tip_length = 0) +
+  geom_signif(comparisons = list(c("S_SGranule", "S_Nuclear")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 10000, tip_length = 0) +
+  geom_signif(comparisons = list(c("S_SGranule", "S_Cytoplasm")),
+              test = c('wilcox.test'),
+              map_signif_level = TRUE,
+              textsize = 5, y_position = 9000, tip_length = 0)
+
+
+ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Input', ]$transcript_lengths)$p.value
+ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Nuclear', ]$transcript_lengths)$p.value
+ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Cytoplasm', ]$transcript_lengths)$p.value
+
+wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Input', ]$transcript_lengths)$p.value
+wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Nuclear', ]$transcript_lengths)$p.value
+wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Cytoplasm', ]$transcript_lengths)$p.value
+
 ####################################################################################################################
 
 
+## Gene Set Enrichment Analysis
+####################################################################################################################
+## Load gene sets:
+library(fgsea)
+
+H_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/h.all.v2023.1.Hs.symbols.gmt')
+C2_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/c2.all.v2023.1.Hs.symbols.gmt')
+C5_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/c5.all.v2023.1.Hs.symbols.gmt')
+
+## Make Gene Enrichment Table:
+geneEnrichment = peakRowSum %>% filter(grouped_annotation == "3'UTR")
+geneEnrichment = geneEnrichment[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+geneEnrichment = geneEnrichment %>% filter(!is.na(gene))
+geneEnrichment = geneEnrichment %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
+
+geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
+
+
+NLS_SvM = (geneEnrichment %>% filter(!is.na(external_gene_name)))[, c('gene', 'external_gene_name', 'NLS_SvM')] 
+NES_SvM = (geneEnrichment %>% filter(!is.na(external_gene_name)))[, c('gene', 'external_gene_name', 'NES_SvM')]
+G3BP_SvM = (geneEnrichment %>% filter(!is.na(external_gene_name)))[, c('gene', 'external_gene_name', 'G3BP_SvM')]
+
+NLS_SvM = NLS_SvM %>% 
+  filter(!(external_gene_name %in% external_gene_name[duplicated(external_gene_name)])) %>%
+  filter(!(NLS_SvM %in% NLS_SvM[duplicated(NLS_SvM)]))
+
+NES_SvM = NES_SvM %>% 
+  filter(!(external_gene_name %in% external_gene_name[duplicated(external_gene_name)])) %>%
+  filter(!(NES_SvM %in% NES_SvM[duplicated(NES_SvM)]))
+
+G3BP_SvM = G3BP_SvM %>% 
+  filter(!(external_gene_name %in% external_gene_name[duplicated(external_gene_name)])) %>%
+  filter(!(G3BP_SvM %in% G3BP_SvM[duplicated(G3BP_SvM)]))
 
 
 
+fgsea_NLS_SvM = fgsea(pathways = H_SET_GMT,
+                      stats = setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_NES_SvM = fgsea(pathways = H_SET_GMT,
+                      stats = setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_G3BP_SvM = fgsea(pathways = H_SET_GMT,
+                      stats = setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), scoreType = "pos")
+
+# View(fgsea_NLS_SvM[order(pval),])
+# View(fgsea_NES_SvM[order(pval),])
+# View(fgsea_G3BP_SvM[order(pval),])
+
+topPathwaysUp = fgsea_NLS_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NLS_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(H_SET_GMT[topPathways], setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), fgsea_NLS_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_NES_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NES_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(H_SET_GMT[topPathways], setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), fgsea_NES_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_G3BP_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_G3BP_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(H_SET_GMT[topPathways], setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), fgsea_G3BP_SvM,gseaParam=0.5)
+
+
+
+
+
+
+
+fgsea_NLS_SvM = fgsea(pathways = C2_SET_GMT,
+                      stats = setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_NES_SvM = fgsea(pathways = C2_SET_GMT,
+                      stats = setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_G3BP_SvM = fgsea(pathways = C2_SET_GMT,
+                       stats = setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), scoreType = "pos")
+
+View(fgsea_NLS_SvM[order(pval),])
+View(fgsea_NES_SvM[order(pval),])
+View(fgsea_G3BP_SvM[order(pval),])
+
+topPathwaysUp = fgsea_NLS_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NLS_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C2_SET_GMT[topPathways], setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), fgsea_NLS_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_NES_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NES_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C2_SET_GMT[topPathways], setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), fgsea_NES_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_G3BP_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_G3BP_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C2_SET_GMT[topPathways], setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), fgsea_G3BP_SvM,gseaParam=0.5)
+
+
+
+
+
+
+
+fgsea_NLS_SvM = fgsea(pathways = C5_SET_GMT,
+                      stats = setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_NES_SvM = fgsea(pathways = C5_SET_GMT,
+                      stats = setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), scoreType = "pos")
+
+fgsea_G3BP_SvM = fgsea(pathways = C5_SET_GMT,
+                       stats = setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), scoreType = "pos")
+
+View(fgsea_NLS_SvM[order(pval),])
+View(fgsea_NES_SvM[order(pval),])
+View(fgsea_G3BP_SvM[order(pval),])
+
+topPathwaysUp = fgsea_NLS_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NLS_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C5_SET_GMT[topPathways], setNames(as.vector(NLS_SvM$NLS_SvM), NLS_SvM$external_gene_name), fgsea_NLS_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_NES_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_NES_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C5_SET_GMT[topPathways], setNames(as.vector(NES_SvM$NES_SvM), NES_SvM$external_gene_name), fgsea_NES_SvM,gseaParam=0.5)
+
+topPathwaysUp = fgsea_G3BP_SvM[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown = fgsea_G3BP_SvM[ES < 0][head(order(pval), n=10), pathway]
+topPathways = c(topPathwaysUp, rev(topPathwaysDown))
+plotGseaTable(C5_SET_GMT[topPathways], setNames(as.vector(G3BP_SvM$G3BP_SvM), G3BP_SvM$external_gene_name), fgsea_G3BP_SvM,gseaParam=0.5)
