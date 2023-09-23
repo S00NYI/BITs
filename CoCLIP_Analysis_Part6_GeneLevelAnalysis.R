@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
-## Peak Processing for Gene Set Enrichment Analysis:
+## Peak Processing for Gene Level Analysis:
 ## Written by Soon Yi
-## Last Edit: 2023-09-20
+## Last Edit: 2023-09-23
 
 library(stringr)
 library(readr)
@@ -11,15 +11,18 @@ library(dplyr)
 library(data.table)
 library(scales)
 library(biomaRt)
+library(ggsignif)
 library(fgsea)
 library(pheatmap)
 library(RColorBrewer)
+
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
 # peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
+# peaksMatrix_FILE = 'Combined_peakCoverage_groomed_annotated.txt'
 
 peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
 peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
@@ -59,6 +62,7 @@ G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
 
 ## Add row sum columns for further filtering:
+# peaksMatrix = peaksMatrix %>% mutate_at(c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S, NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S, NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S), as.double)
 peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
 peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
 peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
@@ -311,51 +315,379 @@ peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]]
 # write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_Enrichment.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
 ####################################################################################################################
 
-## Make Gene Enrichment Table:
-####################################################################################################################
-# geneEnrichment = peakRowSum %>% filter(grouped_annotation == "3'UTR")
-# geneEnrichment = geneEnrichment[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 
+
+## Gene Level Fold Change: Nuclear Mock vs Arsenite
+####################################################################################################################
 mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
-geneEnrichment = peakRowSum[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
-geneEnrichment = geneEnrichment %>% filter(!is.na(gene))
-geneEnrichment = geneEnrichment %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_NLS_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_NLS_M = Gene_Co_NLS_M %>% filter(peak_names %in% Peak_Co_NLS_M$peak_names) %>% filter(!is.na(gene))
+Gene_Co_NLS_M$peak_names = NULL
+Gene_Co_NLS_M = Gene_Co_NLS_M %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_NLS_M = Gene_Co_NLS_M[, c('gene', 'external_gene_name', 'NLS_E_M')]
 
-geneEnrichment_Length = getBM(attributes = c("ensembl_gene_id", "transcript_length", "transcript_tsl", "gene_biotype"),
-                              filters = "ensembl_gene_id",
-                              values = geneEnrichment$gene,
-                              mart = mart.hs)
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_NLS_M$gene,
+                   mart = mart.hs)
+Gene_Co_NLS_M = cbind(Gene_Co_NLS_M, Length = geneLength$transcript_length[match(Gene_Co_NLS_M$gene, geneLength$ensembl_gene_id)])
+Gene_Co_NLS_M = Gene_Co_NLS_M %>% mutate(across(all_of('NLS_E_M'), ~ . / Length*1e6))
+Gene_Co_NLS_M$Length = NULL
 
-geneEnrichment_Length = geneEnrichment_Length %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length))
-geneEnrichment_Length$transcript_tsl = as.integer(str_extract(geneEnrichment_Length$transcript_tsl, "(?<=tsl)\\d+"))
+Gene_Co_NLS_S = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_NLS_S = Gene_Co_NLS_S %>% filter(peak_names %in% Peak_Co_NLS_S$peak_names) %>% filter(!is.na(gene))
+Gene_Co_NLS_S$peak_names = NULL
+Gene_Co_NLS_S = Gene_Co_NLS_S %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_NLS_S = Gene_Co_NLS_S[, c('gene', 'external_gene_name', 'NLS_E_S')]
 
-geneEnrichment = cbind(geneEnrichment, Length = geneEnrichment_Length$transcript_length[match(geneEnrichment$gene, geneEnrichment_Length$ensembl_gene_id)])
-geneEnrichment = geneEnrichment %>% mutate(across(all_of(colnames(peakRowSum)[17:34]), ~ . / Length))
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_NLS_S$gene,
+                   mart = mart.hs)
+Gene_Co_NLS_S = cbind(Gene_Co_NLS_S, Length = geneLength$transcript_length[match(Gene_Co_NLS_S$gene, geneLength$ensembl_gene_id)])
+Gene_Co_NLS_S = Gene_Co_NLS_S %>% mutate(across(all_of('NLS_E_S'), ~ . / Length*1e6))
+Gene_Co_NLS_S$Length = NULL
 
-geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
-geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
-geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
-geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
+geneOverlap = intersect(Gene_Co_NLS_M$gene, Gene_Co_NLS_S$gene)
+Gene_Co_NLS_M_OL = Gene_Co_NLS_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NLS_S_OL = Gene_Co_NLS_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
 
-geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
-geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
-
-geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
-geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
-geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
-geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
-
-geneEnrichment = geneEnrichment %>% mutate(Input_SvM = geneEnrichment$I_S / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
-geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
+Gene_Co_NLS_SvM = Gene_Co_NLS_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_NLS_SvM = Gene_Co_NLS_SvM %>% mutate(log2FoldChange = log2(Gene_Co_NLS_S_OL$NLS_E_S/Gene_Co_NLS_M_OL$NLS_E_M))
 
 ####################################################################################################################
+
+## Gene Level Fold Change: Cytoplasm Mock vs Arsenite
+####################################################################################################################
+mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+Gene_Co_NES_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_NES_M = Gene_Co_NES_M %>% filter(peak_names %in% Peak_Co_NES_M$peak_names) %>% filter(!is.na(gene))
+Gene_Co_NES_M$peak_names = NULL
+Gene_Co_NES_M = Gene_Co_NES_M %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_NES_M = Gene_Co_NES_M[, c('gene', 'external_gene_name', 'NES_E_M')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_NES_M$gene,
+                   mart = mart.hs)
+Gene_Co_NES_M = cbind(Gene_Co_NES_M, Length = geneLength$transcript_length[match(Gene_Co_NES_M$gene, geneLength$ensembl_gene_id)])
+Gene_Co_NES_M = Gene_Co_NES_M %>% mutate(across(all_of('NES_E_M'), ~ . / Length*1e6))
+Gene_Co_NES_M$Length = NULL
+
+Gene_Co_NES_S = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_NES_S = Gene_Co_NES_S %>% filter(peak_names %in% Peak_Co_NES_S$peak_names) %>% filter(!is.na(gene))
+Gene_Co_NES_S$peak_names = NULL
+Gene_Co_NES_S = Gene_Co_NES_S %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_NES_S = Gene_Co_NES_S[, c('gene', 'external_gene_name', 'NES_E_S')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_NES_S$gene,
+                   mart = mart.hs)
+Gene_Co_NES_S = cbind(Gene_Co_NES_S, Length = geneLength$transcript_length[match(Gene_Co_NES_S$gene, geneLength$ensembl_gene_id)])
+Gene_Co_NES_S = Gene_Co_NES_S %>% mutate(across(all_of('NES_E_S'), ~ . / Length*1e6))
+Gene_Co_NES_S$Length = NULL
+
+geneOverlap = intersect(Gene_Co_NES_M$gene, Gene_Co_NES_S$gene)
+Gene_Co_NES_M_OL = Gene_Co_NES_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NES_S_OL = Gene_Co_NES_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+Gene_Co_NES_SvM = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_NES_SvM = Gene_Co_NES_SvM %>% mutate(log2FoldChange = log2(Gene_Co_NES_S_OL$NES_E_S/Gene_Co_NES_M_OL$NES_E_M))
+
+####################################################################################################################
+
+## Gene Level Fold Change: SGranule Mock vs Arsenite
+####################################################################################################################
+mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+Gene_Co_G3BP_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_G3BP_M = Gene_Co_G3BP_M %>% filter(peak_names %in% Peak_Co_G3BP_M$peak_names) %>% filter(!is.na(gene))
+Gene_Co_G3BP_M$peak_names = NULL
+Gene_Co_G3BP_M = Gene_Co_G3BP_M %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_G3BP_M = Gene_Co_G3BP_M[, c('gene', 'external_gene_name', 'G3BP_E_M')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_G3BP_M$gene,
+                   mart = mart.hs)
+Gene_Co_G3BP_M = cbind(Gene_Co_G3BP_M, Length = geneLength$transcript_length[match(Gene_Co_G3BP_M$gene, geneLength$ensembl_gene_id)])
+Gene_Co_G3BP_M = Gene_Co_G3BP_M %>% mutate(across(all_of('G3BP_E_M'), ~ . / Length*1e6))
+Gene_Co_G3BP_M$Length = NULL
+
+Gene_Co_G3BP_S = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Co_G3BP_S = Gene_Co_G3BP_S %>% filter(peak_names %in% Peak_Co_G3BP_S$peak_names) %>% filter(!is.na(gene))
+Gene_Co_G3BP_S$peak_names = NULL
+Gene_Co_G3BP_S = Gene_Co_G3BP_S %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Co_G3BP_S = Gene_Co_G3BP_S[, c('gene', 'external_gene_name', 'G3BP_E_S')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Co_G3BP_S$gene,
+                   mart = mart.hs)
+Gene_Co_G3BP_S = cbind(Gene_Co_G3BP_S, Length = geneLength$transcript_length[match(Gene_Co_G3BP_S$gene, geneLength$ensembl_gene_id)])
+Gene_Co_G3BP_S = Gene_Co_G3BP_S %>% mutate(across(all_of('G3BP_E_S'), ~ . / Length*1e6))
+Gene_Co_G3BP_S$Length = NULL
+
+geneOverlap = intersect(Gene_Co_G3BP_M$gene, Gene_Co_G3BP_S$gene)
+Gene_Co_G3BP_M_OL = Gene_Co_G3BP_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+Gene_Co_G3BP_SvM = Gene_Co_G3BP_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_G3BP_SvM = Gene_Co_G3BP_SvM %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_G3BP_M_OL$G3BP_E_M))
+
+####################################################################################################################
+
+## Gene Level Fold Change: Other Comparisons
+####################################################################################################################
+## Nuclear Mock --> Cytoplasm Arsenite
+geneOverlap = intersect(Gene_Co_NLS_M$gene, Gene_Co_NES_S$gene)
+Gene_Co_NLS_M_OL = Gene_Co_NLS_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NES_S_OL = Gene_Co_NES_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NES_SvNLS_M = Gene_Co_NLS_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_NES_SvNLS_M = Gene_Co_NES_SvNLS_M %>% mutate(log2FoldChange = log2(Gene_Co_NES_S_OL$NES_E_S/Gene_Co_NLS_M_OL$NLS_E_M))
+
+## Nuclear Mock --> SGranule Arsenite
+geneOverlap = intersect(Gene_Co_NLS_M$gene, Gene_Co_G3BP_S$gene)
+Gene_Co_NLS_M_OL = Gene_Co_NLS_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_SvNLS_M = Gene_Co_NLS_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_G3BP_SvNLS_M = Gene_Co_G3BP_SvNLS_M %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_NLS_M_OL$NLS_E_M))
+
+## Cytoplasm Mock --> Nuclear Arsenite
+geneOverlap = intersect(Gene_Co_NES_M$gene, Gene_Co_NLS_S$gene)
+Gene_Co_NES_M_OL = Gene_Co_NES_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NLS_S_OL = Gene_Co_NLS_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_NLS_SvNES_M = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_NLS_SvNES_M = Gene_Co_NLS_SvNES_M %>% mutate(log2FoldChange = log2(Gene_Co_NLS_S_OL$NLS_E_S/Gene_Co_NES_M_OL$NES_E_M))
+
+## Cytoplasm Mock --> SGranule Arsenite
+geneOverlap = intersect(Gene_Co_NES_M$gene, Gene_Co_G3BP_S$gene)
+Gene_Co_NES_M_OL = Gene_Co_NES_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_SvNES_M = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_G3BP_SvNES_M = Gene_Co_G3BP_SvNES_M %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_NES_M_OL$NES_E_M))
+
+####################################################################################################################
+
+## RNASeq Fold Changes:
+####################################################################################################################
+## Read in DESeq results:
+RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCelllines/'
+RNASeq_FILE_All = 'All_DESeq.tsv'
+RNASeq_FILE_Nuclear = 'Nuclear_DESeq.tsv'
+RNASeq_FILE_Cytoplasm = 'Cytoplasm_DESeq.tsv'
+RNASeq_FILE_SGranule = 'SGranule_DESeq.tsv'
+
+## All APEX Arsenite/Mock Comparison
+All_DESeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE_All), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
+                filters = "external_gene_name",
+                values = All_DESeq$gene[!grepl("^ENSG", All_DESeq$gene)],
+                mart = mart.hs)
+
+All_DESeq = cbind(All_DESeq, ENSEMBL = geneIDs$ensembl_gene_id[match(All_DESeq$gene, geneIDs$external_gene_name)])
+All_DESeq$ENSEMBL[grep("^ENSG", All_DESeq$gene)] = All_DESeq$gene[grep("^ENSG", All_DESeq$gene)]
+All_DESeq = All_DESeq[, c('ENSEMBL', 'gene', colnames(All_DESeq)[2:7])]
+All_DESeq$gene[grepl("^ENSG", All_DESeq$gene)] = NA
+
+## NLS-APEX Arsenite/Mock Comparison
+Nuclear_DESeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE_Nuclear), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
+                filters = "external_gene_name",
+                values = Nuclear_DESeq$gene[!grepl("^ENSG", Nuclear_DESeq$gene)],
+                mart = mart.hs)
+
+Nuclear_DESeq = cbind(Nuclear_DESeq, ENSEMBL = geneIDs$ensembl_gene_id[match(Nuclear_DESeq$gene, geneIDs$external_gene_name)])
+Nuclear_DESeq$ENSEMBL[grep("^ENSG", Nuclear_DESeq$gene)] = Nuclear_DESeq$gene[grep("^ENSG", Nuclear_DESeq$gene)]
+Nuclear_DESeq = Nuclear_DESeq[, c('ENSEMBL', 'gene', colnames(Nuclear_DESeq)[2:7])]
+Nuclear_DESeq$gene[grepl("^ENSG", Nuclear_DESeq$gene)] = NA
+
+## NES-APEX Arsenite/Mock Comparison
+Cytoplasm_DESeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE_Cytoplasm), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
+                filters = "external_gene_name",
+                values = Cytoplasm_DESeq$gene[!grepl("^ENSG", Cytoplasm_DESeq$gene)],
+                mart = mart.hs)
+
+Cytoplasm_DESeq = cbind(Cytoplasm_DESeq, ENSEMBL = geneIDs$ensembl_gene_id[match(Cytoplasm_DESeq$gene, geneIDs$external_gene_name)])
+Cytoplasm_DESeq$ENSEMBL[grep("^ENSG", Cytoplasm_DESeq$gene)] = Cytoplasm_DESeq$gene[grep("^ENSG", Cytoplasm_DESeq$gene)]
+Cytoplasm_DESeq = Cytoplasm_DESeq[, c('ENSEMBL', 'gene', colnames(Cytoplasm_DESeq)[2:7])]
+Cytoplasm_DESeq$gene[grepl("^ENSG", Cytoplasm_DESeq$gene)] = NA
+
+## G3BP-APEX Arsenite/Mock Comparison
+SGranule_DESeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE_SGranule), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
+                filters = "external_gene_name",
+                values = SGranule_DESeq$gene[!grepl("^ENSG", SGranule_DESeq$gene)],
+                mart = mart.hs)
+
+SGranule_DESeq = cbind(SGranule_DESeq, ENSEMBL = geneIDs$ensembl_gene_id[match(SGranule_DESeq$gene, geneIDs$external_gene_name)])
+SGranule_DESeq$ENSEMBL[grep("^ENSG", SGranule_DESeq$gene)] = SGranule_DESeq$gene[grep("^ENSG", SGranule_DESeq$gene)]
+SGranule_DESeq = SGranule_DESeq[, c('ENSEMBL', 'gene', colnames(SGranule_DESeq)[2:7])]
+SGranule_DESeq$gene[grepl("^ENSG", SGranule_DESeq$gene)] = NA
+####################################################################################################################
+
+## CoCLIP vs RNASeq 
+####################################################################################################################
+## SGranule S v Nucleus M:
+All_DESeqSub = All_DESeq %>% filter(!is.na(padj))
+
+geneOverlap = intersect(All_DESeqSub$ENSEMBL, Gene_Co_G3BP_SvNLS_M$gene)
+All_DESeq_OL = All_DESeqSub %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+Gene_Co_G3BP_SvNLS_M_OL = Gene_Co_G3BP_SvNLS_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+plotData = data.frame(Gene = All_DESeq_OL$gene,
+                      RNASeq = All_DESeq_OL$log2FoldChange, 
+                      CoCLIP = Gene_Co_G3BP_SvNLS_M_OL$log2FoldChange,
+                      pAdj = All_DESeq_OL$padj)
+
+ggplot(plotData, aes(x = RNASeq, y = CoCLIP,)) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  geom_density_2d(linewidth = 0.5, colour = 'skyblue2') + 
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  ggtitle(paste0('SG_ars vs Nuc_mock (', nrow(plotData), ' genes)')) +
+  xlim(c(-4, 4)) +
+  ylim(c(-8, 8))
+
+## SGranule S v Cytoplasm M:
+geneOverlap = intersect(All_DESeqSub$ENSEMBL, Gene_Co_G3BP_SvNES_M$gene)
+All_DESeq_OL = All_DESeqSub %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+Gene_Co_G3BP_SvNES_M_OL = Gene_Co_G3BP_SvNES_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+plotData = data.frame(Gene = All_DESeq_OL$gene,
+                      RNASeq = All_DESeq_OL$log2FoldChange, 
+                      CoCLIP = Gene_Co_G3BP_SvNES_M_OL$log2FoldChange,
+                      pAdj = All_DESeq_OL$padj)
+
+ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
+  geom_point(pch = 16, size = 3, alpha = 0.6) +
+  geom_density_2d(linewidth = 0.5, colour = 'darkseagreen2') + 
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  ggtitle(paste0('SG_ars vs Cyto_mock (', nrow(plotData), ' genes)')) +
+  xlim(c(-4, 4)) +
+  ylim(c(-8, 8))
+
+## SGranule S v SGranule M:
+geneOverlap = intersect(All_DESeqSub$ENSEMBL, Gene_Co_G3BP_SvM$gene)
+All_DESeq_OL = All_DESeqSub %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+Gene_Co_G3BP_SvM_OL = Gene_Co_G3BP_SvM %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+plotData = data.frame(Gene = All_DESeq_OL$gene,
+                      RNASeq = All_DESeq_OL$log2FoldChange, 
+                      CoCLIP = Gene_Co_G3BP_SvM_OL$log2FoldChange,
+                      pAdj = All_DESeq_OL$padj)
+
+ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
+  geom_point(pch = 16, size = 3, alpha = 0.6) +
+  geom_density_2d(linewidth = 0.5, colour = 'salmon') + 
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  ggtitle(paste0('SG_ars vs SG_mock (', nrow(plotData), ' genes)')) +
+  xlim(c(-4, 4)) +
+  ylim(c(-8, 8))
+
+
+## Nuclear S v M:
+# Nuclear_DESeqSub = Nuclear_DESeq %>% filter(!is.na(pvalue))
+# geneOverlap = intersect(Nuclear_DESeqSub$ENSEMBL, Gene_Co_NLS_SvM$gene)
+# Nuclear_DESeq_OL = Nuclear_DESeqSub %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+# Gene_Co_NLS_SvM_OL = Gene_Co_NLS_SvM %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+# 
+# plotData = data.frame(Gene = Nuclear_DESeq_OL$gene,
+#                       RNASeq = Nuclear_DESeq_OL$log2FoldChange, 
+#                       CoCLIP = Gene_Co_NLS_SvM_OL$log2FoldChange,
+#                       pval = Nuclear_DESeq_OL$pvalue)
+# 
+# ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
+#   geom_point(pch = 16, size = 3, alpha = 0.2) +
+#   # scale_color_distiller(palette = "Greens") +
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=14), 
+#         axis.title = element_text(size=14, face = 'bold'), 
+#         legend.text = element_text(size=14)) +
+#   ggtitle(c('Nuclear S/M Gene Level Enrichment RNASeq vs CoCLIP ')) +
+#   xlim(c(-5, 5)) +
+#   ylim(c(-5, 5))
+
+## Cytoplasm S v M:
+# geneOverlap = intersect(Cytoplasm_DESeq$ENSEMBL, Gene_Co_NES_SvM$gene)
+# Cytoplasm_DESeq_OL = Cytoplasm_DESeq %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+# Gene_Co_NES_SvM_OL = Gene_Co_NES_SvM %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+# 
+# plotData = data.frame(Gene = Cytoplasm_DESeq_OL$gene,
+#                       RNASeq = Cytoplasm_DESeq_OL$log2FoldChange, 
+#                       CoCLIP = Gene_Co_NES_SvM_OL$log2FoldChange)
+# 
+# ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
+#   geom_point(pch = 16, size = 3, alpha = 0.5) +
+#   scale_fill_brewer(palette = "Set3") +
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=14), 
+#         axis.title = element_text(size=14, face = 'bold'), 
+#         legend.text = element_text(size=14)) +
+#   ggtitle(c('Cytoplasm S/M Gene Level Enrichment RNASeq vs CoCLIP ')) +
+#   xlim(c(-5, 5)) +
+#   ylim(c(-5, 5))
+
+## SGranule S v M:
+# geneOverlap = intersect(SGranule_DESeq$ENSEMBL, Gene_Co_G3BP_SvM$gene)
+# SGranule_DESeq_OL = SGranule_DESeq %>% filter(ENSEMBL %in% geneOverlap) %>% arrange(ENSEMBL)
+# Gene_Co_G3BP_SvM_OL = Gene_Co_G3BP_SvM %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+# 
+# plotData = data.frame(Gene = SGranule_DESeq_OL$gene,
+#                       RNASeq = SGranule_DESeq_OL$log2FoldChange, 
+#                       CoCLIP = Gene_Co_G3BP_SvM_OL$log2FoldChange)
+# 
+# ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
+#   geom_density_2d() + 
+#   geom_point(pch = 16, size = 3, alpha = 0.5) +
+#   # scale_fill_brewer(palette = "Set3") +
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=14), 
+#         axis.title = element_text(size=14, face = 'bold'), 
+#         legend.text = element_text(size=14)) +
+#   ggtitle(c('SGranule S/M Gene Level Enrichment RNASeq vs CoCLIP ')) +
+#   xlim(c(-5, 5)) +
+#   ylim(c(-10, 10))
+####################################################################################################################
+
+## RNASeq Internal Comparison
+####################################################################################################################
+RNASeq_Pairwise = RNASeq[, c('ENSEMBL', 'gene')]
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Nuclear_Mock = (RNASeq$S9 + RNASeq$S10)/2)
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Cytoplasm_Mock = (RNASeq$S1 + RNASeq$S2)/2)
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(SG_Mock = (RNASeq$S13 + RNASeq$S14)/2)
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Nuclear_Arse = (RNASeq$S11 + RNASeq$S12)/2)
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Cytoplasm_Arse = (RNASeq$S3 + RNASeq$S4)/2)
+RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(SG_Arse = (RNASeq$S15 + RNASeq$S16)/2)
+
+ggplot(RNASeq_Pairwise, aes(x = log10(Nuclear_Mock), y = log10(Cytoplasm_Mock))) +
+  geom_point(pch = 16, size = 3, alpha = 0.5) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # scale_y_continuous(trans = 'log10') +
+  # scale_x_continuous(trans = 'log10') +
+  geom_abline(color = 'red')
+
+####################################################################################################################
+
+
 
 ## Localization Specific Genes
 ####################################################################################################################
@@ -396,7 +728,7 @@ Gene_SGranule_Only_S_Only = Gene_SGranule_Only_S %>% anti_join(Gene_SGranule_Bot
 ## Transcript length comparison 
 ####################################################################################################################
 # mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset = "hsapiens_gene_ensembl")
-mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
 groups = c('Input', 'Nuclear', 'Cytoplasm', 'SGranule')
 
@@ -428,8 +760,8 @@ for (group in groups) {
                      mart = mart.hs)
   
   ## filter by biotype
-  mock_Length = mock_Length %>% filter(gene_biotype == 'protein_coding')
-  arse_Length = arse_Length %>% filter(gene_biotype == 'protein_coding')
+  # mock_Length = mock_Length %>% filter(gene_biotype == 'protein_coding')
+  # arse_Length = arse_Length %>% filter(gene_biotype == 'protein_coding')
   
   mock_Length$transcript_tsl = as.integer(str_extract(mock_Length$transcript_tsl, "(?<=tsl)\\d+"))
   arse_Length$transcript_tsl = as.integer(str_extract(arse_Length$transcript_tsl, "(?<=tsl)\\d+"))
@@ -459,7 +791,6 @@ for (group in groups) {
   transcript_Counts_med[arse_ListName] = median((arse_Length %>% group_by(ensembl_gene_id) %>% summarize(transcript_counts = n_distinct(transcript_length)))$transcript_counts)
   
 }
-
 
 # Create a new data frame to store the selected data
 plotSelections = c('M_Input', 'M_Nuclear', 'M_Cytoplasm', 'M_SGranule')
@@ -555,11 +886,47 @@ wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_length
 
 ####################################################################################################################
 
+
+
+
+
 ## Load gene sets for GSEA:
 ####################################################################################################################
 H_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/h.all.v2023.1.Hs.symbols.gmt')
 C2_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/c2.all.v2023.1.Hs.symbols.gmt')
 C5_SET_GMT = gmtPathways('/Users/soonyi/Desktop/Genomics/Annotations/GSEA/c5.all.v2023.1.Hs.symbols.gmt')
+####################################################################################################################
+
+## Make Gene Enrichment Table for GSEA:
+####################################################################################################################
+# geneEnrichment = peakRowSum %>% filter(grouped_annotation == "intron")
+# geneEnrichment = geneEnrichment[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+geneEnrichment = peakRowSum[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+geneEnrichment = geneEnrichment %>% filter(!is.na(gene))
+geneEnrichment = geneEnrichment %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
+
+geneEnrichment = geneEnrichment %>% mutate(Input_SvM = geneEnrichment$I_S / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
+
 ####################################################################################################################
 
 ## Location Specific GSEA:
@@ -653,6 +1020,15 @@ fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(newScore = NES * -log10(padj))
 
 
 ## Plot GSEA Results:
+topPathwaysUp = fgsea_Gene_INP_M[ES > 0][head(order(-newScore), n = 20), pathway]
+topPathwaysDown = fgsea_Gene_INP_M[ES < 0][head(order(-newScore), n = 20), pathway]
+topPathways = c(topPathwaysUp, 
+                rev(topPathwaysDown))
+plotGseaTable(GS_Pathway[topPathways], 
+              setNames(as.vector(Gene_INP_S$Gene_INP_S), Gene_INP_S$external_gene_name), 
+              fgsea_Gene_INP_M,
+              gseaParam = 0.5)
+
 topPathwaysUp = fgsea_Gene_NLS_M[ES > 0][head(order(-newScore), n = 20), pathway]
 topPathwaysDown = fgsea_Gene_NLS_M[ES < 0][head(order(newScore), n = 20), pathway]
 topPathways = c(topPathwaysUp, 
@@ -759,7 +1135,7 @@ CorrMatrix = cor(fgsea_All[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
 
 
 
@@ -769,25 +1145,27 @@ CorrMatrix = cor(fgsea_All_GO[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
 
 CorrMatrix = cor(fgsea_All_GO_BP[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+plot(sampleCorr$tree_row)
 
 CorrMatrix = cor(fgsea_All_GO_CC[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+plot(sampleCorr$tree_row)
 
 CorrMatrix = cor(fgsea_All_GO_MF[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
 
 
 
@@ -800,8 +1178,7 @@ ALL_heatmap = pheatmap(fgsea_All[, samplesOrder],
 
 GO_heatmap = pheatmap(fgsea_All_GO[, samplesOrder], 
                       cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster,
-                      cutree_rows = 3,
+                      cluster_cols = F,
                       color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
 
 BP_heatmap = pheatmap(fgsea_All_GO_BP[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
@@ -816,7 +1193,24 @@ MF_cluster = cbind(fgsea_All_GO_MF, cluster = cutree(MF_heatmap$tree_row, k = nr
 ####################################################################################################################
 
 
-RNASeq Analysis --> TPM Correlation
+get the list of significant terms
+get the unique list across all and set it as column 1
+make columns Input NLS NES SG for Mock and Stress
+Fill in the rows, if not 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -824,6 +1218,8 @@ RNASeq Analysis --> TPM Correlation
 #########################################################################################################################
 #######################################################DEPRECATED########################################################
 #########################################################################################################################
+
+
 
 ## Stress Over Mock GSEA:
 ####################################################################################################################
@@ -1106,3 +1502,103 @@ write.table(NES_EvI_S, './NES_EvI_S.txt', sep = '\t', quote = F, row.names = F, 
 write.table(G3BP_EvI_S, './G3BP_EvI_S.txt', sep = '\t', quote = F, row.names = F, col.names = F)
 ####################################################################################################################
 
+## Make Gene Enrichment Table:
+####################################################################################################################
+# geneEnrichment = peakRowSum %>% filter(grouped_annotation == "intron")
+# geneEnrichment = geneEnrichment[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+geneEnrichment = peakRowSum[, c('gene', 'external_gene_name', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+geneEnrichment = geneEnrichment %>% filter(!is.na(gene))
+geneEnrichment = geneEnrichment %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+
+## For each gene, pick annotation with highest frequency as the representative annotation:
+AnnotationPerGene = peakRowSum %>%
+  group_by(gene, grouped_annotation) %>%
+  summarise(count = n()) %>%
+  arrange(gene, desc(count)) %>%
+  filter(!any(duplicated(count))) %>%
+  group_by(gene) %>%
+  filter(rank(desc(count)) == 1) 
+
+## Use BiomaRt to gt legnth information of genes.
+## For each gene, use longest transcript with TSL 1 or NA as representative length:
+mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length", "transcript_tsl", "gene_biotype"),
+                   filters = "ensembl_gene_id",
+                   values = geneEnrichment$gene,
+                   mart = mart.hs)
+
+geneLength = geneLength %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length))
+geneLength$transcript_tsl = as.integer(str_extract(geneLength$transcript_tsl, "(?<=tsl)\\d+"))
+
+## Append length information to the enrichment table:
+geneEnrichment = cbind(geneEnrichment, Length = geneLength$transcript_length[match(geneEnrichment$gene, geneLength$ensembl_gene_id)])
+geneEnrichment = geneEnrichment %>% mutate(across(all_of(colnames(peakRowSum)[17:34]), ~ . / Length*1e6))
+
+## Append representative peak annotation:
+geneEnrichment = geneEnrichment %>% filter(gene %in% AnnotationPerGene$gene)
+geneEnrichment = cbind(geneEnrichment, MFA = AnnotationPerGene$grouped_annotation[match(geneEnrichment$gene, AnnotationPerGene$gene)])
+geneEnrichment = geneEnrichment %>% filter(MFA != 'UnAn')
+
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
+geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
+geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
+geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
+
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
+geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
+geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
+
+geneEnrichment = geneEnrichment %>% mutate(Input_SvM = geneEnrichment$I_S / geneEnrichment$I_M)
+geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
+geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
+geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
+
+####################################################################################################################
+
+## RNASeq CountTable PRocessing
+####################################################################################################################
+## Read RNASeq count table and process it:
+RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCelllines/'
+RNASeq_FILE = 'countTable.csv'
+
+RNASeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name", "transcript_length", "transcript_tsl"),
+                filters = "external_gene_name",
+                values = RNASeq$gene[!grepl("^ENSG", RNASeq$gene)],
+                mart = mart.hs)
+
+RNASeq = cbind(RNASeq, ENSEMBL = geneIDs$ensembl_gene_id[match(RNASeq$gene, geneIDs$external_gene_name)])
+RNASeq$ENSEMBL[grep("^ENSG", RNASeq$gene)] = RNASeq$gene[grep("^ENSG", RNASeq$gene)]
+RNASeq = RNASeq[, c('ENSEMBL', 'gene', colnames(RNASeq)[2:17])]
+
+geneIDs = geneIDs %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length))
+geneIDs$transcript_tsl = as.integer(str_extract(geneIDs$transcript_tsl, "(?<=tsl)\\d+"))
+
+RNASeq = cbind(RNASeq, Length = geneIDs$transcript_length[match(RNASeq$ENSEMBL, geneIDs$ensembl_gene_id)])
+RNASeq = RNASeq %>% filter(!is.na(Length))
+
+## Calculate TPM:
+RNASeq = RNASeq %>% mutate(across(all_of(colnames(RNASeq)[3:18]), ~ . / Length*1e6))
+
+## Set up RNASeq sample table:
+sampleTable = data.frame(sample = c('S1', 'S2', 'S3', 'S4', 
+                                    'S5', 'S6', 'S7', 'S8', 
+                                    'S9', 'S10', 'S11', 'S12', 
+                                    'S13', 'S14', 'S15', 'S16'),
+                         label = factor(c('Cyto', 'Cyto', 'Cyto', 'Cyto', 
+                                          'ER', 'ER', 'ER', 'ER', 
+                                          'Nuc', 'Nuc', 'Nuc', 'Nuc', 
+                                          'SG', 'SG', 'SG', 'SG')),
+                         condition = factor(c('WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite')))
+####################################################################################################################
