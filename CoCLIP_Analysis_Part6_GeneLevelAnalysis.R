@@ -15,7 +15,7 @@ library(ggsignif)
 library(fgsea)
 library(pheatmap)
 library(RColorBrewer)
-
+library(rlang)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
@@ -255,7 +255,7 @@ mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
 ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
 ####################################################################################################################
 
-## Start Building Enrichment Table:
+## Make RowSum Table:
 ####################################################################################################################
 peakRowSum = peaksMatrix[, c(inert_columns, rowSum_columns)]
 
@@ -286,7 +286,10 @@ peakRowSum = peakRowSum %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, G3BP_E_S])/l
 peakRowSum = cbind(peakRowSum, peaksMatrix[, BC_columns])
 
 # write.table(peakRowSum, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_rowSum.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
+####################################################################################################################
 
+## Make Enrichment Table:
+####################################################################################################################
 peakEnrichment = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
 
 peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$I_M)
@@ -905,27 +908,27 @@ geneEnrichment = peakRowSum[, c('gene', 'external_gene_name', colnames(peakRowSu
 geneEnrichment = geneEnrichment %>% filter(!is.na(gene))
 geneEnrichment = geneEnrichment %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
 
-geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
-geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
-geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
-geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
-
-geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
-geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
-
-geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
-geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
-geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
-geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
-
-geneEnrichment = geneEnrichment %>% mutate(Input_SvM = geneEnrichment$I_S / geneEnrichment$I_M)
-geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
-geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
-geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
+# geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_M = geneEnrichment$NLS_E_M / geneEnrichment$NLS_I_M)
+# geneEnrichment = geneEnrichment %>% mutate(NES_EvI_M = geneEnrichment$NES_E_M / geneEnrichment$NES_I_M)
+# geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_M = geneEnrichment$G3BP_E_M / geneEnrichment$G3BP_I_M)
+# geneEnrichment = geneEnrichment %>% mutate(NLS_EvI_S = geneEnrichment$NLS_E_S / geneEnrichment$NLS_I_S)
+# geneEnrichment = geneEnrichment %>% mutate(NES_EvI_S = geneEnrichment$NES_E_S / geneEnrichment$NES_I_S)
+# geneEnrichment = geneEnrichment %>% mutate(G3BP_EvI_S = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_I_S)
+# 
+# geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_M = geneEnrichment$Nuc_F_M / geneEnrichment$I_M)
+# geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_M = geneEnrichment$Cyto_F_M / geneEnrichment$I_M)
+# geneEnrichment = geneEnrichment %>% mutate(Nuc_EvI_S = geneEnrichment$Nuc_F_S / geneEnrichment$I_S)
+# geneEnrichment = geneEnrichment %>% mutate(Cyto_EvI_S = geneEnrichment$Cyto_F_S / geneEnrichment$I_S)
+# 
+# geneEnrichment = geneEnrichment %>% mutate(E_NvC_M = geneEnrichment$NLS_E_M / geneEnrichment$NES_E_M)
+# geneEnrichment = geneEnrichment %>% mutate(F_NvC_M = geneEnrichment$Nuc_F_M / geneEnrichment$Cyto_F_M)
+# geneEnrichment = geneEnrichment %>% mutate(E_NvC_S = geneEnrichment$NLS_E_S / geneEnrichment$NES_E_S)
+# geneEnrichment = geneEnrichment %>% mutate(F_NvC_S = geneEnrichment$Nuc_F_S / geneEnrichment$Cyto_F_S)
+# 
+# geneEnrichment = geneEnrichment %>% mutate(Input_SvM = geneEnrichment$I_S / geneEnrichment$I_M)
+# geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / geneEnrichment$NLS_E_M)
+# geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
+# geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
 
 ####################################################################################################################
 
@@ -1009,14 +1012,226 @@ fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(newScore = NES * -log10(padj))
 
-## Filter by GO Terms:
-# fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))
-# fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% filter(ontology == 'GO')
-# fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+## Filter by Go Terms:
+fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_INP_M_GO_BP = fgsea_Gene_INP_M %>% filter(GO_Subset == 'BP')
+fgsea_Gene_INP_M_GO_CC = fgsea_Gene_INP_M %>% filter(GO_Subset == 'CC')
+fgsea_Gene_INP_M_GO_MF = fgsea_Gene_INP_M %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_INP_S = fgsea_Gene_INP_S %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_INP_S$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_INP_S = fgsea_Gene_INP_S %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_INP_S$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_INP_S_GO_BP = fgsea_Gene_INP_S %>% filter(GO_Subset == 'BP')
+fgsea_Gene_INP_S_GO_CC = fgsea_Gene_INP_S %>% filter(GO_Subset == 'CC')
+fgsea_Gene_INP_S_GO_MF = fgsea_Gene_INP_S %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_NLS_M = fgsea_Gene_NLS_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_NLS_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_NLS_M = fgsea_Gene_NLS_M %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_NLS_M$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_NLS_M_GO_BP = fgsea_Gene_NLS_M %>% filter(GO_Subset == 'BP')
+fgsea_Gene_NLS_M_GO_CC = fgsea_Gene_NLS_M %>% filter(GO_Subset == 'CC')
+fgsea_Gene_NLS_M_GO_MF = fgsea_Gene_NLS_M %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_NLS_S = fgsea_Gene_NLS_S %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_NLS_S$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_NLS_S = fgsea_Gene_NLS_S %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_NLS_S$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_NLS_S_GO_BP = fgsea_Gene_NLS_S %>% filter(GO_Subset == 'BP')
+fgsea_Gene_NLS_S_GO_CC = fgsea_Gene_NLS_S %>% filter(GO_Subset == 'CC')
+fgsea_Gene_NLS_S_GO_MF = fgsea_Gene_NLS_S %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_NES_M = fgsea_Gene_NES_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_NES_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_NES_M = fgsea_Gene_NES_M %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_NES_M$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_NES_M_GO_BP = fgsea_Gene_NES_M %>% filter(GO_Subset == 'BP')
+fgsea_Gene_NES_M_GO_CC = fgsea_Gene_NES_M %>% filter(GO_Subset == 'CC')
+fgsea_Gene_NES_M_GO_MF = fgsea_Gene_NES_M %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_NES_S$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_NES_S$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_NES_S_GO_BP = fgsea_Gene_NES_S %>% filter(GO_Subset == 'BP')
+fgsea_Gene_NES_S_GO_CC = fgsea_Gene_NES_S %>% filter(GO_Subset == 'CC')
+fgsea_Gene_NES_S_GO_MF = fgsea_Gene_NES_S %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_G3BP_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_G3BP_M$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_G3BP_M_GO_BP = fgsea_Gene_G3BP_M %>% filter(GO_Subset == 'BP')
+fgsea_Gene_G3BP_M_GO_CC = fgsea_Gene_G3BP_M %>% filter(GO_Subset == 'CC')
+fgsea_Gene_G3BP_M_GO_MF = fgsea_Gene_G3BP_M %>% filter(GO_Subset == 'MF')
+
+fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_G3BP_S$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
+fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_Gene_G3BP_S$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+fgsea_Gene_G3BP_S_GO_BP = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'BP')
+fgsea_Gene_G3BP_S_GO_CC = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'CC')
+fgsea_Gene_G3BP_S_GO_MF = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'MF')
+
+## Set Threshold for p-value and normalized enrichment score:
+padj_T = 0.001
+NES_T = 2
+
+## All GO terms: Filter to statistically significant results:
+fgsea_Gene_INP_M_GO_sig = fgsea_Gene_INP_M %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_INP_S_GO_sig = fgsea_Gene_INP_S %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+fgsea_Gene_NLS_M_GO_sig = fgsea_Gene_NLS_M %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NLS_S_GO_sig = fgsea_Gene_NLS_S %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_M_GO_sig = fgsea_Gene_NES_M %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_S_GO_sig = fgsea_Gene_NES_S %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_M_GO_sig = fgsea_Gene_G3BP_M %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_S_GO_sig = fgsea_Gene_G3BP_S %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+## GO_BP: Filter to statistically significant results:
+fgsea_Gene_INP_M_GO_BP_sig = fgsea_Gene_INP_M_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_INP_S_GO_BP_sig = fgsea_Gene_INP_S_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+fgsea_Gene_NLS_M_GO_BP_sig = fgsea_Gene_NLS_M_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NLS_S_GO_BP_sig = fgsea_Gene_NLS_S_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_M_GO_BP_sig = fgsea_Gene_NES_M_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_S_GO_BP_sig = fgsea_Gene_NES_S_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_M_GO_BP_sig = fgsea_Gene_G3BP_M_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_S_GO_BP_sig = fgsea_Gene_G3BP_S_GO_BP %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+## GO_CC: Filter to statistically significant results:
+fgsea_Gene_INP_M_GO_CC_sig = fgsea_Gene_INP_M_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_INP_S_GO_CC_sig = fgsea_Gene_INP_S_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+fgsea_Gene_NLS_M_GO_CC_sig = fgsea_Gene_NLS_M_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NLS_S_GO_CC_sig = fgsea_Gene_NLS_S_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_M_GO_CC_sig = fgsea_Gene_NES_M_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_S_GO_CC_sig = fgsea_Gene_NES_S_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_M_GO_CC_sig = fgsea_Gene_G3BP_M_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_S_GO_CC_sig = fgsea_Gene_G3BP_S_GO_CC %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+## GO_MF: Filter to statistically significant results:
+fgsea_Gene_INP_M_GO_MF_sig = fgsea_Gene_INP_M_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_INP_S_GO_MF_sig = fgsea_Gene_INP_S_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+fgsea_Gene_NLS_M_GO_MF_sig = fgsea_Gene_NLS_M_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NLS_S_GO_MF_sig = fgsea_Gene_NLS_S_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_M_GO_MF_sig = fgsea_Gene_NES_M_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_NES_S_GO_MF_sig = fgsea_Gene_NES_S_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_M_GO_MF_sig = fgsea_Gene_G3BP_M_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+fgsea_Gene_G3BP_S_GO_MF_sig = fgsea_Gene_G3BP_S_GO_MF %>% filter(padj <= padj_T & NES >= NES_T) %>% arrange(padj)
+
+
+fgsea_heatmap_colnames = c('pathway', 'INP_M', 'NLS_M', 'NES_M', 'G3BP_M', 'INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
+colSelection = c('padj')
+
+## All GO terms: Create matrix for heatmap
+Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_sig, fgsea_Gene_INP_S_GO_sig, 
+             fgsea_Gene_NLS_M_GO_sig, fgsea_Gene_NLS_S_GO_sig, 
+             fgsea_Gene_NES_M_GO_sig, fgsea_Gene_NES_S_GO_sig, 
+             fgsea_Gene_G3BP_M_GO_sig, fgsea_Gene_G3BP_S_GO_sig)
+Enriched_Terms = unique(Enriched_Terms$pathway)
+
+Enriched_GO_ALL = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
+colnames(Enriched_GO_ALL) = fgsea_heatmap_colnames
+Enriched_GO_ALL = Enriched_GO_ALL %>% mutate(pathway = Enriched_Terms)
+
+for (sample in fgsea_heatmap_colnames[2:9]) {
+  temp = get(paste0('fgsea_Gene_', sample, '_GO_sig'))
+  Enriched_GO_ALL[, sample] = temp[match(Enriched_GO_ALL$pathway, temp$pathway), ..colSelection]
+}
+
+## GO_BP terms: Create matrix for heatmap
+Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_BP_sig, fgsea_Gene_INP_S_GO_BP_sig, 
+                       fgsea_Gene_NLS_M_GO_BP_sig, fgsea_Gene_NLS_S_GO_BP_sig, 
+                       fgsea_Gene_NES_M_GO_BP_sig, fgsea_Gene_NES_S_GO_BP_sig, 
+                       fgsea_Gene_G3BP_M_GO_BP_sig, fgsea_Gene_G3BP_S_GO_BP_sig)
+Enriched_Terms = unique(Enriched_Terms$pathway)
+
+Enriched_GO_BP = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
+colnames(Enriched_GO_BP) = fgsea_heatmap_colnames
+Enriched_GO_BP = Enriched_GO_BP %>% mutate(pathway = Enriched_Terms)
+
+for (sample in fgsea_heatmap_colnames[2:9]) {
+  temp = get(paste0('fgsea_Gene_', sample, '_GO_BP_sig'))
+  Enriched_GO_BP[, sample] = temp[match(Enriched_GO_BP$pathway, temp$pathway), ..colSelection]
+}
+
+## GO_CC terms: Create matrix for heatmap
+Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_CC_sig, fgsea_Gene_INP_S_GO_CC_sig, 
+                       fgsea_Gene_NLS_M_GO_CC_sig, fgsea_Gene_NLS_S_GO_CC_sig, 
+                       fgsea_Gene_NES_M_GO_CC_sig, fgsea_Gene_NES_S_GO_CC_sig, 
+                       fgsea_Gene_G3BP_M_GO_CC_sig, fgsea_Gene_G3BP_S_GO_CC_sig)
+Enriched_Terms = unique(Enriched_Terms$pathway)
+
+Enriched_GO_CC = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
+colnames(Enriched_GO_CC) = fgsea_heatmap_colnames
+Enriched_GO_CC = Enriched_GO_CC %>% mutate(pathway = Enriched_Terms)
+
+for (sample in fgsea_heatmap_colnames[2:9]) {
+  temp = get(paste0('fgsea_Gene_', sample, '_GO_CC_sig'))
+  Enriched_GO_CC[, sample] = temp[match(Enriched_GO_CC$pathway, temp$pathway), ..colSelection]
+}
+
+## GO_BP terms: Create matrix for heatmap
+Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_MF_sig, fgsea_Gene_INP_S_GO_MF_sig, 
+                       fgsea_Gene_NLS_M_GO_MF_sig, fgsea_Gene_NLS_S_GO_MF_sig, 
+                       fgsea_Gene_NES_M_GO_MF_sig, fgsea_Gene_NES_S_GO_MF_sig, 
+                       fgsea_Gene_G3BP_M_GO_MF_sig, fgsea_Gene_G3BP_S_GO_MF_sig)
+Enriched_Terms = unique(Enriched_Terms$pathway)
+
+Enriched_GO_MF = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
+colnames(Enriched_GO_MF) = fgsea_heatmap_colnames
+Enriched_GO_MF = Enriched_GO_MF %>% mutate(pathway = Enriched_Terms)
+
+for (sample in fgsea_heatmap_colnames[2:9]) {
+  temp = get(paste0('fgsea_Gene_', sample, '_GO_MF_sig'))
+  Enriched_GO_MF[, sample] = temp[match(Enriched_GO_MF$pathway, temp$pathway), ..colSelection]
+}
+
+# Enriched_GO_ALL = Enriched_GO_ALL %>%  mutate(across(.cols = 2:9, .fns = function(x) {
+#   min_val <- min(x, na.rm = TRUE)
+#   max_val <- max(x, na.rm = TRUE)
+#   (x - min_val) / (max_val - min_val)
+# }, .names = "scaled_{.col}"))
+
+# Enriched_GO_ALL = Enriched_GO_ALL %>%  mutate(across(.cols = 2:9, .fns = function(x) {
+#   min_val <- min(x, na.rm = TRUE)
+#   max_val <- max(x, na.rm = TRUE)
+#   (x - min_val) / (max_val - min_val)
+# }))
 # 
-# fgsea_Gene_INP_M_GO_BP = fgsea_Gene_INP_M %>% filter(GO_Subset == 'BP')
-# fgsea_Gene_INP_M_GO_CC = fgsea_Gene_INP_M %>% filter(GO_Subset == 'CC')
-# fgsea_Gene_INP_M_GO_MF = fgsea_Gene_INP_M %>% filter(GO_Subset == 'MF')
+# Enriched_GO_BP
+# Enriched_GO_CC
+# Enriched_GO_MF
+
+row_cluster = F
+col_cluster = F
+order_by = 'INP_M'
+samplesOrder = fgsea_heatmap_colnames[2:9]
+samplesOrder = fgsea_heatmap_colnames[c(2:5)]
+
+order_by = 'INP_S'
+samplesOrder = fgsea_heatmap_colnames[c(6:9)]
+
+order_by = 'NLS_M'
+samplesOrder = fgsea_heatmap_colnames[c(3:5, 7:9)]
+
+GO_heatmap = pheatmap(Enriched_GO_ALL[, samplesOrder] %>% arrange(!!sym(order_by)), 
+                      cluster_rows = row_cluster, 
+                      cluster_cols = col_cluster,
+                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+                      labels_row = (Enriched_GO_ALL %>% arrange(!!sym(order_by)))$pathway)
+
+BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)), 
+                      cluster_rows = row_cluster, 
+                      cluster_cols = col_cluster,
+                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+                      labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
+                      )
+# na_col = "white"
+
+CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)), 
+                      cluster_rows = row_cluster, 
+                      cluster_cols = col_cluster,
+                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+                      labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
+                      na_col = "white")
+
+MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)), 
+                      cluster_rows = row_cluster, 
+                      cluster_cols = col_cluster,
+                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+                      labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
+                      na_col = "white")
 
 
 ## Plot GSEA Results:
@@ -1145,27 +1360,31 @@ CorrMatrix = cor(fgsea_All_GO[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+sampleCorr = pheatmap(CorrMatrix, 
+                      cluster_rows = row_cluster, 
+                      cluster_cols = col_cluster, 
+                      color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(20)))
+
+
+
 
 CorrMatrix = cor(fgsea_All_GO_BP[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
-plot(sampleCorr$tree_row)
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
 
 CorrMatrix = cor(fgsea_All_GO_CC[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
-plot(sampleCorr$tree_row)
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
 
 CorrMatrix = cor(fgsea_All_GO_MF[, samplesOrder])
 CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
 colnames(CorrMatrix) = samplesOrder
 rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = rev(colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
 
 
 
@@ -1190,13 +1409,11 @@ BP_cluster = cbind(fgsea_All_GO_BP, cluster = cutree(BP_heatmap$tree_row, k = nr
 CC_cluster = cbind(fgsea_All_GO_CC, cluster = cutree(CC_heatmap$tree_row, k = nrow(CC_heatmap$tree_row$merge)))
 MF_cluster = cbind(fgsea_All_GO_MF, cluster = cutree(MF_heatmap$tree_row, k = nrow(MF_heatmap$tree_row$merge)))
 
+
+
+
+
 ####################################################################################################################
-
-
-get the list of significant terms
-get the unique list across all and set it as column 1
-make columns Input NLS NES SG for Mock and Stress
-Fill in the rows, if not 0
 
 
 
