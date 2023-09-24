@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Gene Level Analysis:
 ## Written by Soon Yi
-## Last Edit: 2023-09-23
+## Last Edit: 2023-09-24
 
 library(stringr)
 library(readr)
@@ -1002,7 +1002,7 @@ fgsea_Gene_G3BP_S = fgsea(pathways = GS_Pathway,
                           stats = setNames(as.vector(Gene_G3BP_S$Gene_G3BP_S), Gene_G3BP_S$external_gene_name),
                           scoreType = 'pos')
 
-## Calculate Score that combines both enrichment score and adjusted p_values
+## Calculate Score that combines both enrichment score and adjusted p_values:
 fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_INP_S = fgsea_Gene_INP_S %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_NLS_M = fgsea_Gene_NLS_M %>% mutate(newScore = NES * -log10(padj))
@@ -1011,6 +1011,38 @@ fgsea_Gene_NES_M = fgsea_Gene_NES_M %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(newScore = NES * -log10(padj))
+
+## write to table:
+cols_to_write = c("pathway", "pval", "padj", "log2err", "ES", "NES")
+write.table(fgsea_Gene_INP_M[, ..cols_to_write], 'fgsea_Gene_INP_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_INP_S[, ..cols_to_write], 'fgsea_Gene_INP_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_NLS_M[, ..cols_to_write], 'fgsea_Gene_NLS_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_NLS_S[, ..cols_to_write], 'fgsea_Gene_NLS_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_NES_M[, ..cols_to_write], 'fgsea_Gene_NES_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_NES_S[, ..cols_to_write], 'fgsea_Gene_NES_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_G3BP_M[, ..cols_to_write], 'fgsea_Gene_G3BP_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+write.table(fgsea_Gene_G3BP_S[, ..cols_to_write], 'fgsea_Gene_G3BP_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
+
+fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% arrange(pathway)
+fgsea_Gene_INP_S = fgsea_Gene_INP_S %>% arrange(pathway)
+fgsea_Gene_NLS_M = fgsea_Gene_NLS_M %>% arrange(pathway)
+fgsea_Gene_NLS_S = fgsea_Gene_NLS_S %>% arrange(pathway)
+fgsea_Gene_NES_M = fgsea_Gene_NES_M %>% arrange(pathway)
+fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% arrange(pathway)
+fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% arrange(pathway)
+fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% arrange(pathway)
+
+temp = data.frame(pathway = fgsea_Gene_INP_M[, 'pathway'],
+                  INP_M = fgsea_Gene_INP_M[, 'padj'],
+                  INP_S = fgsea_Gene_INP_S[, 'padj'],
+                  NLS_M = fgsea_Gene_NLS_M[, 'padj'],
+                  NLS_S = fgsea_Gene_NLS_S[, 'padj'],
+                  NES_M = fgsea_Gene_NES_M[, 'padj'],
+                  NES_S = fgsea_Gene_NES_S[, 'padj'],
+                  G3BP_M = fgsea_Gene_G3BP_M[, 'padj'],
+                  G3BP_S = fgsea_Gene_G3BP_S[, 'padj'])
+colnames(temp) = c('pathway', ' INP_M', 'INP_S', 'NLS_M', 'NLS_S', 'NES_M', 'NES_S', 'G3BP_M', 'G3BP_S')
+write.table(temp, 'fgsea_Gene_all.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
 
 ## Filter by Go Terms:
 fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
@@ -1177,33 +1209,20 @@ for (sample in fgsea_heatmap_colnames[2:9]) {
   Enriched_GO_MF[, sample] = temp[match(Enriched_GO_MF$pathway, temp$pathway), ..colSelection]
 }
 
-# Enriched_GO_ALL = Enriched_GO_ALL %>%  mutate(across(.cols = 2:9, .fns = function(x) {
-#   min_val <- min(x, na.rm = TRUE)
-#   max_val <- max(x, na.rm = TRUE)
-#   (x - min_val) / (max_val - min_val)
-# }, .names = "scaled_{.col}"))
+## write to table:
+write.table(Enriched_GO_ALL, 'fgsea_Gene_allSig.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
 
-# Enriched_GO_ALL = Enriched_GO_ALL %>%  mutate(across(.cols = 2:9, .fns = function(x) {
-#   min_val <- min(x, na.rm = TRUE)
-#   max_val <- max(x, na.rm = TRUE)
-#   (x - min_val) / (max_val - min_val)
-# }))
-# 
-# Enriched_GO_BP
-# Enriched_GO_CC
-# Enriched_GO_MF
 
+## Make Pheatmap:
 row_cluster = F
 col_cluster = F
 order_by = 'INP_M'
 samplesOrder = fgsea_heatmap_colnames[2:9]
-samplesOrder = fgsea_heatmap_colnames[c(2:5)]
-
-order_by = 'INP_S'
-samplesOrder = fgsea_heatmap_colnames[c(6:9)]
-
-order_by = 'NLS_M'
-samplesOrder = fgsea_heatmap_colnames[c(3:5, 7:9)]
+# samplesOrder = fgsea_heatmap_colnames[c(2:5)]
+# order_by = 'INP_S'
+# samplesOrder = fgsea_heatmap_colnames[c(6:9)]
+# order_by = 'NLS_M'
+# samplesOrder = fgsea_heatmap_colnames[c(3:5, 7:9)]
 
 GO_heatmap = pheatmap(Enriched_GO_ALL[, samplesOrder] %>% arrange(!!sym(order_by)), 
                       cluster_rows = row_cluster, 
@@ -1211,207 +1230,191 @@ GO_heatmap = pheatmap(Enriched_GO_ALL[, samplesOrder] %>% arrange(!!sym(order_by
                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
                       labels_row = (Enriched_GO_ALL %>% arrange(!!sym(order_by)))$pathway)
 
-BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)), 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster,
-                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-                      labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
-                      )
-# na_col = "white"
-
-CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)), 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster,
-                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-                      labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
-                      na_col = "white")
-
-MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)), 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster,
-                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-                      labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
-                      na_col = "white")
+# BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)), 
+#                       cluster_rows = row_cluster, 
+#                       cluster_cols = col_cluster,
+#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+#                       labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
+#                       na_col = "white")
+# 
+# CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)), 
+#                       cluster_rows = row_cluster, 
+#                       cluster_cols = col_cluster,
+#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+#                       labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
+#                       na_col = "white")
+# 
+# MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)), 
+#                       cluster_rows = row_cluster, 
+#                       cluster_cols = col_cluster,
+#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+#                       labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
+#                       na_col = "white")
 
 
 ## Plot GSEA Results:
-topPathwaysUp = fgsea_Gene_INP_M[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_INP_M[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_INP_S$Gene_INP_S), Gene_INP_S$external_gene_name), 
-              fgsea_Gene_INP_M,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_NLS_M[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_NLS_M[ES < 0][head(order(newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_NLS_M$Gene_NLS_M), Gene_NLS_M$external_gene_name), 
-              fgsea_Gene_NLS_M,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_NES_M[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_NES_M[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_NES_M$Gene_NES_M), Gene_NES_M$external_gene_name), 
-              fgsea_Gene_NES_M,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_G3BP_M[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_G3BP_M[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_G3BP_M$Gene_G3BP_M), Gene_G3BP_M$external_gene_name), 
-              fgsea_Gene_G3BP_M,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_INP_S[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_INP_S[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_INP_S$Gene_INP_S), Gene_INP_S$external_gene_name), 
-              fgsea_Gene_INP_S,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_NLS_S[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_NLS_S[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_NLS_S$Gene_NLS_S), Gene_NLS_S$external_gene_name), 
-              fgsea_Gene_NLS_S,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_NES_S[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_NES_S[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_NES_S$Gene_NES_S), Gene_NES_S$external_gene_name), 
-              fgsea_Gene_NES_S,
-              gseaParam = 0.5)
-
-topPathwaysUp = fgsea_Gene_G3BP_S[ES > 0][head(order(-newScore), n = 20), pathway]
-topPathwaysDown = fgsea_Gene_G3BP_S[ES < 0][head(order(-newScore), n = 20), pathway]
-topPathways = c(topPathwaysUp, 
-                rev(topPathwaysDown))
-plotGseaTable(GS_Pathway[topPathways], 
-              setNames(as.vector(Gene_G3BP_S$Gene_G3BP_S), Gene_G3BP_S$external_gene_name), 
-              fgsea_Gene_G3BP_S,
-              gseaParam = 0.5)
-
-
+# topPathwaysUp = fgsea_Gene_INP_M[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_INP_M[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_INP_S$Gene_INP_S), Gene_INP_S$external_gene_name), 
+#               fgsea_Gene_INP_M,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_NLS_M[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_NLS_M[ES < 0][head(order(newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_NLS_M$Gene_NLS_M), Gene_NLS_M$external_gene_name), 
+#               fgsea_Gene_NLS_M,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_NES_M[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_NES_M[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_NES_M$Gene_NES_M), Gene_NES_M$external_gene_name), 
+#               fgsea_Gene_NES_M,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_G3BP_M[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_G3BP_M[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_G3BP_M$Gene_G3BP_M), Gene_G3BP_M$external_gene_name), 
+#               fgsea_Gene_G3BP_M,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_INP_S[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_INP_S[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_INP_S$Gene_INP_S), Gene_INP_S$external_gene_name), 
+#               fgsea_Gene_INP_S,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_NLS_S[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_NLS_S[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_NLS_S$Gene_NLS_S), Gene_NLS_S$external_gene_name), 
+#               fgsea_Gene_NLS_S,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_NES_S[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_NES_S[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_NES_S$Gene_NES_S), Gene_NES_S$external_gene_name), 
+#               fgsea_Gene_NES_S,
+#               gseaParam = 0.5)
+# 
+# topPathwaysUp = fgsea_Gene_G3BP_S[ES > 0][head(order(-newScore), n = 20), pathway]
+# topPathwaysDown = fgsea_Gene_G3BP_S[ES < 0][head(order(-newScore), n = 20), pathway]
+# topPathways = c(topPathwaysUp, 
+#                 rev(topPathwaysDown))
+# plotGseaTable(GS_Pathway[topPathways], 
+#               setNames(as.vector(Gene_G3BP_S$Gene_G3BP_S), Gene_G3BP_S$external_gene_name), 
+#               fgsea_Gene_G3BP_S,
+#               gseaParam = 0.5)
 
 
-samples = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M', 'INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
+## Make Pheatmap:
+# samples = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M', 'INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
+# 
+# for (sample in samples) {
+#   if (sample == 'INP_M') {
+#     fgsea_All = fgsea_Gene_INP_M[, c('pathway')]
+#     fgsea_All$INP_M = ecdf(fgsea_Gene_INP_M$newScore[match(fgsea_All$pathway, fgsea_Gene_INP_M$pathway)])(fgsea_Gene_INP_M$newScore[match(fgsea_All$pathway, fgsea_Gene_INP_M$pathway)])*100
+#     # fgsea_All$INP_M = fgsea_Gene_INP_M$newScore
+#   } else {
+#     fgsea_sample = get(paste0('fgsea_Gene_', sample))
+#     fgsea_All = cbind(fgsea_All, sample = ecdf(fgsea_sample$newScore[match(fgsea_All$pathway, fgsea_sample$pathway)])(fgsea_sample$newScore[match(fgsea_All$pathway, fgsea_sample$pathway)])*100)
+#     # fgsea_All = cbind(fgsea_All, sample = fgsea_sample$newScore)
+#   }
+# }
+# colnames(fgsea_All) = c('pathway', samples)
+# fgsea_All = data.frame(fgsea_All)
+# 
+# 
+# fgsea_All = fgsea_All %>% mutate(ontology = unlist(lapply(str_split(fgsea_All$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))
+# fgsea_All_GO = fgsea_All %>% filter(ontology == 'GO')
+# fgsea_All_GO = fgsea_All_GO %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_All_GO$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
+# 
+# fgsea_All_GO_BP = fgsea_All_GO %>% filter(GO_Subset == 'BP')
+# fgsea_All_GO_CC = fgsea_All_GO %>% filter(GO_Subset == 'CC')
+# fgsea_All_GO_MF = fgsea_All_GO %>% filter(GO_Subset == 'MF')
+# 
+# 
+# samplesOrder = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M', 'INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
+# samplesOrder = c('NLS_M', 'NES_M', 'G3BP_M', 'NLS_S', 'NES_S', 'G3BP_S')
+# samplesOrder = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M')
+# samplesOrder = c('INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
+# 
+# row_cluster = T
+# col_cluster = T
+# 
+# CorrMatrix = cor(fgsea_All[, samplesOrder])
+# CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
+# colnames(CorrMatrix) = samplesOrder
+# rownames(CorrMatrix) = samplesOrder
+# sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# 
+# breaks = seq(0.85, 1, length.out = 101)
+# 
+# CorrMatrix = cor(fgsea_All_GO[, samplesOrder])
+# CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
+# colnames(CorrMatrix) = samplesOrder
+# rownames(CorrMatrix) = samplesOrder
+# sampleCorr = pheatmap(CorrMatrix, 
+#                       cluster_rows = row_cluster, 
+#                       cluster_cols = col_cluster, 
+#                       color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(20)))
 
-for (sample in samples) {
-  if (sample == 'INP_M') {
-    fgsea_All = fgsea_Gene_INP_M[, c('pathway')]
-    fgsea_All$INP_M = ecdf(fgsea_Gene_INP_M$newScore[match(fgsea_All$pathway, fgsea_Gene_INP_M$pathway)])(fgsea_Gene_INP_M$newScore[match(fgsea_All$pathway, fgsea_Gene_INP_M$pathway)])*100
-    # fgsea_All$INP_M = fgsea_Gene_INP_M$newScore
-  } else {
-    fgsea_sample = get(paste0('fgsea_Gene_', sample))
-    fgsea_All = cbind(fgsea_All, sample = ecdf(fgsea_sample$newScore[match(fgsea_All$pathway, fgsea_sample$pathway)])(fgsea_sample$newScore[match(fgsea_All$pathway, fgsea_sample$pathway)])*100)
-    # fgsea_All = cbind(fgsea_All, sample = fgsea_sample$newScore)
-  }
-}
-colnames(fgsea_All) = c('pathway', samples)
-fgsea_All = data.frame(fgsea_All)
-
-
-fgsea_All = fgsea_All %>% mutate(ontology = unlist(lapply(str_split(fgsea_All$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))
-fgsea_All_GO = fgsea_All %>% filter(ontology == 'GO')
-fgsea_All_GO = fgsea_All_GO %>% mutate(GO_Subset = unlist(lapply(str_split(fgsea_All_GO$pathway, '_'), function(x) (str_sub(x[1], 3, 4)))))
-
-fgsea_All_GO_BP = fgsea_All_GO %>% filter(GO_Subset == 'BP')
-fgsea_All_GO_CC = fgsea_All_GO %>% filter(GO_Subset == 'CC')
-fgsea_All_GO_MF = fgsea_All_GO %>% filter(GO_Subset == 'MF')
-
-
-
-
-samplesOrder = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M', 'INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
-samplesOrder = c('NLS_M', 'NES_M', 'G3BP_M', 'NLS_S', 'NES_S', 'G3BP_S')
-samplesOrder = c('INP_M', 'NLS_M', 'NES_M', 'G3BP_M')
-samplesOrder = c('INP_S', 'NLS_S', 'NES_S', 'G3BP_S')
-
-row_cluster = T
-col_cluster = T
-
-CorrMatrix = cor(fgsea_All[, samplesOrder])
-CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
-colnames(CorrMatrix) = samplesOrder
-rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-
-
-
-breaks = seq(0.85, 1, length.out = 101)
-
-CorrMatrix = cor(fgsea_All_GO[, samplesOrder])
-CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
-colnames(CorrMatrix) = samplesOrder
-rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster, 
-                      color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(20)))
-
-
-
-
-CorrMatrix = cor(fgsea_All_GO_BP[, samplesOrder])
-CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
-colnames(CorrMatrix) = samplesOrder
-rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
-
-CorrMatrix = cor(fgsea_All_GO_CC[, samplesOrder])
-CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
-colnames(CorrMatrix) = samplesOrder
-rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
-
-CorrMatrix = cor(fgsea_All_GO_MF[, samplesOrder])
-CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
-colnames(CorrMatrix) = samplesOrder
-rownames(CorrMatrix) = samplesOrder
-sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
-
-
-
-
-ALL_heatmap = pheatmap(fgsea_All[, samplesOrder], 
-                       cluster_rows = row_cluster, 
-                       cluster_cols = col_cluster,
-                       cutree_rows = 3,
-                       color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-
-GO_heatmap = pheatmap(fgsea_All_GO[, samplesOrder], 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = F,
-                      color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-
-BP_heatmap = pheatmap(fgsea_All_GO_BP[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-CC_heatmap = pheatmap(fgsea_All_GO_CC[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-MF_heatmap = pheatmap(fgsea_All_GO_MF[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
-
-GO_cluster = cbind(fgsea_All_GO, cluster = cutree(GO_heatmap$tree_row, k = 3))
-BP_cluster = cbind(fgsea_All_GO_BP, cluster = cutree(BP_heatmap$tree_row, k = nrow(BP_heatmap$tree_row$merge)))
-CC_cluster = cbind(fgsea_All_GO_CC, cluster = cutree(CC_heatmap$tree_row, k = nrow(CC_heatmap$tree_row$merge)))
-MF_cluster = cbind(fgsea_All_GO_MF, cluster = cutree(MF_heatmap$tree_row, k = nrow(MF_heatmap$tree_row$merge)))
-
-
-
-
+# CorrMatrix = cor(fgsea_All_GO_BP[, samplesOrder])
+# CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
+# colnames(CorrMatrix) = samplesOrder
+# rownames(CorrMatrix) = samplesOrder
+# sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+# 
+# CorrMatrix = cor(fgsea_All_GO_CC[, samplesOrder])
+# CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
+# colnames(CorrMatrix) = samplesOrder
+# rownames(CorrMatrix) = samplesOrder
+# sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+# 
+# CorrMatrix = cor(fgsea_All_GO_MF[, samplesOrder])
+# CorrMatrix = matrix(round(CorrMatrix, 2), nrow = length(samplesOrder))
+# colnames(CorrMatrix) = samplesOrder
+# rownames(CorrMatrix) = samplesOrder
+# sampleCorr = pheatmap(CorrMatrix, cluster_rows = row_cluster, cluster_cols = col_cluster, color = (colorRampPalette(brewer.pal(9, "YlGnBu"))(100)))
+# 
+# ALL_heatmap = pheatmap(fgsea_All[, samplesOrder], 
+#                        cluster_rows = row_cluster, 
+#                        cluster_cols = col_cluster,
+#                        cutree_rows = 3,
+#                        color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# 
+# GO_heatmap = pheatmap(fgsea_All_GO[, samplesOrder], 
+#                       cluster_rows = row_cluster, 
+#                       cluster_cols = F,
+#                       color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# 
+# BP_heatmap = pheatmap(fgsea_All_GO_BP[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# CC_heatmap = pheatmap(fgsea_All_GO_CC[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# MF_heatmap = pheatmap(fgsea_All_GO_MF[, samplesOrder], cluster_rows = row_cluster, cluster_cols = col_cluster, color = colorRampPalette(brewer.pal(9, "RdYlBu"))(100))
+# 
+# GO_cluster = cbind(fgsea_All_GO, cluster = cutree(GO_heatmap$tree_row, k = 3))
+# BP_cluster = cbind(fgsea_All_GO_BP, cluster = cutree(BP_heatmap$tree_row, k = nrow(BP_heatmap$tree_row$merge)))
+# CC_cluster = cbind(fgsea_All_GO_CC, cluster = cutree(CC_heatmap$tree_row, k = nrow(CC_heatmap$tree_row$merge)))
+# MF_cluster = cbind(fgsea_All_GO_MF, cluster = cutree(MF_heatmap$tree_row, k = nrow(MF_heatmap$tree_row$merge)))
 
 ####################################################################################################################
 
