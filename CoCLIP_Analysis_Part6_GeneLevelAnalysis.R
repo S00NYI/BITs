@@ -665,8 +665,47 @@ ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
 #   ylim(c(-10, 10))
 ####################################################################################################################
 
+
+
 ## RNASeq Internal Comparison
 ####################################################################################################################
+## Read RNASeq count table and process it:
+RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCelllines/'
+RNASeq_FILE = 'countTable.csv'
+
+RNASeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE), show_col_types = FALSE)
+geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name", "transcript_length", "transcript_tsl"),
+                filters = "external_gene_name",
+                values = RNASeq$gene[!grepl("^ENSG", RNASeq$gene)],
+                mart = mart.hs)
+
+RNASeq = cbind(RNASeq, ENSEMBL = geneIDs$ensembl_gene_id[match(RNASeq$gene, geneIDs$external_gene_name)])
+RNASeq$ENSEMBL[grep("^ENSG", RNASeq$gene)] = RNASeq$gene[grep("^ENSG", RNASeq$gene)]
+RNASeq = RNASeq[, c('ENSEMBL', 'gene', colnames(RNASeq)[2:17])]
+
+geneIDs = geneIDs %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length))
+geneIDs$transcript_tsl = as.integer(str_extract(geneIDs$transcript_tsl, "(?<=tsl)\\d+"))
+
+RNASeq = cbind(RNASeq, Length = geneIDs$transcript_length[match(RNASeq$ENSEMBL, geneIDs$ensembl_gene_id)])
+RNASeq = RNASeq %>% filter(!is.na(Length))
+
+## Calculate TPM:
+RNASeq = RNASeq %>% mutate(across(all_of(colnames(RNASeq)[3:18]), ~ . / Length*1e6))
+
+## Set up RNASeq sample table:
+sampleTable = data.frame(sample = c('S1', 'S2', 'S3', 'S4', 
+                                    'S5', 'S6', 'S7', 'S8', 
+                                    'S9', 'S10', 'S11', 'S12', 
+                                    'S13', 'S14', 'S15', 'S16'),
+                         label = factor(c('Cyto', 'Cyto', 'Cyto', 'Cyto', 
+                                          'ER', 'ER', 'ER', 'ER', 
+                                          'Nuc', 'Nuc', 'Nuc', 'Nuc', 
+                                          'SG', 'SG', 'SG', 'SG')),
+                         condition = factor(c('WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
+                                              'WT', 'WT', 'Arsenite', 'Arsenite')))
+
 RNASeq_Pairwise = RNASeq[, c('ENSEMBL', 'gene')]
 RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Nuclear_Mock = (RNASeq$S9 + RNASeq$S10)/2)
 RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Cytoplasm_Mock = (RNASeq$S1 + RNASeq$S2)/2)
@@ -675,8 +714,8 @@ RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Nuclear_Arse = (RNASeq$S11 + RNASeq
 RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(Cytoplasm_Arse = (RNASeq$S3 + RNASeq$S4)/2)
 RNASeq_Pairwise = RNASeq_Pairwise %>% mutate(SG_Arse = (RNASeq$S15 + RNASeq$S16)/2)
 
-ggplot(RNASeq_Pairwise, aes(x = log10(Nuclear_Mock), y = log10(Cytoplasm_Mock))) +
-  geom_point(pch = 16, size = 3, alpha = 0.5) +
+ggplot(RNASeq_Pairwise %>% filter(Nuclear_Mock > median(Nuclear_Mock) & Nuclear_Arse > median(Nuclear_Arse)), aes(x = log10(Nuclear_Mock), y = log10(Nuclear_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
   scale_fill_brewer(palette = "Set3") +
   theme_bw() + 
   theme(axis.text = element_text(size=14), 
@@ -684,9 +723,86 @@ ggplot(RNASeq_Pairwise, aes(x = log10(Nuclear_Mock), y = log10(Cytoplasm_Mock)))
         legend.text = element_text(size=14)) +
   xlim(c(0, 10)) +
   ylim(c(0, 10)) +
-  # scale_y_continuous(trans = 'log10') +
-  # scale_x_continuous(trans = 'log10') +
+  # coord_trans(y ='log10', x='log10') + 
   geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(Nuclear_Mock > median(Nuclear_Mock) & Nuclear_Arse > median(Nuclear_Arse)))$Nuclear_Mock, 
+    (RNASeq_Pairwise %>% filter(Nuclear_Mock > median(Nuclear_Mock) & Nuclear_Arse > median(Nuclear_Arse)))$Nuclear_Arse) ^ 2
+
+ggplot(RNASeq_Pairwise %>% filter(Cytoplasm_Mock > median(Cytoplasm_Mock) & Cytoplasm_Arse > median(Cytoplasm_Arse)), aes(x = log10(Cytoplasm_Mock), y = log10(Cytoplasm_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # coord_trans(y ='log10', x='log10') + 
+  geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(Cytoplasm_Mock > median(Cytoplasm_Mock) & Cytoplasm_Arse > median(Cytoplasm_Arse)))$Cytoplasm_Mock, 
+    (RNASeq_Pairwise %>% filter(Cytoplasm_Mock > median(Cytoplasm_Mock) & Cytoplasm_Arse > median(Cytoplasm_Arse)))$Cytoplasm_Arse) ^ 2
+
+ggplot(RNASeq_Pairwise %>% filter(SG_Mock > median(SG_Mock) & SG_Arse > median(SG_Arse)), aes(x = log10(SG_Mock), y = log10(SG_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # coord_trans(y ='log10', x='log10') + 
+  geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(SG_Mock > median(SG_Mock) & SG_Arse > median(SG_Arse)))$SG_Mock, 
+    (RNASeq_Pairwise %>% filter(SG_Mock > median(SG_Mock) & SG_Arse > median(SG_Arse)))$SG_Arse) ^ 2
+
+ggplot(RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & Cytoplasm_Arse > median(Cytoplasm_Arse)), aes(x = log10(Nuclear_Arse), y = log10(Cytoplasm_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # coord_trans(y ='log10', x='log10') + 
+  geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & Cytoplasm_Arse > median(Cytoplasm_Arse)))$Nuclear_Arse, 
+    (RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & Cytoplasm_Arse > median(Cytoplasm_Arse)))$Cytoplasm_Arse) ^ 2
+
+ggplot(RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & SG_Arse > median(SG_Arse)), aes(x = log10(Nuclear_Arse), y = log10(SG_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # coord_trans(y ='log10', x='log10') + 
+  geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & SG_Arse > median(SG_Arse)))$Nuclear_Arse, 
+    (RNASeq_Pairwise %>% filter(Nuclear_Arse > median(Nuclear_Arse) & SG_Arse > median(SG_Arse)))$SG_Arse) ^ 2
+
+ggplot(RNASeq_Pairwise %>% filter(Cytoplasm_Arse > median(Cytoplasm_Arse) & SG_Arse > median(SG_Arse)), aes(x = log10(Cytoplasm_Arse), y = log10(SG_Arse))) +
+  geom_point(pch = 16, size = 3, alpha = 0.25) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_bw() + 
+  theme(axis.text = element_text(size=14), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  xlim(c(0, 10)) +
+  ylim(c(0, 10)) +
+  # coord_trans(y ='log10', x='log10') + 
+  geom_abline(color = 'red')
+
+cor((RNASeq_Pairwise %>% filter(Cytoplasm_Arse > median(Cytoplasm_Arse) & SG_Arse > median(SG_Arse)))$Cytoplasm_Arse, 
+    (RNASeq_Pairwise %>% filter(Cytoplasm_Arse > median(Cytoplasm_Arse) & SG_Arse > median(SG_Arse)))$SG_Arse) ^ 2
 
 ####################################################################################################################
 
@@ -1781,44 +1897,4 @@ geneEnrichment = geneEnrichment %>% mutate(NLS_SvM = geneEnrichment$NLS_E_S / ge
 geneEnrichment = geneEnrichment %>% mutate(NES_SvM = geneEnrichment$NES_E_S / geneEnrichment$NES_E_M)
 geneEnrichment = geneEnrichment %>% mutate(G3BP_SvM = geneEnrichment$G3BP_E_S / geneEnrichment$G3BP_E_M)
 
-####################################################################################################################
-
-## RNASeq CountTable PRocessing
-####################################################################################################################
-## Read RNASeq count table and process it:
-RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCelllines/'
-RNASeq_FILE = 'countTable.csv'
-
-RNASeq = read_delim(paste0(RNASeq_PATH, RNASeq_FILE), show_col_types = FALSE)
-geneIDs = getBM(attributes = c("ensembl_gene_id", "external_gene_name", "transcript_length", "transcript_tsl"),
-                filters = "external_gene_name",
-                values = RNASeq$gene[!grepl("^ENSG", RNASeq$gene)],
-                mart = mart.hs)
-
-RNASeq = cbind(RNASeq, ENSEMBL = geneIDs$ensembl_gene_id[match(RNASeq$gene, geneIDs$external_gene_name)])
-RNASeq$ENSEMBL[grep("^ENSG", RNASeq$gene)] = RNASeq$gene[grep("^ENSG", RNASeq$gene)]
-RNASeq = RNASeq[, c('ENSEMBL', 'gene', colnames(RNASeq)[2:17])]
-
-geneIDs = geneIDs %>% group_by(ensembl_gene_id) %>% slice(which.max(transcript_length))
-geneIDs$transcript_tsl = as.integer(str_extract(geneIDs$transcript_tsl, "(?<=tsl)\\d+"))
-
-RNASeq = cbind(RNASeq, Length = geneIDs$transcript_length[match(RNASeq$ENSEMBL, geneIDs$ensembl_gene_id)])
-RNASeq = RNASeq %>% filter(!is.na(Length))
-
-## Calculate TPM:
-RNASeq = RNASeq %>% mutate(across(all_of(colnames(RNASeq)[3:18]), ~ . / Length*1e6))
-
-## Set up RNASeq sample table:
-sampleTable = data.frame(sample = c('S1', 'S2', 'S3', 'S4', 
-                                    'S5', 'S6', 'S7', 'S8', 
-                                    'S9', 'S10', 'S11', 'S12', 
-                                    'S13', 'S14', 'S15', 'S16'),
-                         label = factor(c('Cyto', 'Cyto', 'Cyto', 'Cyto', 
-                                          'ER', 'ER', 'ER', 'ER', 
-                                          'Nuc', 'Nuc', 'Nuc', 'Nuc', 
-                                          'SG', 'SG', 'SG', 'SG')),
-                         condition = factor(c('WT', 'WT', 'Arsenite', 'Arsenite', 
-                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
-                                              'WT', 'WT', 'Arsenite', 'Arsenite', 
-                                              'WT', 'WT', 'Arsenite', 'Arsenite')))
 ####################################################################################################################
