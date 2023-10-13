@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Stackd Bar Graphs
 ## Written by Soon Yi
-## Last Edit: 2023-09-12
+## Last Edit: 2023-10-12
 
 library(stringr)
 library(readr)
@@ -12,7 +12,6 @@ library(data.table)
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
-# peaksMatrix_PATH = 'L:/My Drive/CWRU/PhD/Luna Lab/1. coCLIP/Analysis/peaks/'    ## Use this for windows machine
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
@@ -53,11 +52,11 @@ NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
 G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
 
-## Add row sum columns for further filtering:
-peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
-peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
-peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
-rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
+# ## Add row sum columns for further filtering:
+# peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
+# peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
+# peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
+# rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 
 ## Add pseudocount:
 pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
@@ -85,14 +84,6 @@ filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria,
 ## Filter peaks by annotation:
 filterPeaksByAnnotation = function(peak_matrix, annotation_column, list_of_annotation) {
   temp = peak_matrix %>% filter({{ annotation_column }} %in% list_of_annotation)
-  return(temp)
-}
-
-## Get peak counts per gene: 
-peaksPerGene = function(peak_matrix, sample_list) {
-  temp = peak_matrix %>% group_by(gene, external_gene_name) %>% summarise(tagCounts = sum(across(all_of(sample_list))), peakCounts = n())
-  temp = temp %>% mutate(tagDensity = tagCounts/peakCounts)
-  
   return(temp)
 }
 
@@ -194,25 +185,6 @@ F_CoCLIP_List = c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES', 'F_S_Nuc', 'F_S_
 All_Annotation_List = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", 'ncRNA', "TE", "Other", "DS10K", 'UnAn')
 mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
 ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
-####################################################################################################################
-
-## Peak Counts per Gene:
-####################################################################################################################
-## Fractionation CLIP
-PPG_F_Nuc_M = peaksPerGene(Peak_F_Nuc_M, Nuc_F_M)
-PPG_F_Nuc_S = peaksPerGene(Peak_F_Nuc_S, Nuc_F_S)
-PPG_F_Cyto_M = peaksPerGene(Peak_F_Cyt_M, Cyto_F_M)
-PPG_F_Cyto_S = peaksPerGene(Peak_F_Cyt_S, Cyto_F_S)
-
-## CoCLIP
-PPG_Co_Input_M = peaksPerGene(Peak_Co_Input_M, c(NLS_I_M, NES_I_M, G3BP_I_M))
-PPG_Co_Input_S = peaksPerGene(Peak_Co_Input_S, c(NLS_I_S, NES_I_S, G3BP_I_S))
-PPG_Co_NLS_M = peaksPerGene(Peak_Co_NLS_M, NLS_E_M)
-PPG_Co_NLS_S = peaksPerGene(Peak_Co_NLS_S, NLS_E_S)
-PPG_Co_NES_M = peaksPerGene(Peak_Co_NES_M, NES_E_M)
-PPG_Co_NES_S = peaksPerGene(Peak_Co_NES_S, NES_E_S)
-PPG_Co_G3BP_M = peaksPerGene(Peak_Co_G3BP_M, G3BP_E_M)
-PPG_Co_G3BP_S = peaksPerGene(Peak_Co_G3BP_S, G3BP_E_S)
 ####################################################################################################################
 
 ## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP Peaks:
