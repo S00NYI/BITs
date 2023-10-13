@@ -225,7 +225,7 @@ Peak_G3BP_Nuc_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                    (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
                                                        (G3BP_I_M_BC >= BC_Threshold_E & G3BP_I_M > median(G3BP_I_M) * rowSum_Multiplier_I)) | 
                                                       ((NLS_E_M_BC >= BC_Threshold_E & NLS_E_M > median(NLS_E_M) * rowSum_Multiplier_E) & 
-                                                         (NLS_I_M_BC >= 1 & NLS_I_M > median(NLS_I_M) * rowSum_Multiplier_I))))
+                                                         (NLS_I_M_BC >= BC_Threshold_E & NLS_I_M > median(NLS_I_M) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Nuc_M_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_M_EvI$grouped_annotation, levels = All_Annotation_List)
 
@@ -271,7 +271,7 @@ Peak_G3BP_Nuc_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                    (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
                                                        (G3BP_I_S_BC >= BC_Threshold_E & G3BP_I_S > median(G3BP_I_S) * rowSum_Multiplier_I)) | 
                                                       ((NLS_E_S_BC >= BC_Threshold_E & NLS_E_S > median(NLS_E_S) * rowSum_Multiplier_E) & 
-                                                         (NLS_I_S_BC >= 1 & NLS_I_S > median(NLS_I_S) * rowSum_Multiplier_I))))
+                                                         (NLS_I_S_BC >= BC_Threshold_E & NLS_I_S > median(NLS_I_S) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Nuc_S_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_S_EvI$grouped_annotation, levels = All_Annotation_List)
 
@@ -317,7 +317,7 @@ Peak_G3BP_Cyto_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') 
                                                  (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
                                                      (G3BP_I_M_BC >= BC_Threshold_E & G3BP_I_M > median(G3BP_I_M) * rowSum_Multiplier_I)) | 
                                                     ((NES_E_M_BC >= BC_Threshold_E & NES_E_M > median(NES_E_M) * rowSum_Multiplier_E) & 
-                                                       (NES_I_M_BC >= 1 & NES_I_M > median(NES_I_M) * rowSum_Multiplier_I))))
+                                                       (NES_I_M_BC >= BC_Threshold_E & NES_I_M > median(NES_I_M) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Cyto_M_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_M_EvI$grouped_annotation, levels = All_Annotation_List)
 
@@ -363,7 +363,7 @@ Peak_G3BP_Cyto_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') 
                                              (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
                                                  (G3BP_I_S_BC >= BC_Threshold_E & G3BP_I_S > median(G3BP_I_S) * rowSum_Multiplier_I)) | 
                                                 ((NES_E_S_BC >= BC_Threshold_E & NES_E_S > median(NES_E_S) * rowSum_Multiplier_E) & 
-                                                   (NES_I_S_BC >= 1 & NES_I_S > median(NES_I_S) * rowSum_Multiplier_I))))
+                                                   (NES_I_S_BC >= BC_Threshold_E & NES_I_S > median(NES_I_S) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Cyto_S_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_S_EvI$grouped_annotation, levels = All_Annotation_List)
 
