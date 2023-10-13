@@ -525,39 +525,6 @@ TTS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 
 #########################################################################################################################
 
-## Samples
-#########################################################################################################################
-
-# TSS_densities_amplified = TSS_densities
-# CDS_densities_amplified = CDS_densities
-# SS5_densities_amplified = SS5_densities
-# SS3_densities_amplified = SS3_densities
-# TLS_densities_amplified = TLS_densities
-# TTS_densities_amplified = TTS_densities
-
-# TSS_densities = TSS_densities_amplified
-# CDS_densities = CDS_densities_amplified
-# SS5_densities = SS5_densities_amplified
-# SS3_densities = SS3_densities_amplified
-# TLS_densities = TLS_densities_amplified
-# TTS_densities = TTS_densities_amplified
-
-# TSS_densities_peakLevel = TSS_densities
-# CDS_densities_peakLevel = CDS_densities
-# SS5_densities_peakLevel = SS5_densities
-# SS3_densities_peakLevel = SS3_densities
-# TLS_densities_peakLevel = TLS_densities
-# TTS_densities_peakLevel = TTS_densities
-
-TSS_densities = TSS_densities_peakLevel
-CDS_densities = CDS_densities_peakLevel
-SS5_densities = SS5_densities_peakLevel
-SS3_densities = SS3_densities_peakLevel
-TLS_densities = TLS_densities_peakLevel
-TTS_densities = TTS_densities_peakLevel
-
-#########################################################################################################################
-
 ## Inputs 
 #########################################################################################################################
 y_lim = c(0, 0.1)
