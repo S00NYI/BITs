@@ -33,3 +33,6 @@ Last Update: 2023-10-12
 
 #### CoCLIP_Analysis_Part7_HuRFlowAnalysis.R
   - R script for context specific target gene analysis.
+
+#### CoCLIP_BITs.R
+  - R script for all custom functions.
