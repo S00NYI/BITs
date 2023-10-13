@@ -2,7 +2,7 @@
 ## Motif Analysis
 ## Written by Soon Yi
 ## Use Homer output for subsequent analysis.
-## Last Edit: 2023-09-15
+## Last Edit: 2023-10-12
 
 library(stringr)
 library(readr)
@@ -14,6 +14,10 @@ library(corrplot)
 library(pheatmap)
 library(scales)
 library(RColorBrewer)
+library(GenomicRanges)
+library(IRanges)
+library(BSgenome)
+library(BSgenome.Hsapiens.UCSC.hg38)
 
 ## Custom Functions
 ####################################################################################################################
@@ -30,105 +34,6 @@ filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria,
   }
   
   return(temp)
-}
-
-## Filter peaks by annotation:
-filterPeaksByAnnotation = function(peak_matrix, annotation_column, list_of_annotation) {
-  temp = peak_matrix %>% filter({{ annotation_column }} %in% list_of_annotation)
-  return(temp)
-}
-
-## Get peak counts per gene: 
-peaksPerGene = function(peak_matrix, sample_list) {
-  temp = peak_matrix %>% group_by(gene, external_gene_name) %>% summarise(tagCounts = sum(across(all_of(sample_list))), peakCounts = n())
-  temp = temp %>% mutate(tagDensity = tagCounts/peakCounts)
-  
-  return(temp)
-}
-
-## Get Annotation counts:
-countAnnotation = function(peak_matrix, annotation_column, new_column_name = NULL, annotation_to_skip = NULL, fraction = NULL) {
-  temp = data.frame(table(peak_matrix[, annotation_column]), row.names = 1)
-  if(!is.null(new_column_name)) {
-    colnames(temp) = new_column_name
-  }
-  
-  if(!is.null(annotation_to_skip)) {
-    temp = temp[rownames(temp) != annotation_to_skip, , drop = FALSE]
-  }
-  
-  if(!is.null(fraction)) {
-    temp = temp/sum(temp)
-  }
-  
-  return(temp)
-}
-
-## Fill Annotation counts if anything is mixing:
-fillAnnotation = function(annotation_counts, annotation_list) {
-  colnames((annotation_counts))
-  
-  temp = data.frame(Sample = numeric(length(annotation_list)))
-  rownames(temp) = annotation_list
-  temp2 = merge(temp, annotation_counts, by = "row.names", all = TRUE)
-  temp2[is.na(temp2)] = 0 
-  temp2$Sample = NULL
-  
-  rownames(temp2) = temp2$Row.names
-  temp2 = temp2[ncRNA_List, -1, drop = FALSE]
-  
-  return(temp2)
-}
-
-## Plot Scatter:
-plotScatter = function(peak_matrix, annotation_level, x_axis, y_axis, x_label = NULL, y_label = NULL, x_lim = NULL, y_lim = NULL, title = NULL, diag = FALSE) {
-  plot = ggplot(peak_matrix, aes(x = ({{x_axis}}), y = ({{y_axis}}), color = {{annotation_level}})) +
-    geom_point(pch = 16, size = 3, alpha = 0.5) +
-    scale_fill_brewer(palette = "Set3") +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.text = element_text(size=14))
-  
-  if (!is.null(title)) {
-    plot = plot + ggtitle(title)
-  }
-  if (!is.null(x_label)) {
-    plot = plot + labs(x = x_label)
-  }
-  if (!is.null(y_label)) {
-    plot = plot + labs(y = y_label)
-  }
-  if (!is.null(x_lim)) {
-    plot = plot + xlim(x_lim)
-  }
-  if (!is.null(y_lim)) {
-    plot = plot + ylim(y_lim)
-  }
-  if (diag == TRUE) {
-    plot = plot + geom_abline(linetype = 'dotted') 
-  }
-  
-  return(plot)
-}
-
-## Plot cumulative distribution:
-plot_CD = function(count_table, y_data, colormaps, linetypes, linesize) {
-  plot_data = count_table %>% select(counts, {{y_data}})
-  plot_data_long = plot_data %>% pivot_longer(cols = {{y_data}}, names_to = "Sample", values_to = "nCounts")
-  plot_data_long$Sample = factor(plot_data_long$Sample, levels = unique(plot_data_long$Sample)) # Use unique() to ensure correct order of levels
-  
-  plot = ggplot(plot_data_long, aes(x = counts, y = nCounts, color = Sample, linetype = Sample)) +
-    geom_line(linewidth = linesize) +
-    theme_minimal() +
-    theme_bw() +
-    theme(axis.text = element_text(size = 14),
-          axis.title = element_text(size = 14, face = 'bold')) +
-    scale_x_continuous(trans = 'log2') +
-    scale_color_manual(values = colormaps) +
-    scale_linetype_manual(values = linetypes)
-  
-  return(plot)
 }
 
 ## Count motif occurrence:
@@ -258,167 +163,119 @@ plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lim
   }
   return(plot)
 }
-####################################################################################################################
 
-## Build peak sequence table and motif enrichment ranks:
-####################################################################################################################
-library(GenomicRanges)
-library(IRanges)
-library(BSgenome)
-library(BSgenome.Hsapiens.UCSC.hg38)
-
-setwd('/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/peaks/R_Ready')
-peakFiles = list.files(getwd())
-
-motifs = c("UUUUU", "AAAAA", 
-           "WUUUA", "YUUUA", "AUUUY", "WUUAA", "UUAAW", "UWUAA", 
-           "YUUAA", "UYUAA", "AWUUA", "WAAUU", "AUWUA", "WUAAU", 
-           "UAAUW", "AAUWU", "AAUUY", "AUUYA", "AAUYU", "AYUUA", 
-           "WUAAA", "UAAAW", "UAUYA", "WAAAU", "YAUUA", "AUUAY", 
-           "AYUAU", "UYAAA", "YUUCA", "ACUUY", "AUAUY", "AAAYU", 
-           "AAAUW", "AAUWA", "WAAAA", "AACWU")
-
-## extension + 10nt around peak center
-extension = 65
-
-motif_ranks = data.frame(PAR_CLIP = c(0, 0, 1:34))
-rownames(motif_ranks) = motifs
-
-for (peakFile in peakFiles) {
-  print(paste0('processing ', peakFile))
-  file = read.delim(peakFile, header = F)
-  file = file[, c('V2', 'V3', 'V4', 'V1', 'V5')]
-  colnames(file) = c('chrom', 'start', 'end', 'name', 'strand')
-  file = file %>% filter(chrom %in% c('chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrM'))
-  peaksGR = file[, c('chrom', 'start', 'end', 'strand', 'name')]
-  peaksGR$start = as.integer(peaksGR$start) + 1 - extension
-  peaksGR$end = as.integer(peaksGR$end) + extension
-  peaksGR = GRanges(peaksGR)
-  peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
-  peaksGR_seqs = cbind(file, data.frame(sequence = peaksGR_seqs))
+## Plot cumulative distribution:
+plot_CD = function(count_table, y_data, colormaps, linetypes, linesize) {
+  plot_data = count_table %>% select(counts, {{y_data}})
+  plot_data_long = plot_data %>% pivot_longer(cols = {{y_data}}, names_to = "Sample", values_to = "nCounts")
+  plot_data_long$Sample = factor(plot_data_long$Sample, levels = unique(plot_data_long$Sample)) # Use unique() to ensure correct order of levels
   
-  for (motif in motifs) {
-    print(paste0('processing ', motif))
-    if (sum(unlist(strsplit(motif, split = "")) %in% c('W', 'Y'))) {
-      original_motif = motif
-      NonStandard_nt = unlist(strsplit(motif, split = ""))[unlist(strsplit(motif, split = "")) %in% c('W', 'Y')]
-      if (NonStandard_nt == 'W') {
-        temp = sub('W', 'A', motif)
-        motif = c(temp, sub('W', 'U', motif))
-        motif_counts = motifCounts(peaksGR_seqs, motif)
-        motif_counts = data.frame(rowSums(motif_counts))
-        colnames(motif_counts) = original_motif
-        peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-      } else if (NonStandard_nt == 'Y') {
-        temp = sub('Y', 'C', motif)
-        motif = c(temp, sub('Y', 'U', motif))
-        motif_counts = motifCounts(peaksGR_seqs, motif)
-        motif_counts = data.frame(rowSums(motif_counts))
-        colnames(motif_counts) = original_motif
-        peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-      }
-    } else {
-      motif_counts = motifCounts(peaksGR_seqs, motif)
-      peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-    }
-  }
+  plot = ggplot(plot_data_long, aes(x = counts, y = nCounts, color = Sample, linetype = Sample)) +
+    geom_line(linewidth = linesize) +
+    theme_minimal() +
+    theme_bw() +
+    theme(axis.text = element_text(size = 14),
+          axis.title = element_text(size = 14, face = 'bold')) +
+    scale_x_continuous(trans = 'log2') +
+    scale_color_manual(values = colormaps) +
+    scale_linetype_manual(values = linetypes)
   
-  motif_rank = data.frame(rank(-colSums(peaksGR_seqs[, motifs])))
-  colnames(motif_rank) = str_split(peakFile, '\\.')[[1]][1]
-  
-  motif_ranks = cbind(motif_ranks, motif_rank)
-  
+  return(plot)
 }
 
-eCLIP = read.delim('/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/eCLIP_bed/ELAVL1_eCLIP_ENCFF566LNK.bed', header = F)
-eCLIP = eCLIP[, c('V1', 'V2', 'V3', 'V4', 'V6')]
-colnames(eCLIP) = c('chrom', 'start', 'end', 'name', 'strand')
-eCLIP = eCLIP %>% filter(chrom %in% c('chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrM'))
-peaksGR = eCLIP[, c('chrom', 'start', 'end', 'strand', 'name')]
-peaksGR$start = as.integer(peaksGR$start) + 1 - extension
-peaksGR$end = as.integer(peaksGR$end) + extension
-peaksGR = GRanges(peaksGR)
-peaksGR_seqs = getSeq(BSgenome.Hsapiens.UCSC.hg38, peaksGR, as.character = TRUE)
-peaksGR_seqs = cbind(eCLIP, data.frame(sequence = peaksGR_seqs))
+####################################################################################################################
 
-for (motif in motifs) {
-  print(paste0('processing ', motif))
-  if (sum(unlist(strsplit(motif, split = "")) %in% c('W', 'Y'))) {
-    original_motif = motif
-    NonStandard_nt = unlist(strsplit(motif, split = ""))[unlist(strsplit(motif, split = "")) %in% c('W', 'Y')]
-    if (NonStandard_nt == 'W') {
-      temp = sub('W', 'A', motif)
-      motif = c(temp, sub('W', 'U', motif))
-      motif_counts = motifCounts(peaksGR_seqs, motif)
-      motif_counts = data.frame(rowSums(motif_counts))
-      colnames(motif_counts) = original_motif
-      peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-    } else if (NonStandard_nt == 'Y') {
-      temp = sub('Y', 'C', motif)
-      motif = c(temp, sub('Y', 'U', motif))
-      motif_counts = motifCounts(peaksGR_seqs, motif)
-      motif_counts = data.frame(rowSums(motif_counts))
-      colnames(motif_counts) = original_motif
-      peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-    }
-  } else {
-    motif_counts = motifCounts(peaksGR_seqs, motif)
-    peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
-  }
-}
+## Load peak matrix and clean up:
+####################################################################################################################
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
 
-motif_rank = data.frame(rank(-colSums(peaksGR_seqs[, motifs])))
-colnames(motif_rank) = 'eCLIP'
+peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
+peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'unannotated', 'UnAn', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'unannotated', 'UnAn', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'downstream 10K', 'DS10K', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
 
-motif_ranks = cbind(motif_ranks, motif_rank)
-motif_ranks = cbind(motifs, motif_ranks)
+## Column organization:
+inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
+                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count", "TOTAL_TagCount")
+BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
+               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
+               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
+               "TOTAL_BC")
+
+Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
+Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
+Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
+Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
+
+NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
+NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
+G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
+
+NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
+NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
+G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
+
+NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
+NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
+NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
+NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
+G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
+G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
+
+## Add row sum columns for further filtering:
+peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
+peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
+peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
+rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
+
+## Add pseudocount:
+pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
+peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
 
 ####################################################################################################################
 
-## Make heatmap:
+## Filter Criteria:
 ####################################################################################################################
-col_selection = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
-                  'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
+BC_Threshold_F = 2
+BC_Threshold_I = 4
+BC_Threshold_E = 2
+BC_Threshold_E_SG = 3
 
-CorrMatrix = cor(motif_ranks[, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
+rowSum_Multiplier_F = 4
+rowSum_Multiplier_I = 2
+rowSum_Multiplier_E = 2
+####################################################################################################################
 
-pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
-# pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = (colorRampPalette(c("lemonchiffon1", "skyblue", "skyblue4"))(100)))
-# pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=T, cluster_cols=T, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
+## Subset of Peaks for downstream analysis:
+####################################################################################################################
+## Fractionation CLIP
+Peak_F_Nuc_M = filterPeakMatrix(peaksMatrix, Nuc_F_M, c(inert_columns, BC_columns), BC_Threshold_F, rowSum_Multiplier_F)
+Peak_F_Nuc_S = filterPeakMatrix(peaksMatrix, Nuc_F_S, c(inert_columns, BC_columns), BC_Threshold_F, rowSum_Multiplier_F)
+Peak_F_Cyt_M = filterPeakMatrix(peaksMatrix, Cyto_F_M, c(inert_columns, BC_columns), BC_Threshold_F, rowSum_Multiplier_F)
+Peak_F_Cyt_S = filterPeakMatrix(peaksMatrix, Cyto_F_S, c(inert_columns, BC_columns), BC_Threshold_F, rowSum_Multiplier_F)
 
-
-col_selection = c('PAR_CLIP', 'eCLIP', 
-                  'ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
-                  'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
-
-# pheatmap(motif_ranks[, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-pheatmap(motif_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-
-## Figure 5
-col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_G3BP_Mock', 
-                  'CoCLIP_Input_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-pheatmap((all_ranks %>% arrange(CoCLIP_G3BP_Arsenite))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap((all_ranks %>% arrange(CoCLIP_Input_Mock))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
+## CoCLIP
+Peak_Co_Input_M = filterPeakMatrix(peaksMatrix, c(NLS_I_M, NES_I_M, G3BP_I_M), c(inert_columns, BC_columns), BC_Threshold_I, rowSum_Multiplier_I)
+Peak_Co_Input_S = filterPeakMatrix(peaksMatrix, c(NLS_I_S, NES_I_S, G3BP_I_S), c(inert_columns, BC_columns), BC_Threshold_I, rowSum_Multiplier_I)
+Peak_Co_NLS_M = filterPeakMatrix(peaksMatrix, NLS_E_M, c(inert_columns, BC_columns), BC_Threshold_E, rowSum_Multiplier_E)
+Peak_Co_NLS_S = filterPeakMatrix(peaksMatrix, NLS_E_S, c(inert_columns, BC_columns), BC_Threshold_E, rowSum_Multiplier_E)
+Peak_Co_NES_M = filterPeakMatrix(peaksMatrix, NES_E_M, c(inert_columns, BC_columns), BC_Threshold_E, rowSum_Multiplier_E)
+Peak_Co_NES_S = filterPeakMatrix(peaksMatrix, NES_E_S, c(inert_columns, BC_columns), BC_Threshold_E, rowSum_Multiplier_E)
+Peak_Co_G3BP_M = filterPeakMatrix(peaksMatrix, G3BP_E_M, c(inert_columns, BC_columns), BC_Threshold_E_SG, rowSum_Multiplier_E)
+Peak_Co_G3BP_S = filterPeakMatrix(peaksMatrix, G3BP_E_S, c(inert_columns, BC_columns), BC_Threshold_E_SG, rowSum_Multiplier_E)
 ####################################################################################################################
 
 ## Build peak sequence table and motif enrichment ranks based on peaksMatrix:
-## Build peaksMatrix from other Analysis script.
 ####################################################################################################################
-library(GenomicRanges)
-library(IRanges)
-library(BSgenome)
-library(BSgenome.Hsapiens.UCSC.hg38)
-
 ## (extension + 10nt)*2 centered at peak
 # extension = 15
-# extension = 65
-extension = 0
+extension = 65
+# extension = 0
 
 peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
 peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
@@ -441,21 +298,21 @@ motifs = c("UUUUU", "AAAAA",
 motif_ranks = data.frame(PAR_CLIP = c(0, 0, 1:34))
 rownames(motif_ranks) = motifs
 
-ALL_M = peaksGR_seqs %>% filter((Nuc_F_M_BC + Cyto_F_M_BC + NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC + NLS_E_M_BC + NES_E_M_BC + G3BP_E_M_BC) >= 10)
-I_M = peaksGR_seqs %>% filter((NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC) >= BC_Threshold_I)
-NUC_M = peaksGR_seqs %>% filter(Nuc_F_M_BC >= BC_Threshold_F)
-CYT_M = peaksGR_seqs %>% filter(Cyto_F_M_BC >= BC_Threshold_F)
-NLS_M = peaksGR_seqs %>% filter(NLS_E_M_BC >= BC_Threshold_E)
-NES_M = peaksGR_seqs %>% filter(NES_E_M_BC >= BC_Threshold_E)
-G3BP_M = peaksGR_seqs %>% filter(G3BP_E_M_BC >= BC_Threshold_E)
+ALL_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_M$peak_names, Peak_F_Cyt_M$peak_names, Peak_Co_Input_M$peak_names, Peak_Co_NLS_M$peak_names, Peak_Co_NES_M$peak_names, Peak_Co_G3BP_M$peak_names))
+I_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_M$peak_names))
+NUC_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_M$peak_names))
+CYT_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Cyt_M$peak_names))
+NLS_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_M$peak_names))
+NES_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_M$peak_names))
+G3BP_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_M$peak_names))
 
-ALL_S = peaksGR_seqs %>% filter((Nuc_F_S_BC + Cyto_F_S_BC + NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC + NLS_E_S_BC + NES_E_S_BC + G3BP_E_S_BC) >= 10)
-I_S = peaksGR_seqs %>% filter((NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC) >= BC_Threshold_I)
-NUC_S = peaksGR_seqs %>% filter(Nuc_F_S_BC >= BC_Threshold_F)
-CYT_S = peaksGR_seqs %>% filter(Cyto_F_S_BC >= BC_Threshold_F)
-NLS_S = peaksGR_seqs %>% filter(NLS_E_S_BC >= BC_Threshold_E)
-NES_S = peaksGR_seqs %>% filter(NES_E_S_BC >= BC_Threshold_E)
-G3BP_S = peaksGR_seqs %>% filter(G3BP_E_S_BC >= BC_Threshold_E)
+ALL_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_S$peak_names, Peak_F_Cyt_S$peak_names, Peak_Co_Input_S$peak_names, Peak_Co_NLS_S$peak_names, Peak_Co_NES_S$peak_names, Peak_Co_G3BP_S$peak_names))
+I_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_S$peak_names))
+NUC_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_S$peak_names))
+CYT_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Cyt_S$peak_names))
+NLS_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_S$peak_names))
+NES_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_S$peak_names))
+G3BP_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_S$peak_names))
 
 Samples = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S') 
 
@@ -536,7 +393,7 @@ motif_ranks = cbind(motifs, motif_ranks)
 
 ####################################################################################################################
 
-## Make heatmap:
+## FIGURE4 Make heatmap:
 ####################################################################################################################
 col_selection = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
                   'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
@@ -547,33 +404,18 @@ colnames(CorrMatrix) = col_selection
 rownames(CorrMatrix) = col_selection
 
 pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
-# pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = (colorRampPalette(c("lemonchiffon1", "skyblue", "skyblue4"))(100)))
-# pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=T, cluster_cols=T, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
-
 
 col_selection = c('PAR_CLIP', 'eCLIP', 
                   'ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
                   'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
 
-# pheatmap(motif_ranks[, col_selection], cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
 
 pheatmap(motif_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-
-## Figure 5
-col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_G3BP_Mock', 
-                  'CoCLIP_Input_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-pheatmap((all_ranks %>% arrange(CoCLIP_G3BP_Arsenite))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap((all_ranks %>% arrange(CoCLIP_Input_Mock))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
 ####################################################################################################################
 
-
-
-
-## Data processing for motif density
+## Read motif density calculations:
+## motif density calculated using Homer (see Homer_calls.sh)
 ################################################################################
-# baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs_density/50bp/'
 baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/motifs/density'
 setwd(baseDir)
 
@@ -593,7 +435,7 @@ densityFile = return_Density(densityFiles[1], strand = '+', normalize = T)
 plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06), densityType = 'motif_density', sampleName = 'All Mocks')
 ################################################################################
 
-## FIGURE3/5 C Metagene Plot from Input vs CoCLIP for Top Motifs UUUUU AAAAA 
+## FIGURE4 Metagene Plot from Input vs CoCLIP for Top Motifs UUUUU AAAAA 
 ################################################################################
 ## Mock
 Mock_All = return_Density(densityFiles[2], strand = '+', normalize = T) 
@@ -615,17 +457,6 @@ colnames(Mock_Combined) = c('position',
 plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_NLS', 'UUUUU_NES', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'UUUUU')
 plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_NLS', 'AAAAA_NES', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'AAAAA')
 
-plot_Density(Mock_Combined, c('UUUUU_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
-plot_Density(Mock_Combined, c('UUUUU_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
-plot_Density(Mock_Combined, c('UUUUU_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
-plot_Density(Mock_Combined, c('UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
-
-plot_Density(Mock_Combined, c('AAAAA_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
-plot_Density(Mock_Combined, c('AAAAA_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
-plot_Density(Mock_Combined, c('AAAAA_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
-plot_Density(Mock_Combined, c('AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
-
-
 ## Arsenite
 Arsenite_All = return_Density(densityFiles[1], strand = '+', normalize = T) 
 Arsenite_Input = return_Density(densityFiles[5], strand = '+', normalize = T) 
@@ -645,52 +476,10 @@ colnames(Arsenite_Combined) = c('position',
 
 plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_NLS', 'UUUUU_NES', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'UUUUU')
 plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_NLS', 'AAAAA_NES', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), densityType = 'motif_density', sampleName = 'AAAAA')
-
-plot_Density(Arsenite_Combined, c('UUUUU_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
-plot_Density(Arsenite_Combined, c('UUUUU_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
-plot_Density(Arsenite_Combined, c('UUUUU_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
-plot_Density(Arsenite_Combined, c('UUUUU_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
-
-plot_Density(Arsenite_Combined, c('AAAAA_Inp'), yaxis_lims = c(0, 0.15), custom_colors = c('ivory4'))
-plot_Density(Arsenite_Combined, c('AAAAA_NLS'), yaxis_lims = c(0, 0.15), custom_colors = c('skyblue'))
-plot_Density(Arsenite_Combined, c('AAAAA_NES'), yaxis_lims = c(0, 0.15), custom_colors = c('darkseagreen2'))
-plot_Density(Arsenite_Combined, c('AAAAA_G3BP'), yaxis_lims = c(0, 0.15), custom_colors = c('salmon'))
-
-
-plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
-plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_G3BP'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_G3BP'), yaxis_lims = c(0, 0.15))
-
 ################################################################################
 
-## FIGURE3 D
-## Metagene Plot from Fractionation CLIP for Top Motifs UUUUU AAAAA
-################################################################################
-## Mock
-
-plot_Density(Mock_Combined, c('UUUUU_Inp', 'UUUUU_Nuc', 'UUUUU_Cyt'), yaxis_lims = c(0, 0.15))
-plot_Density(Mock_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_lims = c(0, 0.15))
-
-plot_Density(Arsenite_Combined, c('UUUUU_Inp', 'UUUUU_Nuc', 'UUUUU_Cyt'), yaxis_lims = c(0, 0.15))
-plot_Density(Arsenite_Combined, c('AAAAA_Inp', 'AAAAA_Nuc', 'AAAAA_Cyt'), yaxis_lims = c(0, 0.15))
-################################################################################
-
-
-
-
-
-
-
-
-## Motif High Order Analysis
-## Sanity Check 
+## FIGURE4 Motif Cumulative Distribution Analysis
 ####################################################################################################################
-library(GenomicRanges)
-library(IRanges)
-library(BSgenome)
-library(BSgenome.Hsapiens.UCSC.hg38)
-
 peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
 peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
 peaksGR$start = as.integer(peaksGR$start) + 1 - 15
@@ -704,40 +493,38 @@ motifs = c('AAAAA', 'UUUUU')
 motif_counts = motifCounts(peaksGR_seqs, motifs)
 peaksGR_seqs = cbind(peaksGR_seqs, motif_counts)
 
-## Also add search for all 1024 5-mers --> motif occurence distribution
-## normalize to respective depth
-## normalize to input
-
-
-## Genes that are in cytoplasm mock --> stress granule arsenite (but not in cytoplasm arsenite)
-## Genes that are in cytoplasm mock --> cytoplasm arsenite (but not in stress granule arsenite)
-####################################################################################################################
-
-## Filter peaksGR by BC
-####################################################################################################################
 peaksGR_seqs_org = peaksGR_seqs
 
 peaksGR_seqs = peaksGR_seqs_org
 peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation != 'UnAn')
 
-# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% mRNA_List)
-# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "5'UTR")
-# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "CDS")
-# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "3'UTR")
-# peaksGR_seqs = peaksGR_seqs %>% filter(grouped_annotation == "intron")
-# peaksGR_seqs = peaksGR_seqs %>% filter(finalized_annotation %in% ncRNA_List)
+ALL_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_M$peak_names, Peak_F_Cyt_M$peak_names, Peak_Co_Input_M$peak_names, Peak_Co_NLS_M$peak_names, Peak_Co_NES_M$peak_names, Peak_Co_G3BP_M$peak_names))
+I_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_M$peak_names))
+NUC_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_M$peak_names))
+CYT_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Cyt_M$peak_names))
+NLS_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_M$peak_names))
+NES_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_M$peak_names))
+G3BP_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_M$peak_names))
 
-peaksGR_Co_Input_M = peaksGR_seqs %>% filter((NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC) >= BC_Threshold_I)
-peaksGR_Co_Input_S = peaksGR_seqs %>% filter((NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC) >= BC_Threshold_I)
+ALL_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_S$peak_names, Peak_F_Cyt_S$peak_names, Peak_Co_Input_S$peak_names, Peak_Co_NLS_S$peak_names, Peak_Co_NES_S$peak_names, Peak_Co_G3BP_S$peak_names))
+I_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_S$peak_names))
+NUC_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Nuc_S$peak_names))
+CYT_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_F_Cyt_S$peak_names))
+NLS_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_S$peak_names))
+NES_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_S$peak_names))
+G3BP_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_S$peak_names))
 
-peaksGR_Co_NLS_M = peaksGR_seqs %>% filter((NLS_E_M_BC) >= BC_Threshold_E)
-peaksGR_Co_NLS_S = peaksGR_seqs %>% filter((NLS_E_S_BC) >= BC_Threshold_E)
+peaksGR_Co_Input_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_M$peak_names))
+peaksGR_Co_Input_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_Input_S$peak_names))
 
-peaksGR_Co_NES_M = peaksGR_seqs %>% filter((NES_E_M_BC) >= BC_Threshold_E)
-peaksGR_Co_NES_S = peaksGR_seqs %>% filter((NES_E_S_BC) >= BC_Threshold_E)
+peaksGR_Co_NLS_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_M$peak_names))
+peaksGR_Co_NLS_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NLS_S$peak_names))
 
-peaksGR_Co_G3BP_M = peaksGR_seqs %>% filter((G3BP_E_M_BC) >= BC_Threshold_E)
-peaksGR_Co_G3BP_S = peaksGR_seqs %>% filter((G3BP_E_S_BC) >= BC_Threshold_E)
+peaksGR_Co_NES_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_M$peak_names))
+peaksGR_Co_NES_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_NES_S$peak_names))
+
+peaksGR_Co_G3BP_M = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_M$peak_names))
+peaksGR_Co_G3BP_S = peaksGR_seqs %>% filter(peak_names %in% c(Peak_Co_G3BP_S$peak_names))
 
 
 ## Filter peaks to specific genomic locus
@@ -787,26 +574,20 @@ colnames(cumulative_table)[1] = 'counts'
 normed_table = cbind(freq_table$counts, data.frame(sapply(cumsum(freq_table[, colnames(freq_table)[2:ncol(freq_table)]]), rescale)))
 colnames(normed_table)[1] = 'counts'
 
+pVal_Threshold = 0.01
+
 # CD plots and accompanying KS-test
-plot_CD(normed_table, y_data = c('I_M_AAAAA', 'I_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$I_M_AAAAA, freq_table$I_S_AAAAA)$p.value < 0.05
-plot_CD(normed_table, y_data = c('I_M_UUUUU', 'I_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$I_M_UUUUU, freq_table$I_S_UUUUU)$p.value < 0.05
+ks.test(freq_table$I_M_AAAAA, freq_table$I_S_AAAAA)$p.value < pVal_Threshold
+ks.test(freq_table$I_M_UUUUU, freq_table$I_S_UUUUU)$p.value < pVal_Threshold
 
-plot_CD(normed_table, y_data = c('NLS_M_AAAAA', 'NLS_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$NLS_M_AAAAA, freq_table$NLS_S_AAAAA)$p.value < 0.05
-plot_CD(normed_table, y_data = c('NLS_M_UUUUU', 'NLS_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$NLS_M_UUUUU, freq_table$NLS_S_UUUUU)$p.value < 0.05
+ks.test(freq_table$NLS_M_AAAAA, freq_table$NLS_S_AAAAA)$p.value < pVal_Threshold
+ks.test(freq_table$NLS_M_UUUUU, freq_table$NLS_S_UUUUU)$p.value < pVal_Threshold
 
-plot_CD(normed_table, y_data = c('NES_M_AAAAA', 'NES_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$NES_M_AAAAA, freq_table$NES_S_AAAAA)$p.value < 0.05
-plot_CD(normed_table, y_data = c('NES_M_UUUUU', 'NES_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$NES_M_UUUUU, freq_table$NES_S_UUUUU)$p.value < 0.05
+ks.test(freq_table$NES_M_AAAAA, freq_table$NES_S_AAAAA)$p.value < pVal_Threshold
+ks.test(freq_table$NES_M_UUUUU, freq_table$NES_S_UUUUU)$p.value < pVal_Threshold
 
-plot_CD(normed_table, y_data = c('G3BP_M_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$G3BP_M_AAAAA, freq_table$G3BP_S_AAAAA)$p.value < 0.05
-plot_CD(normed_table, y_data = c('G3BP_M_UUUUU', 'G3BP_S_UUUUU'), colormaps = c('skyblue', 'salmon'), linetypes = c(1, 1), linesize = 2)
-ks.test(freq_table$G3BP_M_UUUUU, freq_table$G3BP_S_UUUUU)$p.value < 0.05
+ks.test(freq_table$G3BP_M_AAAAA, freq_table$G3BP_S_AAAAA)$p.value < pVal_Threshold
+ks.test(freq_table$G3BP_M_UUUUU, freq_table$G3BP_S_UUUUU)$p.value < pVal_Threshold
 
 plot_CD(normed_table, y_data = c('I_M_AAAAA', 'NLS_M_AAAAA', 'NES_M_AAAAA', 'G3BP_M_AAAAA'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
 plot_CD(normed_table, y_data = c('I_S_AAAAA', 'NLS_S_AAAAA', 'NES_S_AAAAA', 'G3BP_S_AAAAA'), colormaps = c('ivory4', 'skyblue', 'darkseagreen2', 'salmon'), linetypes = c(1, 1, 1, 1), linesize = 2)
@@ -821,459 +602,4 @@ plot_CD(normed_table, y_data = c('I_S_UUUUU', 'NLS_S_UUUUU', 'NES_S_UUUUU', 'G3B
 
 
 
-################################################################################
-###################################DEPRECATED###################################
-################################################################################
 
-################################################################################
-# plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lims = NULL, custom_colors = NULL, sampleName = NULL) {
-#   # Select the columns based on the columns_list
-#   plot_data = density_data %>% select(position, {{columns_list}})
-#   
-#   # Create a long-format dataframe for better legend handling
-#   plot_data_long = plot_data %>%
-#     pivot_longer(cols = {{columns_list}}, names_to = "Motif", values_to = "Density")
-#   
-#   # Define the order of levels for the Motif factor
-#   plot_data_long$Motif = factor(plot_data_long$Motif, levels = columns_list)
-#   
-#   # Create the ggplot object
-#   plot = ggplot(plot_data_long, aes(x = position, y = Density, color = Motif)) +
-#     geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
-#     theme_minimal() +
-#     theme_bw() +
-#     theme(axis.text = element_text(size = 14),
-#           axis.title = element_text(size = 14, face = 'bold'))
-#   
-#   # Add smoothed lines
-#   plot = plot + geom_smooth(span = 0.2, se = FALSE)
-#   
-#   if (!is.null(custom_colors)) {
-#     plot = plot + scale_color_manual(values = custom_colors)
-#   }
-#   
-#   if (!is.null(xaxis_lims)) {
-#     plot = plot + xlim(xaxis_lims)
-#   }
-#   
-#   if (!is.null(yaxis_lims)) {
-#     plot = plot + ylim(yaxis_lims)
-#   }
-#   
-#   if (!is.null(sampleName)) {
-#     plot = plot + labs(title = paste0(sampleName, ": Motif Density around Peaks"),
-#                        x = "Distance to peak center (nucleotides)",
-#                        y = "Peak Density")
-#   } else {
-#     plot = plot + labs("Metagene Plot: Motif Density around Peaks",
-#                        x = "Distance to peak center (nucleotides)",
-#                        y = "Peak Density")
-#   }
-#   
-#   return(plot)
-# }
-################################################################################
-
-
-
-
-## data processing for motif counts
-################################################################################
-baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/motifs/counts'
-# baseDir = 'L:/.shortcut-targets-by-id/13hY9t_p6eUdnvP-c2OClHbzyeWMOruD_/CoCLIP_HuR_Paper/Data/Homer_Outputs/motifs/counts'
-setwd(baseDir)
-countFiles = list.files(baseDir)
-countFiles = countFiles[grep('MotifCounts.txt', countFiles)]
-
-peakCounts = data.frame(sample = sapply(str_split(countFiles, '\\.'), function(x) x[1]), 
-                        peaks = c(287466, 190803, 10924, 9666, 81323, 48659, 3250, 694, 4725, 4699, 8823, 102500, 65923, 80733, 86254))
-
-unique_peaks_per_motif = list()
-unique_peaks_per_motif_normalized = list()
-
-raw_counts_per_motif = list()
-raw_counts_per_motif_normalized = list()
-
-index = 0
-
-for (countFile in countFiles) {
-  motifCounts = read.delim(countFile, header = T)
-  sampleName = str_split(countFile, '\\.')[[1]][1]
-  
-  peaks_per_motif = data.frame(motifCounts %>% group_by(Motif.Name) %>% summarise(Unique_Positions = n_distinct(PositionID)))
-  rownames(peaks_per_motif) = peaks_per_motif$Motif.Name
-  peaks_per_motif$Motif.Name = NULL
-  colnames(peaks_per_motif)[1] = sampleName
-  
-  index = index + 1
-  unique_peaks_per_motif[[index]] = peaks_per_motif
-  unique_peaks_per_motif_normalized[[index]] = peaks_per_motif/peakCounts$peaks[peakCounts$sample == sampleName]
-  
-  motif_appearance = data.frame(motifCounts %>% group_by(Motif.Name) %>% summarise(Count = n()))
-  rownames(motif_appearance) = motif_appearance$Motif.Name
-  motif_appearance$Motif.Name = NULL
-  colnames(motif_appearance)[1] = sampleName
-  
-  raw_counts_per_motif[[index]] = motif_appearance
-  raw_counts_per_motif_normalized[[index]] = motif_appearance/peakCounts$peaks[peakCounts$sample == sampleName]
-}
-
-all_unique_PPM = data.frame(unique_peaks_per_motif)
-all_unique_PPM_normed = data.frame(unique_peaks_per_motif_normalized)
-all_ranks = all_unique_PPM %>% mutate_all(~rank(-., ties.method = "min"))
-
-all_raw_Motifs = data.frame(raw_counts_per_motif)
-all_raw_Motifs_normed = data.frame(raw_counts_per_motif_normalized)
-
-## Swap Order
-swap1and2row = function(dataframe) {
-  r_temp1 = row.names(dataframe)[1]
-  r_temp2 = row.names(dataframe)[2]
-  r_temp = dataframe[1, ]
-  dataframe[1, ] = dataframe[2, ]
-  dataframe[2, ] = r_temp
-  row.names(dataframe)[2] = 'temp'
-  row.names(dataframe)[1] = r_temp2
-  row.names(dataframe)[2] = r_temp1
-  
-  return(dataframe)
-}
-
-all_unique_PPM = swap1and2row(all_unique_PPM)
-all_unique_PPM_normed = swap1and2row(all_unique_PPM_normed)   ## Normalized by number of peaks
-all_ranks = swap1and2row(all_ranks)
-all_raw_Motifs = swap1and2row(all_raw_Motifs)
-all_raw_Motifs_normed = swap1and2row(all_raw_Motifs_normed)   ## Normalized by number of peaks
-
-# new_column_names = c('MOTIF', 'PAR_CLIP', 'eCLIP', 
-#                      'All_Mocks', 'All_Arsenites',
-#                      'CoCLIP_Input_Mock', 'CoCLIP_Input_Arsenite',
-#                      'CoCLIP_NLS_Mock', 'CoCLIP_NLS_Arsenite',
-#                      'CoCLIP_NES_Mock', 'CoCLIP_NES_Arsenite',
-#                      'CoCLIP_G3BP_Mock', 'CoCLIP_G3BP_Arsenite',
-#                      'FracCLIP_Nuclear_Mock', 'FracCLIP_Nuclear_Arsenite',
-#                      'FracCLIP_Cytoplasm_Mock', 'FracCLIP_Cytoplasm_Arsenite')
-
-new_column_names = c('MOTIF', 'PAR_CLIP', 'eCLIP', 
-                     'All_Mocks', 
-                     'CoCLIP_Input_Mock', 
-                     'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 
-                     'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'CoCLIP_G3BP_Mock', 
-                     'All_Arsenites',
-                     'CoCLIP_Input_Arsenite', 
-                     'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite',
-                     'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-all_unique_PPM$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_unique_PPM)))
-all_unique_PPM$MOTIF = sub(".*-", "", rownames(all_unique_PPM))
-all_unique_PPM = arrange(all_unique_PPM, PAR_CLIP)
-all_unique_PPM = all_unique_PPM[, new_column_names]
-rownames(all_unique_PPM) = all_unique_PPM$MOTIF
-
-all_unique_PPM_normed$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_unique_PPM_normed)))
-all_unique_PPM_normed$MOTIF = sub(".*-", "", rownames(all_unique_PPM_normed))
-all_unique_PPM_normed = arrange(all_unique_PPM_normed, PAR_CLIP)
-all_unique_PPM_normed = all_unique_PPM_normed[, new_column_names]
-rownames(all_unique_PPM_normed) = all_unique_PPM_normed$MOTIF
-
-all_raw_Motifs$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_raw_Motifs)))
-all_raw_Motifs$MOTIF = sub(".*-", "", rownames(all_raw_Motifs))
-all_raw_Motifs = arrange(all_raw_Motifs, PAR_CLIP)
-all_raw_Motifs = all_raw_Motifs[, new_column_names]
-rownames(all_raw_Motifs) = all_raw_Motifs$MOTIF
-
-all_raw_Motifs_normed$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_raw_Motifs_normed)))
-all_raw_Motifs_normed$MOTIF = sub(".*-", "", rownames(all_raw_Motifs_normed))
-all_raw_Motifs_normed = arrange(all_raw_Motifs_normed, PAR_CLIP)
-all_raw_Motifs_normed = all_raw_Motifs_normed[, new_column_names]
-rownames(all_raw_Motifs_normed) = all_raw_Motifs_normed$MOTIF
-
-all_ranks$PAR_CLIP = as.integer(sub("-.*", "", rownames(all_ranks)))
-all_ranks$MOTIF = sub(".*-", "", rownames(all_ranks))
-all_ranks = arrange(all_ranks, PAR_CLIP)
-all_ranks = all_ranks[, new_column_names]
-rownames(all_ranks) = all_ranks$MOTIF
-
-# all_ranks$eCLIP = all_ranks$eCLIP - 1
-# all_ranks$eCLIP[1] = all_ranks$eCLIP[1] = 0
-# all_ranks$eCLIP[2] = all_ranks$eCLIP[2] = 0
-# write.table(all_unique_PPM, 'HuR_PAR_CLIP_MotifCounts.txt', row.names = T, col.names = T, quote = F, sep = '\t')
-# write.table(all_ranks, 'HuR_PAR_CLIP_MotifRanks.txt', row.names = T, col.names = T, quote = F, sep = '\t')
-################################################################################
-
-## Correlation Matrix with PAR-CLIP data and just the PAR-CLIP motifs
-################################################################################
-## With Ranks
-row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_ranks)[2:17]
-col_selection = c('PAR_CLIP', 'eCLIP',  'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
-col_selection = c('PAR_CLIP', 'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-col_selection = c('PAR_CLIP', 'eCLIP', 
-                  'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 
-                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite')
-
-CorrMatrix = cor(all_ranks[row_selection, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1", "indianred2"))(100)))
-
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = colorRampPalette(brewer.pal(9, "YlGnBu"))(100))
-
-################################################################################
-
-## Correlation Matrix without PAR-CLIP data and just the PAR-CLIP motifs
-################################################################################
-## With Ranks
-row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_ranks)[3:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-CorrMatrix = cor(all_ranks[row_selection, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-# ## With unique peaks per motif counts
-# row_selection = (all_unique_PPM$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_unique_PPM)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-#
-# CorrMatrix = cor(all_unique_PPM[row_selection, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-## With unique peaks per motif normalized counts
-## This looks equal to un-normalized version
-row_selection = (all_unique_PPM_normed$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_unique_PPM_normed)[3:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-CorrMatrix = cor(all_unique_PPM_normed[row_selection, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-# ## With raw motif counts
-# row_selection = (all_raw_Motifs$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_raw_Motifs)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-#
-# CorrMatrix = cor(all_raw_Motifs[row_selection, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-## With raw motif normalized counts
-## This looks equal to un-normalized version
-row_selection = (all_raw_Motifs_normed$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_raw_Motifs_normed)[3:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-CorrMatrix = cor(all_raw_Motifs_normed[row_selection, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-################################################################################
-
-## FIGURE3/5 Correlation Matrix without PAR-CLIP data and with UUUUU and AAAAA
-################################################################################
-## With Ranks
-# col_selection = colnames(all_ranks)[3:16]
-# col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 
-                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite')
-
-CorrMatrix = cor(all_ranks[, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-
-pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
-
-## Figure 5
-col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'CoCLIP_G3BP_Mock', 
-                  'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'CoCLIP_G3BP_Mock', 
-                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-CorrMatrix = cor(all_ranks[, col_selection])
-CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-colnames(CorrMatrix) = col_selection
-rownames(CorrMatrix) = col_selection
-
-pheatmap(CorrMatrix, clustering_method = 'ward.D2', cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
-
-# ## With unique peaks per motif counts
-# row_selection = (all_unique_PPM$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_unique_PPM)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# CorrMatrix = cor(all_unique_PPM[row_selection, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-# ## With unique peaks per motif normalized counts
-# ## This looks equal to un-normalized version
-# col_selection = colnames(all_unique_PPM_normed)[3:16]
-# col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# CorrMatrix = cor(all_unique_PPM_normed[, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-
-# ## With raw motif counts
-# row_selection = (all_raw_Motifs$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_raw_Motifs)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# CorrMatrix = cor(all_raw_Motifs[row_selection, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-# 
-# ## With raw motif normalized counts
-# ## This looks equal to un-normalized version
-# col_selection = colnames(all_raw_Motifs_normed)[4:16]
-# col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# CorrMatrix = cor(all_raw_Motifs_normed[, col_selection])
-# CorrMatrix = matrix(round(CorrMatrix,2), nrow = length(col_selection))
-# colnames(CorrMatrix) = col_selection
-# rownames(CorrMatrix) = col_selection
-# pheatmap(CorrMatrix, cluster_rows=T, cluster_cols=T, color = rev(colorRampPalette(c("green4", "lemonchiffon1"))(100)))
-################################################################################
-
-## FIGURE3/5 Motif Score Heatmap with PAR-CLIP data and just the PAR-CLIP motifs
-################################################################################
-## with Ranks
-# row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_ranks)[2:17]
-# col_selection = c('PAR_CLIP', 'eCLIP', 'All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock') # Mock Only
-# col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-col_selection = c('PAR_CLIP', 'eCLIP', 
-                  'All_Mocks', 'CoCLIP_Input_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 
-                  'All_Arsenites', 'CoCLIP_Input_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite')
-
-# pheatmap(all_ranks[row_selection, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-
-## Figure 5
-col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_G3BP_Mock', 
-                  'CoCLIP_Input_Arsenite', 'CoCLIP_G3BP_Arsenite')
-
-pheatmap((all_ranks %>% arrange(CoCLIP_G3BP_Arsenite))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap((all_ranks %>% arrange(CoCLIP_Input_Mock))[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
-
-
-################################################################################
-
-## Motif Score Heatmap without PAR-CLIP data and just the PAR-CLIP motifs
-################################################################################
-## With Ranks
-row_selection = (all_ranks$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_ranks)[3:16]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_ranks[row_selection, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-# ## With unique peaks per motif counts
-# ## Pointless to look at un-normalized ones, because scale varies too much
-# row_selection = (all_unique_PPM$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_unique_PPM)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# pheatmap(all_unique_PPM[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-## With unique peaks per motif normalized counts
-row_selection = (all_unique_PPM_normed$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_unique_PPM_normed)[3:15]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_unique_PPM_normed[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-# ## With raw motif counts
-# ## Pointless to look at un-normalized ones, because scale varies too much
-# row_selection = (all_raw_Motifs$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-# col_selection = colnames(all_raw_Motifs)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# pheatmap(all_raw_Motifs[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-## With raw motif normalized counts
-row_selection = (all_raw_Motifs_normed$MOTIF != 'AAAAA' & all_ranks$MOTIF != 'UUUUU')
-col_selection = colnames(all_raw_Motifs_normed)[3:15]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_raw_Motifs_normed[row_selection, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-################################################################################
-
-## Motif Score Heatmap without PAR-CLIP data and with UUUUU and AAAAA
-################################################################################
-## With Ranks
-col_selection = colnames(all_ranks)[3:15]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_ranks[, col_selection], cluster_rows=F, cluster_cols=T, color = rev(colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-# ## With unique peaks per motif counts
-# ## Pointless to look at un-normalized ones, because scale varies too much
-# col_selection = colnames(all_unique_PPM)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# pheatmap(all_unique_PPM[, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-## With unique peaks per motif normalized counts
-col_selection = colnames(all_unique_PPM_normed)[3:15]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_unique_PPM_normed[, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-# ## With raw motif counts
-# ## Pointless to look at un-normalized ones, because scale varies too much
-# col_selection = colnames(all_raw_Motifs)[4:15]
-# col_selection = c('CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-# col_selection = c('CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-# 
-# pheatmap(all_raw_Motifs[, col_selection], cluster_rows=T, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-
-## With raw motif normalized counts
-col_selection = colnames(all_raw_Motifs_normed)[3:15]
-col_selection = c('All_Mocks', 'CoCLIP_Input_Mock', 'CoCLIP_NLS_Mock', 'CoCLIP_NES_Mock', 'FracCLIP_Nuclear_Mock', 'FracCLIP_Cytoplasm_Mock')
-col_selection = c('All_Arsenites', 'CoCLIP_Input_Arsenite', 'CoCLIP_NLS_Arsenite', 'CoCLIP_NES_Arsenite', 'FracCLIP_Nuclear_Arsenite', 'FracCLIP_Cytoplasm_Arsenite') # Arsenite Only
-
-pheatmap(all_raw_Motifs_normed[, col_selection], cluster_rows=F, cluster_cols=T, color = (colorRampPalette(c("lemonchiffon1", "green4"))(100)))
-################################################################################
