@@ -1,4 +1,4 @@
-Last Update: 2023-10-12
+Last Update: 2023-10-25
 
 ## CLIPittyCLIP_BITs
 
@@ -23,3 +23,8 @@ Last Update: 2023-10-12
 
 #### demultiplex_FASTQ_Calls.sh
   - Command line calls for CTK and fastX for demultiplexing initial fastq files.
+
+#### fastx_barcode_splitter_custom.pl
+  - Modified version of fastx_barcode_splitter.pl for demultiplexing.
+  - This script was used to generate GEO submitted demultiplexed fastq.gz files.
+
