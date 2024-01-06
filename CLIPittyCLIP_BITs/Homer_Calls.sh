@@ -1,7 +1,7 @@
 ## command lines for HOMER program used for CoCLIP analysis.
 ## Use this as a reference for other HOMER usage.
 ## Written by Soon Yi
-## Last Update: 2023-10-12
+## Last Update: 2024-01-06
 
 ## Use findMotifsGenome.pl for de novo motif finding: 
 for peakFILE in *.txt; do

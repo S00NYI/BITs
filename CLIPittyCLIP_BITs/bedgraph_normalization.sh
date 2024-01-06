@@ -1,3 +1,5 @@
+## Last Update: 2024-01-06
+
 ## shell script to generate normalized and combined bedgraph for sample types.
 ## need separate tsv file for mapped depth information.
 ## tsv file contains normalization factor, which is 1e6/mapped_depth. The value will be used as scaling factor for genomecov.
