@@ -1,11 +1,11 @@
-Last Update: 2023-10-25
+Last Update: 2024-01-06
 
 ## CLIPittyCLIP_BITs
 
 #### CLIPittyClip_Calls.sh
   - Command lines for CLIPittyClip calls.
     
-#### check_barcode_mismatches.py:
+#### AllowedBarcodeMismatches.py:
   - Python script to check how many mismatches are allowed for barcode demultiplexing.
 
 #### peak_grooming.py:
