@@ -1,7 +1,7 @@
 ## CoCLIP Analysis:
 ## Metagene Analysis
 ## Written by Soon Yi
-## Last edit: 2023-09-18
+## Last edit: 2024-02-04
 
 library(dplyr)
 library(tidyr)
@@ -40,7 +40,7 @@ metaDensity = function(feature_df, peaks_df, feature_center, window_width = 20, 
     feature_center_antisense = 'start'
   }
   
-  ## Make bins for density calcualtion:  
+  ## Make bins for density calculation:  
   bins = list()
   bin_counts = floor(window_definition / window_width)
   for (i in -(bin_counts):(bin_counts-1)) {
@@ -114,10 +114,37 @@ metaDensity = function(feature_df, peaks_df, feature_center, window_width = 20, 
   
   counts$both = counts$sense + counts$antisense
   
-  counts$density = counts$both / nrow(peaks_df)
+  # counts$density = counts$both / nrow(peaks_df)
+  counts$density = counts$both
+  
   counts$midpoint = unlist(lapply(bins, function(bin) mean(bin)))
   
   counts = counts[, c('midpoint', 'sense', 'antisense', 'both', 'density')]
+  
+  return(counts)
+}
+
+# Function to count how many peaks were in search space:
+countPeaks = function(feature_df, peaks_df, feature_center, window_definition = 500) {
+  
+  if (feature_center == 'start') {
+    feature_GR = GRanges(seqnames = feature_df$seqid, 
+                         ranges = IRanges(start = feature_df$start - window_definition, 
+                                          end = feature_df$start + window_definition), 
+                         strand = feature_df$strand)
+  } else if (feature_center == 'end') {
+    feature_GR = GRanges(seqnames = feature_df$seqid, 
+                         ranges = IRanges(start = feature_df$end - window_definition, 
+                                          end = feature_df$end + window_definition), 
+                         strand = feature_df$strand)
+  }
+  
+  peaksGR = GRanges(seqnames = peaks_df$chrom, 
+                    ranges = IRanges(start = peaks_df$start, 
+                                     end = peaks_df$end), 
+                    strand = peaks_df$strand)
+  
+  counts = sum(countOverlaps(feature_GR, peaksGR))
   
   return(counts)
 }
@@ -146,7 +173,7 @@ plot_Density = function(density_data, columns_list, xaxis_lims = NULL, yaxis_lim
   
   # Add smoothed lines
   if (!is.null(smoothing)) {
-    plot = plot + geom_smooth(span = smoothing, se = FALSE)
+    plot = plot + geom_smooth(span = smoothing, se = F, level = 0.9)
   } else {
     plot = plot + geom_line(linewidth = 1)
   }
@@ -215,6 +242,18 @@ gtf_raw$seqid = ifelse(substr(gtf_raw$seqid, 1, 3) != "chr", paste0("chr", gtf_r
 gtf_raw = gtf_raw[gtf_raw$type != "gene", ]
 
 gtf = subset(gtf_raw, transcript_biotype == "protein_coding")
+
+## Filter to longest transcript with high confidence:
+gtf_transcripts = subset(gtf, type == 'transcript')
+gtf_transcripts = subset(gtf_transcripts, transcript_source == 'ensembl_havana')
+gtf_transcripts = subset(gtf_transcripts, tag == 'MANE_Select')
+gtf_transcripts$length = gtf_transcripts$end - gtf_transcripts$start
+gtf_transcripts = gtf_transcripts %>% group_by(gene_id) %>% filter(length == max(length))
+
+nrow(gtf_transcripts) == length(unique(gtf_transcripts$gene_id))
+
+gtf = gtf[gtf$transcript_id %in% unique(gtf_transcripts$transcript_id), ]
+
 ####################################################################################################################
 
 ## Define RNA Features:
@@ -284,19 +323,22 @@ colnames(INTRONs) = c('transcript_id', 'start', 'end', 'seqid', 'strand', 'intro
 peakFile = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/Combined_peakCoverage_groomed_annotated.txt'
 peaks_org = read.delim(peakFile, header=TRUE, sep="\t")
 
-Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
-Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
-Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
-Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
+# Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
+# Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
+# Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
+# Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
 NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
 NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
 G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
+
 NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
 NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
 G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
+
 NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
 NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
 G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
+
 NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
 NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
@@ -310,13 +352,15 @@ peaks = peaks_org
 ####################################################################################################################
 
 ## Filter Criteria:
+## BC >= half of samples
+## Tag Count >= median
 ####################################################################################################################
-BC_Threshold_F = 2
+# BC_Threshold_F = 3
 BC_Threshold_I = 4
-BC_Threshold_E = 1
-BC_Threshold_E_SG = 2
+BC_Threshold_E = 2
+BC_Threshold_E_SG = 3
 
-rowSum_Multiplier_F = 4
+# rowSum_Multiplier_F = 4
 rowSum_Multiplier_I = 1
 rowSum_Multiplier_E = 1
 ####################################################################################################################
@@ -325,76 +369,78 @@ rowSum_Multiplier_E = 1
 ####################################################################################################################
 ## Filter for Input Mock
 I_M_peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= BC_Threshold_I)
-I_M_peaks = I_M_peaks %>% filter(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) >= median(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) * rowSum_Multiplier_I))
-I_M_peaks = I_M_peaks %>% mutate(selectRowSum = rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
+# I_M_peaks = I_M_peaks %>% filter(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) >= median(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) * rowSum_Multiplier_I))
+# I_M_peaks = I_M_peaks %>% mutate(selectRowSum = rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
 
 ## Filter for Input Stress
 I_S_peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= BC_Threshold_I)
-I_S_peaks = I_S_peaks %>% filter(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) >= median(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) * rowSum_Multiplier_I))
-I_S_peaks = I_S_peaks %>% mutate(selectRowSum = rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
+# I_S_peaks = I_S_peaks %>% filter(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) >= median(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) * rowSum_Multiplier_I))
+# I_S_peaks = I_S_peaks %>% mutate(selectRowSum = rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
 
 ## Filter for NLS Mock
 NLS_M_peaks = peaks_org %>% filter(NLS_E_M_BC >= BC_Threshold_E)
-NLS_M_peaks = NLS_M_peaks %>% filter(rowSums(NLS_M_peaks[, c(NLS_E_M)]) >= median(rowSums(NLS_M_peaks[, c(NLS_E_M)])) * rowSum_Multiplier_E)
-NLS_M_peaks = NLS_M_peaks %>% mutate(selectRowSum = rowSums(NLS_M_peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
+# NLS_M_peaks = NLS_M_peaks %>% filter(rowSums(NLS_M_peaks[, c(NLS_E_M)]) >= median(rowSums(NLS_M_peaks[, c(NLS_E_M)])) * rowSum_Multiplier_E)
+# NLS_M_peaks = NLS_M_peaks %>% mutate(selectRowSum = rowSums(NLS_M_peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for NLS Stress
 NLS_S_peaks = peaks_org %>% filter(NLS_E_S_BC >= BC_Threshold_E)
-NLS_S_peaks = NLS_S_peaks %>% filter(rowSums(NLS_S_peaks[, c(NLS_E_S)]) >= median(rowSums(NLS_S_peaks[, c(NLS_E_S)])) * rowSum_Multiplier_E)
-NLS_S_peaks = NLS_S_peaks %>% mutate(selectRowSum = rowSums(NLS_S_peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
+# NLS_S_peaks = NLS_S_peaks %>% filter(rowSums(NLS_S_peaks[, c(NLS_E_S)]) >= median(rowSums(NLS_S_peaks[, c(NLS_E_S)])) * rowSum_Multiplier_E)
+# NLS_S_peaks = NLS_S_peaks %>% mutate(selectRowSum = rowSums(NLS_S_peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
 
 ## Filter for NES Mock
 NES_M_peaks = peaks_org %>% filter(NES_E_M_BC >= BC_Threshold_E)
-NES_M_peaks = NES_M_peaks %>% filter(rowSums(NES_M_peaks[, c(NES_E_M)]) >= median(rowSums(NES_M_peaks[, c(NES_E_M)])) * rowSum_Multiplier_E)
-NES_M_peaks = NES_M_peaks %>% mutate(selectRowSum = rowSums(NES_M_peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
+# NES_M_peaks = NES_M_peaks %>% filter(rowSums(NES_M_peaks[, c(NES_E_M)]) >= median(rowSums(NES_M_peaks[, c(NES_E_M)])) * rowSum_Multiplier_E)
+# NES_M_peaks = NES_M_peaks %>% mutate(selectRowSum = rowSums(NES_M_peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for NES Stress
 NES_S_peaks = peaks_org %>% filter(NES_E_S_BC >= BC_Threshold_E)
-NES_S_peaks = NES_S_peaks %>% filter(rowSums(NES_S_peaks[, c(NES_E_S)]) >= median(rowSums(NES_S_peaks[, c(NES_E_S)])) * rowSum_Multiplier_E)
-NES_S_peaks = NES_S_peaks %>% mutate(selectRowSum = rowSums(NES_S_peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
+# NES_S_peaks = NES_S_peaks %>% filter(rowSums(NES_S_peaks[, c(NES_E_S)]) >= median(rowSums(NES_S_peaks[, c(NES_E_S)])) * rowSum_Multiplier_E)
+# NES_S_peaks = NES_S_peaks %>% mutate(selectRowSum = rowSums(NES_S_peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
 
 ## Filter for G3BP Mock
 G3BP_M_peaks = peaks_org %>% filter(G3BP_E_M_BC >= BC_Threshold_E_SG)
-G3BP_M_peaks = G3BP_M_peaks %>% filter(rowSums(G3BP_M_peaks[, c(G3BP_E_M)]) >= median(rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) * rowSum_Multiplier_E)
-G3BP_M_peaks = G3BP_M_peaks %>% mutate(selectRowSum = rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
+# G3BP_M_peaks = G3BP_M_peaks %>% filter(rowSums(G3BP_M_peaks[, c(G3BP_E_M)]) >= median(rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) * rowSum_Multiplier_E)
+# G3BP_M_peaks = G3BP_M_peaks %>% mutate(selectRowSum = rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for G3BP Stress
 G3BP_S_peaks = peaks_org %>% filter(G3BP_E_S_BC >= BC_Threshold_E_SG)
-G3BP_S_peaks = G3BP_S_peaks %>% filter(rowSums(G3BP_S_peaks[, c(G3BP_E_S)]) >= median(rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) * rowSum_Multiplier_E)
-G3BP_S_peaks = G3BP_S_peaks %>% mutate(selectRowSum = rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
+# G3BP_S_peaks = G3BP_S_peaks %>% filter(rowSums(G3BP_S_peaks[, c(G3BP_E_S)]) >= median(rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) * rowSum_Multiplier_E)
+# G3BP_S_peaks = G3BP_S_peaks %>% mutate(selectRowSum = rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
 
-## Filter for Nuclear Fraction Mock
-Nuc_M_peaks = peaks_org %>% filter(Nuc_F_M_BC >= BC_Threshold_F)
-Nuc_M_peaks = Nuc_M_peaks %>% filter(rowSums(Nuc_M_peaks[, c(Nuc_F_M)]) >= median(rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) * rowSum_Multiplier_F)
-Nuc_M_peaks = Nuc_M_peaks %>% mutate(selectRowSum = rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
-
-## Filter for Nuclear Fraction Stress
-Nuc_S_peaks = peaks_org %>% filter(Nuc_F_S_BC >= BC_Threshold_F)
-Nuc_S_peaks = Nuc_S_peaks %>% filter(rowSums(Nuc_S_peaks[, c(Nuc_F_S)]) >= median(rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) * rowSum_Multiplier_F)
-Nuc_S_peaks = Nuc_S_peaks %>% mutate(selectRowSum = rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
-
-## Filter for Cytoplasm Fraction Mock
-Cyto_M_peaks = peaks_org %>% filter(Cyto_F_M_BC >= BC_Threshold_F)
-Cyto_M_peaks = Cyto_M_peaks %>% filter(rowSums(Cyto_M_peaks[, c(Cyto_F_M)]) >= median(rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) * rowSum_Multiplier_F)
-Cyto_M_peaks = Cyto_M_peaks %>% mutate(selectRowSum = rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
-
-## Filter for Cytoplasm Fraction Stress
-Cyto_S_peaks = peaks_org %>% filter(Cyto_F_S_BC >= BC_Threshold_F)
-Cyto_S_peaks = Cyto_S_peaks %>% filter(rowSums(Cyto_S_peaks[, c(Cyto_F_S)]) >= median(rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) * rowSum_Multiplier_F)
-Cyto_S_peaks = Cyto_S_peaks %>% mutate(selectRowSum = rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
+# ## Filter for Nuclear Fraction Mock
+# Nuc_M_peaks = peaks_org %>% filter(Nuc_F_M_BC >= BC_Threshold_F)
+# Nuc_M_peaks = Nuc_M_peaks %>% filter(rowSums(Nuc_M_peaks[, c(Nuc_F_M)]) >= median(rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) * rowSum_Multiplier_F)
+# Nuc_M_peaks = Nuc_M_peaks %>% mutate(selectRowSum = rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
+# 
+# ## Filter for Nuclear Fraction Stress
+# Nuc_S_peaks = peaks_org %>% filter(Nuc_F_S_BC >= BC_Threshold_F)
+# Nuc_S_peaks = Nuc_S_peaks %>% filter(rowSums(Nuc_S_peaks[, c(Nuc_F_S)]) >= median(rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) * rowSum_Multiplier_F)
+# Nuc_S_peaks = Nuc_S_peaks %>% mutate(selectRowSum = rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
+# 
+# ## Filter for Cytoplasm Fraction Mock
+# Cyto_M_peaks = peaks_org %>% filter(Cyto_F_M_BC >= BC_Threshold_F)
+# Cyto_M_peaks = Cyto_M_peaks %>% filter(rowSums(Cyto_M_peaks[, c(Cyto_F_M)]) >= median(rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) * rowSum_Multiplier_F)
+# Cyto_M_peaks = Cyto_M_peaks %>% mutate(selectRowSum = rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
+# 
+# ## Filter for Cytoplasm Fraction Stress
+# Cyto_S_peaks = peaks_org %>% filter(Cyto_F_S_BC >= BC_Threshold_F)
+# Cyto_S_peaks = Cyto_S_peaks %>% filter(rowSums(Cyto_S_peaks[, c(Cyto_F_S)]) >= median(rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) * rowSum_Multiplier_F)
+# Cyto_S_peaks = Cyto_S_peaks %>% mutate(selectRowSum = rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
 ####################################################################################################################
+
+search_space = 1000
 
 ## Transcription Start Site (TSS):
 #########################################################################################################################
-I_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = I_M_peaks, feature_center = 'start')
-NLS_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = NLS_M_peaks, feature_center = 'start')
-NES_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = NES_M_peaks, feature_center = 'start')
-G3BP_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = G3BP_M_peaks, feature_center = 'start')
+I_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = I_M_peaks, feature_center = 'start', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = NLS_M_peaks, feature_center = 'start', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = NES_M_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = TSS, peaks_df = G3BP_M_peaks, feature_center = 'start', window_definition = search_space)
 
-I_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = I_S_peaks, feature_center = 'start')
-NLS_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = NLS_S_peaks, feature_center = 'start')
-NES_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = NES_S_peaks, feature_center = 'start')
-G3BP_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = G3BP_S_peaks, feature_center = 'start')
+I_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = I_S_peaks, feature_center = 'start', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = NLS_S_peaks, feature_center = 'start', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = NES_S_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = TSS, peaks_df = G3BP_S_peaks, feature_center = 'start', window_definition = search_space)
 
 TSS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -409,15 +455,15 @@ TSS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 
 ## Translation Start (Coding Start) Site (CDS):
 #########################################################################################################################
-I_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = I_M_peaks, feature_center = 'start')
-NLS_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = NLS_M_peaks, feature_center = 'start')
-NES_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = NES_M_peaks, feature_center = 'start')
-G3BP_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = G3BP_M_peaks, feature_center = 'start')
+I_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = I_M_peaks, feature_center = 'start', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = NLS_M_peaks, feature_center = 'start', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = NES_M_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = CDS, peaks_df = G3BP_M_peaks, feature_center = 'start', window_definition = search_space)
 
-I_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = I_S_peaks, feature_center = 'start')
-NLS_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = NLS_S_peaks, feature_center = 'start')
-NES_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = NES_S_peaks, feature_center = 'start')
-G3BP_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = G3BP_S_peaks, feature_center = 'start')
+I_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = I_S_peaks, feature_center = 'start', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = NLS_S_peaks, feature_center = 'start', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = NES_S_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = CDS, peaks_df = G3BP_S_peaks, feature_center = 'start', window_definition = search_space)
 
 CDS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -432,15 +478,17 @@ CDS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 
 ## 5' Splice Site (SS5):
 #########################################################################################################################
-I_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = I_M_peaks, feature_center = 'start')
-NLS_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NLS_M_peaks, feature_center = 'start')
-NES_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NES_M_peaks, feature_center = 'start')
-G3BP_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = G3BP_M_peaks, feature_center = 'start')
+# INTRONs_noLast = INTRONs %>% group_by(transcript_id) %>% filter(intron_number != max(intron_number)) %>% ungroup()
 
-I_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = I_S_peaks, feature_center = 'start')
-NLS_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NLS_S_peaks, feature_center = 'start')
-NES_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NES_S_peaks, feature_center = 'start')
-G3BP_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = G3BP_S_peaks, feature_center = 'start')
+I_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = I_M_peaks, feature_center = 'start', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NLS_M_peaks, feature_center = 'start', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NES_M_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = G3BP_M_peaks, feature_center = 'start', window_definition = search_space)
+
+I_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = I_S_peaks, feature_center = 'start', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NLS_S_peaks, feature_center = 'start', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NES_S_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = G3BP_S_peaks, feature_center = 'start', window_definition = search_space)
 
 SS5_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -457,15 +505,15 @@ SS5_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 #########################################################################################################################
 INTRONs_noLast = INTRONs %>% group_by(transcript_id) %>% filter(intron_number != max(intron_number)) %>% ungroup()
 
-I_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = I_M_peaks, feature_center = 'end')
-NLS_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NLS_M_peaks, feature_center = 'end')
-NES_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NES_M_peaks, feature_center = 'end')
-G3BP_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = G3BP_M_peaks, feature_center = 'end')
+I_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = I_M_peaks, feature_center = 'end', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NLS_M_peaks, feature_center = 'end', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NES_M_peaks, feature_center = 'end', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = G3BP_M_peaks, feature_center = 'end', window_definition = search_space)
 
-I_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = I_S_peaks, feature_center = 'end')
-NLS_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NLS_S_peaks, feature_center = 'end')
-NES_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NES_S_peaks, feature_center = 'end')
-G3BP_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = G3BP_S_peaks, feature_center = 'end')
+I_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = I_S_peaks, feature_center = 'end', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NLS_S_peaks, feature_center = 'end', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = NES_S_peaks, feature_center = 'end', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = INTRONs_noLast, peaks_df = G3BP_S_peaks, feature_center = 'end', window_definition = search_space)
 
 SS3_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -480,15 +528,15 @@ SS3_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 
 ## Translation Stop Site (TLS):
 #########################################################################################################################
-I_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_M_peaks, feature_center = 'start')
-NLS_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_M_peaks, feature_center = 'start')
-NES_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_M_peaks, feature_center = 'start')
-G3BP_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_M_peaks, feature_center = 'start')
+I_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_M_peaks, feature_center = 'start', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_M_peaks, feature_center = 'start', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_M_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_M_peaks, feature_center = 'start', window_definition = search_space)
 
-I_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_S_peaks, feature_center = 'start')
-NLS_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_S_peaks, feature_center = 'start')
-NES_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_S_peaks, feature_center = 'start')
-G3BP_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_S_peaks, feature_center = 'start')
+I_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_S_peaks, feature_center = 'start', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_S_peaks, feature_center = 'start', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_S_peaks, feature_center = 'start', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_S_peaks, feature_center = 'start', window_definition = search_space)
 
 TLS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -499,19 +547,20 @@ TLS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            NLS_S = NLS_S_metaDensity$density,
                            NES_S = NES_S_metaDensity$density,
                            G3BP_S = G3BP_S_metaDensity$density)
+
 #########################################################################################################################
 
 ## Transcription Termination Site (TTS):
 #########################################################################################################################
-I_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_M_peaks, feature_center = 'end')
-NLS_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_M_peaks, feature_center = 'end')
-NES_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_M_peaks, feature_center = 'end')
-G3BP_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_M_peaks, feature_center = 'end')
+I_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_M_peaks, feature_center = 'end', window_definition = search_space)
+NLS_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_M_peaks, feature_center = 'end', window_definition = search_space)
+NES_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_M_peaks, feature_center = 'end', window_definition = search_space)
+G3BP_M_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_M_peaks, feature_center = 'end', window_definition = search_space)
 
-I_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_S_peaks, feature_center = 'end')
-NLS_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_S_peaks, feature_center = 'end')
-NES_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_S_peaks, feature_center = 'end')
-G3BP_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_S_peaks, feature_center = 'end')
+I_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = I_S_peaks, feature_center = 'end', window_definition = search_space)
+NLS_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NLS_S_peaks, feature_center = 'end', window_definition = search_space)
+NES_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = NES_S_peaks, feature_center = 'end', window_definition = search_space)
+G3BP_S_metaDensity = metaDensity(feature_df = UTR3, peaks_df = G3BP_S_peaks, feature_center = 'end', window_definition = search_space)
 
 TTS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            I_M = I_M_metaDensity$density,
@@ -522,6 +571,374 @@ TTS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
                            NLS_S = NLS_S_metaDensity$density,
                            NES_S = NES_S_metaDensity$density,
                            G3BP_S = G3BP_S_metaDensity$density)
+
+#########################################################################################################################
+
+## Count how many peaks were there:
+#########################################################################################################################
+peakCounts = data.frame(locus = c('TSS', 'CDS', 'SS5', 'SS3', 'TLS', 'TTS'),
+                        I_M = c(0, 0, 0, 0, 0, 0),
+                        NLS_M = c(0, 0, 0, 0, 0, 0),
+                        NES_M = c(0, 0, 0, 0, 0, 0),
+                        G3BP_M = c(0, 0, 0, 0, 0, 0),
+                        I_S = c(0, 0, 0, 0, 0, 0),
+                        NLS_S = c(0, 0, 0, 0, 0, 0),
+                        NES_S = c(0, 0, 0, 0, 0, 0),
+                        G3BP_S = c(0, 0, 0, 0, 0, 0))
+
+samples = c('I_M', 'NLS_M', 'NES_M', 'G3BP_M', 'I_S', 'NLS_S', 'NES_S', 'G3BP_S')
+locus = c('TSS', 'CDS', 'SS5', 'SS3', 'TLS', 'TTS')
+
+for (sample in samples) {
+  for (loci in locus) {
+    peakData = get(paste0(sample, '_peaks'))
+    if (loci == 'SS5') {
+      lociData = INTRONs
+      peakCounts[which(peakCounts$locus == loci), sample] = countPeaks(lociData, peakData, 'start', 500)
+    } else if (loci == 'SS3') {
+      lociData = INTRONs_noLast
+      peakCounts[which(peakCounts$locus == loci), sample] = countPeaks(lociData, peakData, 'end', 500)
+    } else if (loci == 'TLS') {
+      lociData = UTR3
+      peakCounts[which(peakCounts$locus == loci), sample] = countPeaks(lociData, peakData, 'start', 500)
+    } else if (loci == 'TTS') {
+      lociData = UTR3
+      peakCounts[which(peakCounts$locus == loci), sample] = countPeaks(lociData, peakData, 'end', 500)
+    } else {
+      lociData = get(loci)
+      peakCounts[which(peakCounts$locus == loci), sample] = countPeaks(lociData, peakData, 'start', 500)
+    }
+    
+  }
+}
+
+# Reshape data into long format for '_M' and '_S'
+data_long_M = pivot_longer(peakCounts, cols = contains('_M'), names_to = "Type", values_to = "Value")
+data_long_M$Type = factor(data_long_M$Type, levels = c("I_M", "NLS_M", "NES_M", "G3BP_M"))
+
+data_long_S = pivot_longer(peakCounts, cols = contains('_S'), names_to = "Type", values_to = "Value")
+data_long_S$Type = factor(data_long_S$Type, levels = c("I_S", "NLS_S", "NES_S", "G3BP_S"))
+
+for (i in 1:nrow(peakCounts)) {
+  # Subset data for '_M' and '_S' for each locus
+  subset_M = data_long_M %>% 
+    filter(locus == peakCounts$locus[i]) %>% 
+    mutate(Type = factor(Type, levels = c("I_M", "G3BP_M", "NES_M", "NLS_M"))) # Set factor levels here
+  
+  subset_S = data_long_S %>% 
+    filter(locus == peakCounts$locus[i]) %>% 
+    mutate(Type = factor(Type, levels = c("I_S", "G3BP_S", "NES_S", "NLS_S"))) # Set factor levels here
+  
+  # Plot pie charts
+  plot_pie <- function(data_subset, title) {
+    ggplot(data_subset, aes(x = "", y = Value, fill = Type)) +
+      geom_bar(width = 1, stat = "identity", color = "white") +
+      coord_polar("y", start = -45) +
+      labs(title = title, fill = "Type") +
+      theme_minimal() +
+      theme_bw()
+  }
+  
+  # Adjust plot_pie function as needed, especially the scale_fill_manual part for correct color mapping
+  print(plot_pie(subset_M, paste("Locus", peakCounts$locus[i], "- M")))
+  print(plot_pie(subset_S, paste("Locus", peakCounts$locus[i], "- S")))
+}
+
+#########################################################################################################################
+
+## Normalize
+#########################################################################################################################
+TSS_densities_norm = TSS_densities
+CDS_densities_norm = CDS_densities
+SS5_densities_norm = SS5_densities
+SS3_densities_norm = SS3_densities
+TLS_densities_norm = TLS_densities
+TTS_densities_norm = TTS_densities
+
+for (set in colnames(TSS_densities)[2:9]) {
+  densitySum = sum(TSS_densities_norm[, set]) +
+    sum(CDS_densities_norm[, set])+
+    sum(SS5_densities_norm[, set])+
+    sum(SS3_densities_norm[, set])+
+    sum(TLS_densities_norm[, set])+
+    sum(TTS_densities_norm[, set])
+  
+  TSS_densities_norm[, set] = TSS_densities_norm[, set] / densitySum
+  CDS_densities_norm[, set] = CDS_densities_norm[, set] / densitySum
+  SS5_densities_norm[, set] = SS5_densities_norm[, set] / densitySum
+  SS3_densities_norm[, set] = SS3_densities_norm[, set] / densitySum
+  TLS_densities_norm[, set] = TLS_densities_norm[, set] / densitySum
+  TTS_densities_norm[, set] = TTS_densities_norm[, set] / densitySum
+}
+
+#########################################################################################################################
+
+smoothing = 0.2
+y_lim = c(-0.0025, 0.025)
+x_lim = NULL
+
+## Mocks
+#########################################################################################################################
+plot_Density(density_data = TSS_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = CDS_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = SS5_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "5' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = SS3_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "3' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = TLS_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Stop Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = TTS_densities_norm,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Termination Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+
+#########################################################################################################################
+
+## Arsenites
+#########################################################################################################################
+
+plot_Density(density_data = TSS_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = CDS_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = SS5_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "5' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = SS3_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "3' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = TLS_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Stop Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+ 
+plot_Density(density_data = TTS_densities_norm,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Termination Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+#########################################################################################################################
+
+## Mocks: Use y_lim = c(0, 0.05) and smoothing = 0.2 for figures
+#########################################################################################################################
+y_lim = NULL
+y_lim = c(0, 250)
+# x_lim = c(-250, 250)
+x_lim = NULL
+smoothing = NULL
+
+plot_Density(density_data = TSS_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = CDS_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = SS5_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "5' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = SS3_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "3' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = TLS_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Stop Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+
+plot_Density(density_data = TTS_densities,
+             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Termination Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Mocks')
+#########################################################################################################################
+
+## Arsenites
+#########################################################################################################################
+
+plot_Density(density_data = TSS_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = CDS_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Start Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = SS5_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "5' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = SS3_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "3' Splice Site",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = TLS_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Translation Stop Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
+
+plot_Density(density_data = TTS_densities,
+             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
+             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
+             densityType = 'feature_metagene',
+             featureName = "Transcription Termination Sites",
+             yaxis_lims = y_lim,
+             xaxis_lims = x_lim,
+             smoothing = smoothing,
+             sampleName = 'Arsenite')
 
 #########################################################################################################################
 
@@ -585,125 +1002,10 @@ plot_Density(density_data = TTS_densities,
              sampleName = 'Input Mocks and Stress')
 #########################################################################################################################
 
-## Mocks: Use y_lim = c(0, 0.05) and smoothing = 0.2 for figures
-#########################################################################################################################
-y_lim = c(0, 0.05)
-smoothing = 0.2
 
-plot_Density(density_data = TSS_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
 
-plot_Density(density_data = CDS_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
 
-plot_Density(density_data = SS5_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "5' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
 
-plot_Density(density_data = SS3_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "3' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
-
-plot_Density(density_data = TLS_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Stop Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
-
-plot_Density(density_data = TTS_densities,
-             columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Termination Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Mocks')
-#########################################################################################################################
-
-## Arsenites
-#########################################################################################################################
-y_lim = c(0, 0.05)
-smoothing = 0.2
-
-plot_Density(density_data = TSS_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-
-plot_Density(density_data = CDS_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-
-plot_Density(density_data = SS5_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "5' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-
-plot_Density(density_data = SS3_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "3' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-
-plot_Density(density_data = TLS_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Stop Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-
-plot_Density(density_data = TTS_densities,
-             columns_list = c('G3BP_S', 'NES_S', 'NLS_S', 'I_S'),
-             custom_colors = c('salmon', 'darkseagreen2', 'skyblue', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Termination Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Arsenite')
-#########################################################################################################################
 
 
 
