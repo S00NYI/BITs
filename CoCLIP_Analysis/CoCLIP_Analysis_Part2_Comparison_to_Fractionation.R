@@ -1,11 +1,13 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Comparative Analysis against Fractionation CLIP
 ## Written by Soon Yi
-## Last Edit: 2023-10-12
+## Last Edit: 2024-02-03
 
 library(stringr)
 library(readr)
 library(ggplot2)
+library(ggExtra)
+library(VennDiagram)
 library(tidyr)
 library(dplyr)
 library(data.table)
@@ -23,6 +25,12 @@ peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_ann
 peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
 peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
 peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
+
+## further consolidate ncRNA:
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_RI', 'intron', finalized_annotation))
 
 ## Column organization:
 inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
@@ -130,7 +138,13 @@ fillAnnotation = function(annotation_counts, annotation_list) {
 }
 
 ## Plot Scatter:
-plotScatter = function(peak_matrix, annotation_level, x_axis, y_axis, x_label = NULL, y_label = NULL, x_lim = NULL, y_lim = NULL, title = NULL, diag = FALSE) {
+plotScatter = function(peak_matrix, annotation_level, 
+                       x_axis, y_axis, 
+                       x_label = NULL, y_label = NULL, 
+                       x_lim = NULL, y_lim = NULL, 
+                       x_cnt_lim = NULL, y_cnt_lim = NULL, 
+                       title = NULL, diag = FALSE) {
+  
   plot = ggplot(peak_matrix, aes(x = ({{x_axis}}), y = ({{y_axis}}), color = {{annotation_level}})) +
     geom_point(pch = 16, size = 3, alpha = 0.5) +
     scale_fill_brewer(palette = "Set3") +
@@ -157,6 +171,49 @@ plotScatter = function(peak_matrix, annotation_level, x_axis, y_axis, x_label = 
   if (diag == TRUE) {
     plot = plot + geom_abline(linetype = 'dotted') 
   }
+  # Stacked density plot for x-axis
+  x_densities = ggplot(peak_matrix, aes(x = {{x_axis}}, fill = {{annotation_level}})) +
+    geom_density(aes(y = ..count..), alpha = 0.7) +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.position = 'none') +
+    xlim(x_lim)
+  
+  if (!is.null(x_cnt_lim)) {
+    x_densities = x_densities + ylim(x_cnt_lim)
+  } else {
+    x_densities = x_densities + ylim(c(0, NA))
+  }
+
+  # Stacked density plot for y-axis
+  y_densities = ggplot(peak_matrix, aes(x = {{y_axis}}, fill = {{annotation_level}})) +
+    geom_density(aes(y = ..count..), alpha = 0.7) +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.position = 'none') +
+    coord_flip() +
+    xlim(x_lim)
+  
+  if (!is.null(y_cnt_lim)) {
+    y_densities = y_densities + ylim(y_cnt_lim)
+  } else {
+    y_densities = y_densities + ylim(c(0, NA))
+  }
+
+  
+  empty_plot = ggplot() + theme_void()
+  
+  # Arrange the plots
+  plot = gridExtra::grid.arrange(
+    x_densities, empty_plot,
+    plot, y_densities,
+    ncol = 2,
+    nrow = 2,
+    widths = c(4, 1),
+    heights = c(1, 4)
+  )
   
   return(plot)
 }
@@ -199,8 +256,8 @@ CoCLIP_List = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 
 F_CoCLIP_List = c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES', 'F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES')
 
 All_Annotation_List = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", 'ncRNA', "TE", "Other", "DS10K")
-mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
-ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
+mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI')
+ncRNA_List = c('rRNA', 'lncRNA', 'tRNA', 'snRNA', 'snoRNA', 'TE', 'Other')
 ####################################################################################################################
 
 ## Start Building Enrichment Table:
@@ -275,27 +332,27 @@ Peak_NvC_M = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
 
 Peak_NvC_M$grouped_annotation = factor(Peak_NvC_M$grouped_annotation, levels = All_Annotation_List)
 
-plotScatter(Peak_NvC_M, grouped_annotation,
-             log2(E_NvC_M), log2(F_NvC_M),
-             x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim,
-             paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M), ' peaks)'))
+# plotScatter(Peak_NvC_M, grouped_annotation,
+#              log2(E_NvC_M), log2(F_NvC_M),
+#              x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+#              x_lim, y_lim,
+#              paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M), ' peaks)'))
 
 # Mock - mRNA specific: 
 Peak_NvC_M_mRNA = Peak_NvC_M %>% filter((finalized_annotation == "5'UTR" | 
                                              finalized_annotation == "3'UTR" | 
                                              finalized_annotation == "CDS" | 
-                                             finalized_annotation == "intron" | 
-                                             finalized_annotation == "CDS_RI" |
-                                             finalized_annotation == "DS10K"))
+                                             finalized_annotation == "intron"))
 
 Peak_NvC_M_mRNA$finalized_annotation = factor(Peak_NvC_M_mRNA$finalized_annotation, levels = mRNA_List)
 
 plotScatter(Peak_NvC_M_mRNA, finalized_annotation,
-             log2(E_NvC_M), log2(F_NvC_M),
-             'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim,
-             paste0('Mock HuR mRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M_mRNA), ' peaks)'))
+            log2(E_NvC_M), log2(F_NvC_M),
+            'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+            x_lim, y_lim,
+            x_cnt_lim = c(0, 3000),
+            y_cnt_lim = c(0, 3000),
+            paste0('Mock HuR mRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M_mRNA), ' peaks)'))
 
 # Mock - ncRNA specific: 
 Peak_NvC_M_ncRNA = Peak_NvC_M %>% filter((finalized_annotation != "5'UTR" & 
@@ -309,10 +366,12 @@ Peak_NvC_M_ncRNA = Peak_NvC_M %>% filter((finalized_annotation != "5'UTR" &
 Peak_NvC_M_ncRNA$finalized_annotation = factor(Peak_NvC_M_ncRNA$finalized_annotation, levels = ncRNA_List)
 
 plotScatter(Peak_NvC_M_ncRNA, finalized_annotation,
-             log2(E_NvC_M), log2(F_NvC_M),
-             'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim,
-             paste0('Mock HuR ncRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M_ncRNA), ' peaks)'))
+            log2(E_NvC_M), log2(F_NvC_M),
+            'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+            x_lim, y_lim,
+            x_cnt_lim = c(0, 1000),
+            y_cnt_lim = c(0, 1000),
+            paste0('Mock HuR ncRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M_ncRNA), ' peaks)'))
 
 # Arsenite: 
 Peak_NvC_S = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
@@ -323,27 +382,28 @@ Peak_NvC_S = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
 
 Peak_NvC_S$grouped_annotation = factor(Peak_NvC_S$grouped_annotation, levels = All_Annotation_List)
 
-plotScatter(Peak_NvC_S, grouped_annotation,
-             log2(E_NvC_S), log2(F_NvC_S),
-             'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim, 
-             paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S), ' peaks)'))
+# plotScatter(Peak_NvC_S, grouped_annotation,
+#              log2(E_NvC_S), log2(F_NvC_S),
+#              'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+#              x_lim, y_lim, 
+#              paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S), ' peaks)'))
 
 # Arsenite - mRNA specific: 
 Peak_NvC_S_mRNA = Peak_NvC_S %>% filter((finalized_annotation == "5'UTR" | 
                                            finalized_annotation == "3'UTR" | 
                                            finalized_annotation == "CDS" | 
                                            finalized_annotation == "intron" | 
-                                           finalized_annotation == "CDS_RI" |
-                                           finalized_annotation == "DS10K"))
+                                           finalized_annotation == "CDS_RI"))
 
 Peak_NvC_S_mRNA$finalized_annotation = factor(Peak_NvC_S_mRNA$finalized_annotation, levels = mRNA_List)
 
 plotScatter(Peak_NvC_S_mRNA, finalized_annotation,
-             log2(E_NvC_S), log2(F_NvC_S),
-             'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim, 
-             paste0('Arsenite HuR mRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S_mRNA), ' peaks)'))
+            log2(E_NvC_S), log2(F_NvC_S),
+            'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+            x_lim, y_lim,
+            x_cnt_lim = c(0, 3000),
+            y_cnt_lim = c(0, 3000),
+            paste0('Arsenite HuR mRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S_mRNA), ' peaks)'))
 
 # Arsenite - ncRNA specific: 
 Peak_NvC_S_ncRNA = Peak_NvC_S %>% filter((finalized_annotation != "5'UTR" & 
@@ -357,9 +417,84 @@ Peak_NvC_S_ncRNA = Peak_NvC_S %>% filter((finalized_annotation != "5'UTR" &
 Peak_NvC_S_ncRNA$finalized_annotation = factor(Peak_NvC_S_ncRNA$finalized_annotation, levels = ncRNA_List)
 
 plotScatter(Peak_NvC_S_ncRNA, finalized_annotation,
-             log2(E_NvC_S), log2(F_NvC_S),
-             'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-             x_lim, y_lim, 
-             paste0('Arsenite HuR ncRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S_ncRNA), ' peaks)'))
+            log2(E_NvC_S), log2(F_NvC_S),
+            'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
+            x_lim, y_lim,
+            x_cnt_lim = c(0, 1000),
+            y_cnt_lim = c(0, 1000),
+            paste0('Arsenite HuR ncRNA Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S_ncRNA), ' peaks)'))
 ####################################################################################################################
 
+## New Venn Diagram
+####################################################################################################################
+
+Peak_F_Nuc_M_filtered = Peak_F_Nuc_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
+Peak_Co_NLS_M_filtered = Peak_Co_NLS_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
+
+Mock_N = list(Mock_Nuc_F = Peak_F_Nuc_M_filtered$peak_names, Mock_NLS_C = Peak_Co_NLS_M_filtered$peak_names)
+Mock_N_Venn = venn.diagram(x = Mock_N, filename = NULL, category.names = c("Mock_Nuc_F", "Mock_NLS_C"))
+grid.newpage(); grid.draw(Mock_N_Venn)
+
+
+Peak_F_Cyt_M_filtered = Peak_F_Cyt_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
+Peak_Co_NES_M_filtered = Peak_Co_NES_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
+
+Mock_C = list(Mock_Cyt_F = Peak_F_Cyt_M_filtered$peak_names, Mock_NES_C = Peak_Co_NES_M_filtered$peak_names)
+Mock_C_Venn = venn.diagram(x = Mock_C, filename = NULL, category.names = c("Mock_Cyt_F", "Mock_NES_C"))
+grid.newpage(); grid.draw(Mock_C_Venn)
+
+
+Peak_F_Nuc_S_filtered = Peak_F_Nuc_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
+Peak_Co_NLS_S_filtered = Peak_Co_NLS_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
+
+Stress_N = list(Stress_Nuc_F =  Peak_F_Nuc_S_filtered$peak_names, Stress_NLS_C = Peak_Co_NLS_S_filtered$peak_names)
+Stress_N_Venn = venn.diagram(x = Stress_N, filename = NULL, category.names = c("Stress_Nuc_F", "Stress_NLS_C"))
+grid.newpage(); grid.draw(Stress_N_Venn)
+
+Peak_F_Cyt_S_filtered = Peak_F_Cyt_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
+Peak_Co_NES_S_filtered = Peak_Co_NES_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
+
+Stress_C = list(Stress_Cyt_F = Peak_F_Cyt_S_filtered$peak_names, Stress_NES_C = Peak_Co_NES_S_filtered$peak_names)
+Stress_C_Venn = venn.diagram(x = Stress_C, filename = NULL, category.names = c("Stress_Cyt_F", "Stress_NES_C"))
+grid.newpage(); grid.draw(Stress_C_Venn)
+####################################################################################################################
+
+
+
+
+
+
+## Venn Diagram
+####################################################################################################################
+# Mock_Nuclear_Overlap = sum(Peak_F_Nuc_M_mRNA$peak_names %in% Peak_Co_NLS_M_mRNA$peak_names)
+# Mock_Overlap_Proportion_Nuc_F = Mock_Nuclear_Overlap/nrow(Peak_F_Nuc_M_mRNA)
+# Mock_Overlap_Proportion_NLS_C = Mock_Nuclear_Overlap/nrow(Peak_Co_NLS_M_mRNA)
+# 
+# Mock_Cytoplasm_Overlap = sum(Peak_F_Cyt_M_mRNA$peak_names %in% Peak_Co_NES_M_mRNA$peak_names)
+# Mock_Overlap_Proportion_Cyt_F = Mock_Cytoplasm_Overlap/nrow(Peak_F_Cyt_M_mRNA)
+# Mock_Overlap_Proportion_NES_C = Mock_Cytoplasm_Overlap/nrow(Peak_Co_NES_M_mRNA)
+# 
+# Stress_Nuclear_Overlap = sum(Peak_F_Nuc_S_mRNA$peak_names %in% Peak_Co_NLS_S_mRNA$peak_names)
+# Stress_Overlap_Proportion_Nuc_F = Stress_Nuclear_Overlap/nrow(Peak_F_Nuc_S_mRNA)
+# Stress_Overlap_Proportion_NLS_C = Stress_Nuclear_Overlap/nrow(Peak_Co_NLS_S_mRNA)
+# 
+# Stress_Cytoplasm_Overlap = sum(Peak_F_Cyt_S_mRNA$peak_names %in% Peak_Co_NES_S_mRNA$peak_names)
+# Stress_Overlap_Proportion_Cyt_F = Stress_Cytoplasm_Overlap/nrow(Peak_F_Cyt_S_mRNA)
+# Stress_Overlap_Proportion_NES_C = Stress_Cytoplasm_Overlap/nrow(Peak_Co_NES_S_mRNA)
+# 
+# Mock = list(Nuc_F = Peak_F_Nuc_M_mRNA$peak_names, NLS_C = Peak_Co_NLS_M_mRNA$peak_names)
+# Mock_Venn = venn.diagram(x = Mock, filename = NULL, category.names = c("Nuc_F", "NLS_C"))
+# grid.newpage(); grid.draw(Mock_Venn)
+# 
+# Mock = list(Nuc_F = Peak_F_Cyt_M_mRNA$peak_names, NLS_C = Peak_Co_NES_M_mRNA$peak_names)
+# Mock_Venn = venn.diagram(x = Mock, filename = NULL, category.names = c("Cyto_F", "NES_C"))
+# grid.newpage(); grid.draw(Mock_Venn)
+# 
+# Stress = list(Nuc_F = Peak_F_Nuc_S_mRNA$peak_names, NLS_C = Peak_Co_NLS_S_mRNA$peak_names)
+# Stress_Venn = venn.diagram(x = Stress, filename = NULL, category.names = c("Nuc_F", "NLS_C"))
+# grid.newpage(); grid.draw(Stress_Venn)
+# 
+# Stress = list(Nuc_F = Peak_F_Cyt_S_mRNA$peak_names, NLS_C = Peak_Co_NES_S_mRNA$peak_names)
+# Stress_Venn = venn.diagram(x = Stress, filename = NULL, category.names = c("Cyto_F", "NES_C"))
+# grid.newpage(); grid.draw(Stress_Venn)
+####################################################################################################################
