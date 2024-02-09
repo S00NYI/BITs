@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Stackd Bar Graphs
 ## Written by Soon Yi
-## Last Edit: 2023-10-12
+## Last Edit: 2024-02-01
 
 library(stringr)
 library(readr)
@@ -23,6 +23,11 @@ peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_ann
 peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
 peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
 peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
+
+## further consolidate ncRNA:
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
 
 ## Column organization:
 inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
@@ -135,7 +140,7 @@ plotStackedBar = function(annotation_counts, sample_list, sample_label, title, y
           legend.text = element_text(size=14))
   
   if(!is.null(y_lim)) {
-    plot = plot + ylim(y_lim)
+    plot = plot + ylim(y_lim) 
   }
   
   if (!is.null(y_tick)) {
@@ -183,8 +188,8 @@ CoCLIP_List = c('Co_M_Input', 'Co_S_Input', 'Co_M_NLS', 'Co_S_NLS', 'Co_M_NES', 
 F_CoCLIP_List = c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES', 'F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES')
 
 All_Annotation_List = c("5'UTR", "CDS", "3'UTR", "intron", "snoRNA", 'ncRNA', "TE", "Other", "DS10K", 'UnAn')
-mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI', 'DS10K')
-ncRNA_List = c('rRNA', 'miRNA', 'lncRNA', 'tRNA', 'scaRNA', 'snRNA', 'snoRNA', 'TE', 'Other', 'nC_RI')
+mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI')
+ncRNA_List = c('rRNA', 'lncRNA', 'tRNA', 'snRNA', 'snoRNA', 'TE', 'Other')
 ####################################################################################################################
 
 ## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP Peaks:
@@ -205,13 +210,17 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = All_Annotation_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 30000), y_tick = 5000)
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock All Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite All Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M, 'grouped_annotation', 'Co_M_Input', 'UnAn', fraction = TRUE)
@@ -229,13 +238,18 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = All_Annotation_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution By Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution By Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution By Fraction') 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock All Peak Distribution By Fraction')
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite All Peak Distribution By Fraction') 
+
 
 ####################################################################################################################
 
@@ -267,7 +281,7 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = mRNA_List)
 
@@ -275,6 +289,11 @@ PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$An
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
+
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M_mRNA, 'finalized_annotation', 'Co_M_Input', 'UnAn', fraction = T)
@@ -292,13 +311,18 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = mRNA_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution by Fraction') 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution by Fraction') 
+
 ####################################################################################################################
 
 ## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP ncRNA Peaks:
@@ -338,13 +362,18 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = ncRNA_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock ncRNA Peak Distribution')
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
+
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M_ncRNA, 'finalized_annotation', 'Co_M_Input', 'UnAn', fraction = T)
@@ -371,13 +400,17 @@ PeakDistribution_Co_combined = cbind(PeakDistribution_Co_Input_M, PeakDistributi
                                      PeakDistribution_Co_G3BP_M, PeakDistribution_Co_G3BP_S)
 PeakDistribution_Co_combined$Annotation = rownames(PeakDistribution_Co_combined)
 
-PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "Source", value = "Freq", CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = ncRNA_List)
 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction')
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution by Fraction') 
+
+## For New Figure:
+plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction') 
+plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution by Fraction') 
 ####################################################################################################################
 
 ## FIGURE2 Stacked Bar Plots for Fraction vs CoCLIP Side-by-Side Peaks:
@@ -398,7 +431,7 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = All_Annotation_List)
 
@@ -429,7 +462,7 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = All_Annotation_List)
 
@@ -473,19 +506,19 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = mRNA_List)
 
 plotStackedBar(PeakDistribution_combined, 
                c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES'), 
                c('Mock\nNuclear\nFracCLIP', 'Mock\nCytoplasm\nFracCLIP', 'Mock\nNLS\nCoCLIP', 'Mock\nNES\nCoCLIP'), 
-               'Mock mRNA Peak Counts Distributions') 
+               'Mock mRNA Peak Counts Distributions', y_lim = c(0, 20000), y_tick = 5000)  
 
 plotStackedBar(PeakDistribution_combined, 
                c('F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES'), 
                c('Arsenite\nNuclear\nFracCLIP', 'Arsenite\nCytoplasm\nFracCLIP', 'Arsenite\nNLS\nCoCLIP', 'Arsenite\nNES\nCoCLIP'), 
-               'Arsenite mRNA Peak Counts Distributions') 
+               'Arsenite mRNA Peak Counts Distributions', y_lim = c(0, 20000), y_tick = 5000)  
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_F_Nuc_M = countAnnotation(Peak_F_Nuc_M_mRNA, 'finalized_annotation', 'F_M_Nuc', 'UnAn', fraction = T)
@@ -504,7 +537,7 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = mRNA_List)
 
@@ -556,19 +589,19 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = ncRNA_List)
 
 plotStackedBar(PeakDistribution_combined, 
                c('F_M_Nuc', 'F_M_Cyt', 'Co_M_NLS', 'Co_M_NES'), 
                c('Mock\nNuclear\nFracCLIP', 'Mock\nCytoplasm\nFracCLIP', 'Mock\nNLS\nCoCLIP', 'Mock\nNES\nCoCLIP'), 
-               'Mock ncRNA Peak Counts Distributions') 
+               'Mock ncRNA Peak Counts Distributions', y_lim = c(0, 6000), y_tick = 2000)  
 
 plotStackedBar(PeakDistribution_combined, 
                c('F_S_Nuc', 'F_S_Cyt', 'Co_S_NLS', 'Co_S_NES'), 
                c('Arsenite\nNuclear\nFracCLIP', 'Arsenite\nCytoplasm\nFracCLIP', 'Arsenite\nNLS\nCoCLIP', 'Arsenite\nNES\nCoCLIP'), 
-               'Arsenite mRNA Peak Counts Distributions') 
+               'Arsenite mRNA Peak Counts Distributions', y_lim = c(0, 6000), y_tick = 2000)   
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_F_Nuc_M = countAnnotation(Peak_F_Nuc_M_ncRNA, 'finalized_annotation', 'F_M_Nuc', 'UnAn', fraction = T)
@@ -596,7 +629,7 @@ PeakDistribution_combined = cbind(PeakDistribution_F_Nuc_M, PeakDistribution_F_C
                                   PeakDistribution_Co_NLS_S, PeakDistribution_Co_NES_S)
 PeakDistribution_combined$Annotation = rownames(PeakDistribution_combined)
 
-PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% select(Source, Freq, Annotation)
+PeakDistribution_combined = PeakDistribution_combined %>% gather(key = "Source", value = "Freq", F_CoCLIP_List) %>% dplyr::select(Source, Freq, Annotation)
 PeakDistribution_combined$Source = factor(PeakDistribution_combined$Source, levels = F_CoCLIP_List)
 PeakDistribution_combined$Annotation = factor(PeakDistribution_combined$Annotation, levels = ncRNA_List)
 
