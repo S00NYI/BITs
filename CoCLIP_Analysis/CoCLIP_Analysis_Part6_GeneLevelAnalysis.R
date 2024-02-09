@@ -1,7 +1,7 @@
 ## CoCLIP Analysis: 
 ## Peak Processing for Gene Level Analysis:
 ## Written by Soon Yi
-## Last Edit: 2023-10-12
+## Last Edit: 2024-01-31
 
 library(stringr)
 library(readr)
@@ -195,11 +195,92 @@ peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]]
 ####################################################################################################################
 
 
+# mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+## Gene Level Fold Change: Nuclear Fraction Mock vs Arsenite
+####################################################################################################################
 mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+Gene_Fr_Nuc_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Fr_Nuc_M = Gene_Fr_Nuc_M %>% filter(peak_names %in% Peak_F_Nuc_M$peak_names) %>% filter(!is.na(gene))
+Gene_Fr_Nuc_M$peak_names = NULL
+Gene_Fr_Nuc_M = Gene_Fr_Nuc_M %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Fr_Nuc_M = Gene_Fr_Nuc_M[, c('gene', 'external_gene_name', 'Nuc_F_M')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Fr_Nuc_M$gene,
+                   mart = mart.hs)
+Gene_Fr_Nuc_M = cbind(Gene_Fr_Nuc_M, Length = geneLength$transcript_length[match(Gene_Fr_Nuc_M$gene, geneLength$ensembl_gene_id)])
+Gene_Fr_Nuc_M = Gene_Fr_Nuc_M %>% mutate(across(all_of('Nuc_F_M'), ~ . / Length*1e6))
+Gene_Fr_Nuc_M$Length = NULL
+
+Gene_Fr_Nuc_S = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Fr_Nuc_S = Gene_Fr_Nuc_S %>% filter(peak_names %in% Peak_F_Nuc_S$peak_names) %>% filter(!is.na(gene))
+Gene_Fr_Nuc_S$peak_names = NULL
+Gene_Fr_Nuc_S = Gene_Fr_Nuc_S %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Fr_Nuc_S = Gene_Fr_Nuc_S[, c('gene', 'external_gene_name', 'Nuc_F_S')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Fr_Nuc_S$gene,
+                   mart = mart.hs)
+Gene_Fr_Nuc_S = cbind(Gene_Fr_Nuc_S, Length = geneLength$transcript_length[match(Gene_Fr_Nuc_S$gene, geneLength$ensembl_gene_id)])
+Gene_Fr_Nuc_S = Gene_Fr_Nuc_S %>% mutate(across(all_of('Nuc_F_S'), ~ . / Length*1e6))
+Gene_Fr_Nuc_S$Length = NULL
+
+geneOverlap = intersect(Gene_Fr_Nuc_M$gene, Gene_Fr_Nuc_S$gene)
+Gene_Fr_Nuc_M_OL = Gene_Fr_Nuc_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Fr_Nuc_S_OL = Gene_Fr_Nuc_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+Gene_Fr_Nuc_SvM = Gene_Fr_Nuc_M_OL[, c('gene', 'external_gene_name')]
+Gene_Fr_Nuc_SvM = Gene_Fr_Nuc_SvM %>% mutate(log2FoldChange = log2(Gene_Fr_Nuc_S_OL$Nuc_F_S/Gene_Fr_Nuc_M_OL$Nuc_F_M))
+
+####################################################################################################################
+
+## Gene Level Fold Change: Cyto Fraction Mock vs Arsenite
+####################################################################################################################
+
+Gene_Fr_Cyto_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Fr_Cyto_M = Gene_Fr_Cyto_M %>% filter(peak_names %in% Peak_F_Cyt_M$peak_names) %>% filter(!is.na(gene))
+Gene_Fr_Cyto_M$peak_names = NULL
+Gene_Fr_Cyto_M = Gene_Fr_Cyto_M %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Fr_Cyto_M = Gene_Fr_Cyto_M[, c('gene', 'external_gene_name', 'Cyto_F_M')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Fr_Cyto_M$gene,
+                   mart = mart.hs)
+Gene_Fr_Cyto_M = cbind(Gene_Fr_Cyto_M, Length = geneLength$transcript_length[match(Gene_Fr_Cyto_M$gene, geneLength$ensembl_gene_id)])
+Gene_Fr_Cyto_M = Gene_Fr_Cyto_M %>% mutate(across(all_of('Cyto_F_M'), ~ . / Length*1e6))
+Gene_Fr_Cyto_M$Length = NULL
+
+Gene_Fr_Cyto_S = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
+Gene_Fr_Cyto_S = Gene_Fr_Cyto_S %>% filter(peak_names %in% Peak_F_Cyt_S$peak_names) %>% filter(!is.na(gene))
+Gene_Fr_Cyto_S$peak_names = NULL
+Gene_Fr_Cyto_S = Gene_Fr_Cyto_S %>% group_by(gene, external_gene_name) %>% summarise_all(sum) %>% ungroup()
+Gene_Fr_Cyto_S = Gene_Fr_Cyto_S[, c('gene', 'external_gene_name', 'Cyto_F_S')]
+
+geneLength = getBM(attributes = c("ensembl_gene_id", "transcript_length"),
+                   filters = "ensembl_gene_id",
+                   values = Gene_Fr_Cyto_S$gene,
+                   mart = mart.hs)
+Gene_Fr_Cyto_S = cbind(Gene_Fr_Cyto_S, Length = geneLength$transcript_length[match(Gene_Fr_Cyto_S$gene, geneLength$ensembl_gene_id)])
+Gene_Fr_Cyto_S = Gene_Fr_Cyto_S %>% mutate(across(all_of('Cyto_F_S'), ~ . / Length*1e6))
+Gene_Fr_Cyto_S$Length = NULL
+
+geneOverlap = intersect(Gene_Fr_Cyto_M$gene, Gene_Fr_Cyto_S$gene)
+Gene_Fr_Cyto_M_OL = Gene_Fr_Cyto_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Fr_Cyto_S_OL = Gene_Fr_Cyto_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+
+Gene_Fr_Cyto_SvM = Gene_Fr_Cyto_M_OL[, c('gene', 'external_gene_name')]
+Gene_Fr_Cyto_SvM = Gene_Fr_Cyto_SvM %>% mutate(log2FoldChange = log2(Gene_Fr_Cyto_S_OL$Cyto_F_S/Gene_Fr_Cyto_M_OL$Cyto_F_M))
+
+####################################################################################################################
 
 ## Gene Level Fold Change: Nuclear Mock vs Arsenite
 ####################################################################################################################
-mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
 Gene_Co_NLS_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 Gene_Co_NLS_M = Gene_Co_NLS_M %>% filter(peak_names %in% Peak_Co_NLS_M$peak_names) %>% filter(!is.na(gene))
@@ -347,6 +428,20 @@ Gene_Co_NES_M_OL = Gene_Co_NES_M %>% filter(gene %in% geneOverlap) %>% arrange(g
 Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
 Gene_Co_G3BP_SvNES_M = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
 Gene_Co_G3BP_SvNES_M = Gene_Co_G3BP_SvNES_M %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_NES_M_OL$NES_E_M))
+
+## Cytoplasm Mock --> G3BP Mock
+geneOverlap = intersect(Gene_Co_NES_M$gene, Gene_Co_G3BP_M$gene)
+Gene_Co_NES_M_OL = Gene_Co_NES_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_M_OL = Gene_Co_G3BP_M %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_MvNES_M = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
+Gene_Co_G3BP_MvNES_M = Gene_Co_G3BP_MvNES_M %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_M_OL$G3BP_E_M/Gene_Co_NES_M_OL$NES_E_M))
+
+## Cytoplasm Arsenite --> G3BP Arsenite
+geneOverlap = intersect(Gene_Co_NES_S$gene, Gene_Co_G3BP_S$gene)
+Gene_Co_NES_S_OL = Gene_Co_NES_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange(gene)
+Gene_Co_G3BP_SvNES_S = Gene_Co_NES_S_OL[, c('gene', 'external_gene_name')]
+Gene_Co_G3BP_SvNES_S = Gene_Co_G3BP_SvNES_S %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_NES_S_OL$NES_E_S))
 
 ####################################################################################################################
 
@@ -992,7 +1087,7 @@ fgsea_Gene_G3BP_S_GO_CC = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'CC')
 fgsea_Gene_G3BP_S_GO_MF = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'MF')
 
 ## Set Threshold for p-value and normalized enrichment score:
-padj_T = 0.001
+padj_T = 0.0001
 NES_T = 2
 
 ## All GO terms: Filter to statistically significant results:
@@ -1125,29 +1220,48 @@ samplesOrder = fgsea_heatmap_colnames[2:9]
 GO_heatmap = pheatmap(Enriched_GO_ALL[, samplesOrder] %>% arrange(!!sym(order_by)), 
                       cluster_rows = row_cluster, 
                       cluster_cols = col_cluster,
-                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
+                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)),
+                      # breaks = seq(1e-4, 1e-6, length.out = 101),
                       labels_row = (Enriched_GO_ALL %>% arrange(!!sym(order_by)))$pathway)
 
-# BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)), 
-#                       cluster_rows = row_cluster, 
-#                       cluster_cols = col_cluster,
-#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-#                       labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
-#                       na_col = "white")
-# 
-# CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)), 
-#                       cluster_rows = row_cluster, 
-#                       cluster_cols = col_cluster,
-#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-#                       labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
-#                       na_col = "white")
-# 
-# MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)), 
-#                       cluster_rows = row_cluster, 
-#                       cluster_cols = col_cluster,
-#                       color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)), 
-#                       labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
-#                       na_col = "white")
+BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)),
+                      cluster_rows = row_cluster,
+                      cluster_cols = col_cluster,
+                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
+                      labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
+                      breaks = seq(1e-4, 1e-6, length.out = 101))
+
+CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)),
+                      cluster_rows = row_cluster,
+                      cluster_cols = col_cluster,
+                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
+                      labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
+                      breaks = seq(1e-4, 1e-6, length.out = 101))
+
+MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)),
+                      cluster_rows = row_cluster,
+                      cluster_cols = col_cluster,
+                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
+                      labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
+                      breaks = seq(1e-4, 1e-6, length.out = 101))
+
+long_data = pivot_longer(Enriched_GO_ALL, cols = -everything('pathway'), names_to = "Type", values_to = "Value")
+long_data$Type = factor(long_data$Type, levels = samplesOrder)
+long_data$pathway = factor(long_data$pathway, levels = rev(Enriched_GO_ALL$pathway))
+
+ggplot(long_data, aes(x = Type, y = pathway, size = -log(Value), color = Value)) + 
+  geom_point() + 
+  theme_minimal() +
+  theme_bw() + 
+  theme(axis.text = element_text(size=8), 
+        axis.title = element_text(size=14, face = 'bold'), 
+        legend.text = element_text(size=14)) +
+  scale_color_gradientn(colours = rev(brewer.pal(9, "GnBu")), 
+                        limits = c(1e-7, 1e-4), 
+                        oob = oob_squish) +
+  scale_size(range = c(3, 6)) 
+
+
 ####################################################################################################################
 
 
