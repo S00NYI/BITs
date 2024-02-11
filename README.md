@@ -12,7 +12,3 @@ All CoCLIP_Analysis scripts except for the part 0 uses annotated peak matrix as 
 
 ## CLIPittyCLIP_BITs
 Scripts associated with CLIPittyClip but not necessarily with CoCLIP Analysis.
-
-## Random_BITs
-Scripts that are for testing or some other random stuffs.
-
