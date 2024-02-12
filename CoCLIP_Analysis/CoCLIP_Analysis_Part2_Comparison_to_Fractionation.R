@@ -12,6 +12,105 @@ library(tidyr)
 library(dplyr)
 library(data.table)
 
+## Custom Functions 
+####################################################################################################################
+## Filter peaks based on the designated criteria:
+filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
+  temp = peak_matrix[, c(info_columns, sample_list)]
+  
+  if (!is.null(rowSum_criteria)) {
+    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
+    temp$rowAvg = NULL
+  } else {
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
+  }
+  
+  return(temp)
+}
+
+## Plot Scatter with density:
+plotScatter = function(peak_matrix, annotation_level, 
+                       x_axis, y_axis, 
+                       x_label = NULL, y_label = NULL, 
+                       x_lim = NULL, y_lim = NULL, 
+                       x_cnt_lim = NULL, y_cnt_lim = NULL, 
+                       title = NULL, diag = FALSE) {
+  
+  plot = ggplot(peak_matrix, aes(x = ({{x_axis}}), y = ({{y_axis}}), color = {{annotation_level}})) +
+    geom_point(pch = 16, size = 3, alpha = 0.5) +
+    scale_fill_brewer(palette = "Set3") +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.text = element_text(size=14))
+  
+  if (!is.null(title)) {
+    plot = plot + ggtitle(title)
+  }
+  if (!is.null(x_label)) {
+    plot = plot + labs(x = x_label)
+  }
+  if (!is.null(y_label)) {
+    plot = plot + labs(y = y_label)
+  }
+  if (!is.null(x_lim)) {
+    plot = plot + xlim(x_lim)
+  }
+  if (!is.null(y_lim)) {
+    plot = plot + ylim(y_lim)
+  }
+  if (diag == TRUE) {
+    plot = plot + geom_abline(linetype = 'dotted') 
+  }
+  # Stacked density plot for x-axis
+  x_densities = ggplot(peak_matrix, aes(x = {{x_axis}}, fill = {{annotation_level}})) +
+    geom_density(aes(y = ..count..), alpha = 0.7) +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.position = 'none') +
+    xlim(x_lim)
+  
+  if (!is.null(x_cnt_lim)) {
+    x_densities = x_densities + ylim(x_cnt_lim)
+  } else {
+    x_densities = x_densities + ylim(c(0, NA))
+  }
+  
+  # Stacked density plot for y-axis
+  y_densities = ggplot(peak_matrix, aes(x = {{y_axis}}, fill = {{annotation_level}})) +
+    geom_density(aes(y = ..count..), alpha = 0.7) +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.position = 'none') +
+    coord_flip() +
+    xlim(x_lim)
+  
+  if (!is.null(y_cnt_lim)) {
+    y_densities = y_densities + ylim(y_cnt_lim)
+  } else {
+    y_densities = y_densities + ylim(c(0, NA))
+  }
+  
+  
+  empty_plot = ggplot() + theme_void()
+  
+  # Arrange the plots
+  plot = gridExtra::grid.arrange(
+    x_densities, empty_plot,
+    plot, y_densities,
+    ncol = 2,
+    nrow = 2,
+    widths = c(4, 1),
+    heights = c(1, 4)
+  )
+  
+  return(plot)
+}
+####################################################################################################################
+
 ## Load peak matrix and clean up:
 ####################################################################################################################
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
@@ -70,153 +169,6 @@ rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
 peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
 
-####################################################################################################################
-
-## Custom Functions 
-####################################################################################################################
-## Filter peaks based on the designated criteria:
-filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
-  temp = peak_matrix[, c(info_columns, sample_list)]
-  
-  if (!is.null(rowSum_criteria)) {
-    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
-    temp$rowAvg = NULL
-  } else {
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
-  }
-  
-  return(temp)
-}
-
-## Filter peaks by annotation:
-filterPeaksByAnnotation = function(peak_matrix, annotation_column, list_of_annotation) {
-  temp = peak_matrix %>% filter({{ annotation_column }} %in% list_of_annotation)
-  return(temp)
-}
-
-## Get peak counts per gene: 
-peaksPerGene = function(peak_matrix, sample_list) {
-  temp = peak_matrix %>% group_by(gene, external_gene_name) %>% summarise(tagCounts = sum(across(all_of(sample_list))), peakCounts = n())
-  temp = temp %>% mutate(tagDensity = tagCounts/peakCounts)
-  
-  return(temp)
-}
-
-## Get Annotation counts:
-countAnnotation = function(peak_matrix, annotation_column, new_column_name = NULL, annotation_to_skip = NULL, fraction = NULL) {
-  temp = data.frame(table(peak_matrix[, annotation_column]), row.names = 1)
-  if(!is.null(new_column_name)) {
-    colnames(temp) = new_column_name
-  }
-  
-  if(!is.null(annotation_to_skip)) {
-    temp = temp[rownames(temp) != annotation_to_skip, , drop = FALSE]
-  }
-  
-  if(!is.null(fraction)) {
-    temp = temp/sum(temp)
-  }
-  
-  return(temp)
-}
-
-## Fill Annotation counts if anything is mixing:
-fillAnnotation = function(annotation_counts, annotation_list) {
-  colnames((annotation_counts))
-  
-  temp = data.frame(Sample = numeric(length(annotation_list)))
-  rownames(temp) = annotation_list
-  temp2 = merge(temp, annotation_counts, by = "row.names", all = TRUE)
-  temp2[is.na(temp2)] = 0 
-  temp2$Sample = NULL
-  
-  rownames(temp2) = temp2$Row.names
-  temp2 = temp2[ncRNA_List, -1, drop = FALSE]
-  
-  return(temp2)
-}
-
-## Plot Scatter:
-plotScatter = function(peak_matrix, annotation_level, 
-                       x_axis, y_axis, 
-                       x_label = NULL, y_label = NULL, 
-                       x_lim = NULL, y_lim = NULL, 
-                       x_cnt_lim = NULL, y_cnt_lim = NULL, 
-                       title = NULL, diag = FALSE) {
-  
-  plot = ggplot(peak_matrix, aes(x = ({{x_axis}}), y = ({{y_axis}}), color = {{annotation_level}})) +
-    geom_point(pch = 16, size = 3, alpha = 0.5) +
-    scale_fill_brewer(palette = "Set3") +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.text = element_text(size=14))
-
-  if (!is.null(title)) {
-    plot = plot + ggtitle(title)
-  }
-  if (!is.null(x_label)) {
-    plot = plot + labs(x = x_label)
-  }
-  if (!is.null(y_label)) {
-    plot = plot + labs(y = y_label)
-  }
-  if (!is.null(x_lim)) {
-    plot = plot + xlim(x_lim)
-  }
-  if (!is.null(y_lim)) {
-    plot = plot + ylim(y_lim)
-  }
-  if (diag == TRUE) {
-    plot = plot + geom_abline(linetype = 'dotted') 
-  }
-  # Stacked density plot for x-axis
-  x_densities = ggplot(peak_matrix, aes(x = {{x_axis}}, fill = {{annotation_level}})) +
-    geom_density(aes(y = ..count..), alpha = 0.7) +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.position = 'none') +
-    xlim(x_lim)
-  
-  if (!is.null(x_cnt_lim)) {
-    x_densities = x_densities + ylim(x_cnt_lim)
-  } else {
-    x_densities = x_densities + ylim(c(0, NA))
-  }
-
-  # Stacked density plot for y-axis
-  y_densities = ggplot(peak_matrix, aes(x = {{y_axis}}, fill = {{annotation_level}})) +
-    geom_density(aes(y = ..count..), alpha = 0.7) +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.position = 'none') +
-    coord_flip() +
-    xlim(x_lim)
-  
-  if (!is.null(y_cnt_lim)) {
-    y_densities = y_densities + ylim(y_cnt_lim)
-  } else {
-    y_densities = y_densities + ylim(c(0, NA))
-  }
-
-  
-  empty_plot = ggplot() + theme_void()
-  
-  # Arrange the plots
-  plot = gridExtra::grid.arrange(
-    x_densities, empty_plot,
-    plot, y_densities,
-    ncol = 2,
-    nrow = 2,
-    widths = c(4, 1),
-    heights = c(1, 4)
-  )
-  
-  return(plot)
-}
 ####################################################################################################################
 
 ## Filter Criteria:
@@ -290,8 +242,6 @@ peakRowSum = peakRowSum %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, G3BP_E_S])/l
 
 peakRowSum = cbind(peakRowSum, peaksMatrix[, BC_columns])
 
-# write.table(peakRowSum, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_rowSum.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
-
 peakEnrichment = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
 
 peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$I_M)
@@ -331,12 +281,6 @@ Peak_NvC_M = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                           (NES_E_M_BC >= BC_Threshold_E & NES_E_M > median(NES_E_M) * rowSum_Multiplier_E)))
 
 Peak_NvC_M$grouped_annotation = factor(Peak_NvC_M$grouped_annotation, levels = All_Annotation_List)
-
-# plotScatter(Peak_NvC_M, grouped_annotation,
-#              log2(E_NvC_M), log2(F_NvC_M),
-#              x_label = 'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-#              x_lim, y_lim,
-#              paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_M), ' peaks)'))
 
 # Mock - mRNA specific: 
 Peak_NvC_M_mRNA = Peak_NvC_M %>% filter((finalized_annotation == "5'UTR" | 
@@ -382,12 +326,6 @@ Peak_NvC_S = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
 
 Peak_NvC_S$grouped_annotation = factor(Peak_NvC_S$grouped_annotation, levels = All_Annotation_List)
 
-# plotScatter(Peak_NvC_S, grouped_annotation,
-#              log2(E_NvC_S), log2(F_NvC_S),
-#              'log2(CoCLIP Nuclear/Cytoplasm)', 'log2(FracCLIP Nuclear/Cytoplasm)',
-#              x_lim, y_lim, 
-#              paste0('Mock HuR Peaks: CoCLIP vs FracCLIP of Nuclear/Cytoplasm (',  nrow(Peak_NvC_S), ' peaks)'))
-
 # Arsenite - mRNA specific: 
 Peak_NvC_S_mRNA = Peak_NvC_S %>% filter((finalized_annotation == "5'UTR" | 
                                            finalized_annotation == "3'UTR" | 
@@ -427,7 +365,7 @@ plotScatter(Peak_NvC_S_ncRNA, finalized_annotation,
 
 ## New Venn Diagram
 ####################################################################################################################
-
+## Mock comparison nuclear fraction to NLS coCLIP
 Peak_F_Nuc_M_filtered = Peak_F_Nuc_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
 Peak_Co_NLS_M_filtered = Peak_Co_NLS_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
 
@@ -435,7 +373,7 @@ Mock_N = list(Mock_Nuc_F = Peak_F_Nuc_M_filtered$peak_names, Mock_NLS_C = Peak_C
 Mock_N_Venn = venn.diagram(x = Mock_N, filename = NULL, category.names = c("Mock_Nuc_F", "Mock_NLS_C"))
 grid.newpage(); grid.draw(Mock_N_Venn)
 
-
+## Mock comparison cytoplasm fraction to NES coCLIP
 Peak_F_Cyt_M_filtered = Peak_F_Cyt_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
 Peak_Co_NES_M_filtered = Peak_Co_NES_M %>% filter(peak_names %in% Peak_NvC_M$peak_names)
 
@@ -443,7 +381,7 @@ Mock_C = list(Mock_Cyt_F = Peak_F_Cyt_M_filtered$peak_names, Mock_NES_C = Peak_C
 Mock_C_Venn = venn.diagram(x = Mock_C, filename = NULL, category.names = c("Mock_Cyt_F", "Mock_NES_C"))
 grid.newpage(); grid.draw(Mock_C_Venn)
 
-
+## Stress comparison nuclear fraction to NLS coCLIP
 Peak_F_Nuc_S_filtered = Peak_F_Nuc_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
 Peak_Co_NLS_S_filtered = Peak_Co_NLS_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
 
@@ -451,50 +389,11 @@ Stress_N = list(Stress_Nuc_F =  Peak_F_Nuc_S_filtered$peak_names, Stress_NLS_C =
 Stress_N_Venn = venn.diagram(x = Stress_N, filename = NULL, category.names = c("Stress_Nuc_F", "Stress_NLS_C"))
 grid.newpage(); grid.draw(Stress_N_Venn)
 
+## Stress comparison cytoplasm fraction to NES coCLIP
 Peak_F_Cyt_S_filtered = Peak_F_Cyt_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
 Peak_Co_NES_S_filtered = Peak_Co_NES_S %>% filter(peak_names %in% Peak_NvC_S$peak_names)
 
 Stress_C = list(Stress_Cyt_F = Peak_F_Cyt_S_filtered$peak_names, Stress_NES_C = Peak_Co_NES_S_filtered$peak_names)
 Stress_C_Venn = venn.diagram(x = Stress_C, filename = NULL, category.names = c("Stress_Cyt_F", "Stress_NES_C"))
 grid.newpage(); grid.draw(Stress_C_Venn)
-####################################################################################################################
-
-
-
-
-
-
-## Venn Diagram
-####################################################################################################################
-# Mock_Nuclear_Overlap = sum(Peak_F_Nuc_M_mRNA$peak_names %in% Peak_Co_NLS_M_mRNA$peak_names)
-# Mock_Overlap_Proportion_Nuc_F = Mock_Nuclear_Overlap/nrow(Peak_F_Nuc_M_mRNA)
-# Mock_Overlap_Proportion_NLS_C = Mock_Nuclear_Overlap/nrow(Peak_Co_NLS_M_mRNA)
-# 
-# Mock_Cytoplasm_Overlap = sum(Peak_F_Cyt_M_mRNA$peak_names %in% Peak_Co_NES_M_mRNA$peak_names)
-# Mock_Overlap_Proportion_Cyt_F = Mock_Cytoplasm_Overlap/nrow(Peak_F_Cyt_M_mRNA)
-# Mock_Overlap_Proportion_NES_C = Mock_Cytoplasm_Overlap/nrow(Peak_Co_NES_M_mRNA)
-# 
-# Stress_Nuclear_Overlap = sum(Peak_F_Nuc_S_mRNA$peak_names %in% Peak_Co_NLS_S_mRNA$peak_names)
-# Stress_Overlap_Proportion_Nuc_F = Stress_Nuclear_Overlap/nrow(Peak_F_Nuc_S_mRNA)
-# Stress_Overlap_Proportion_NLS_C = Stress_Nuclear_Overlap/nrow(Peak_Co_NLS_S_mRNA)
-# 
-# Stress_Cytoplasm_Overlap = sum(Peak_F_Cyt_S_mRNA$peak_names %in% Peak_Co_NES_S_mRNA$peak_names)
-# Stress_Overlap_Proportion_Cyt_F = Stress_Cytoplasm_Overlap/nrow(Peak_F_Cyt_S_mRNA)
-# Stress_Overlap_Proportion_NES_C = Stress_Cytoplasm_Overlap/nrow(Peak_Co_NES_S_mRNA)
-# 
-# Mock = list(Nuc_F = Peak_F_Nuc_M_mRNA$peak_names, NLS_C = Peak_Co_NLS_M_mRNA$peak_names)
-# Mock_Venn = venn.diagram(x = Mock, filename = NULL, category.names = c("Nuc_F", "NLS_C"))
-# grid.newpage(); grid.draw(Mock_Venn)
-# 
-# Mock = list(Nuc_F = Peak_F_Cyt_M_mRNA$peak_names, NLS_C = Peak_Co_NES_M_mRNA$peak_names)
-# Mock_Venn = venn.diagram(x = Mock, filename = NULL, category.names = c("Cyto_F", "NES_C"))
-# grid.newpage(); grid.draw(Mock_Venn)
-# 
-# Stress = list(Nuc_F = Peak_F_Nuc_S_mRNA$peak_names, NLS_C = Peak_Co_NLS_S_mRNA$peak_names)
-# Stress_Venn = venn.diagram(x = Stress, filename = NULL, category.names = c("Nuc_F", "NLS_C"))
-# grid.newpage(); grid.draw(Stress_Venn)
-# 
-# Stress = list(Nuc_F = Peak_F_Cyt_S_mRNA$peak_names, NLS_C = Peak_Co_NES_S_mRNA$peak_names)
-# Stress_Venn = venn.diagram(x = Stress, filename = NULL, category.names = c("Cyto_F", "NES_C"))
-# grid.newpage(); grid.draw(Stress_Venn)
 ####################################################################################################################
