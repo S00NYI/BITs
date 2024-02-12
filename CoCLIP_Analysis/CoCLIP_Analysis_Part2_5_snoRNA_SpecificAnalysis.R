@@ -16,21 +16,23 @@ library(IRanges)
 library(GenomicRanges)
 library(rtracklayer)
 
-
+## Load annotation file:
+####################################################################################################################
 setwd("~/Desktop/Genomics/Annotations")
 gtfFile = 'Homo_sapiens.GRCh38.110.gtf'
 gtf = import(gtfFile)
-
 gtf_df = as.data.frame(gtf)
 
-## Subset the data_frame by gene/transcript types:
+## Subset the annotation data_frame by gene/transcript types:
 snoRNA = subset(gtf_df, transcript_biotype == "snoRNA" & type == "transcript")
 snoRNA_gr = GRanges(seqnames=snoRNA$seqnames, ranges=IRanges(start=snoRNA$start, end=snoRNA$end, names=snoRNA$gene_name), strand=snoRNA$strand)
+####################################################################################################################
 
-## Bed Files to Import:
-
+## Load bed files:
+####################################################################################################################
 bedBase = "~/Desktop/Genomics/CoCLIP/combined_collapsedBED/collapsedBED"
 
+## There's probably more smart way to do this... but this will do
 ID = c('JL0361_Input_G3BP_Input_Mock_1',
        'JL0361_Input_G3BP_Input_Mock_2',
        'JL0361_Input_G3BP_Input_Ars_1',
@@ -90,6 +92,9 @@ ID = c('JL0361_Input_G3BP_Input_Mock_1',
        'JL1024_Pool_G3BP_E_Ars_R1',
        'JL1024_Pool_G3BP_E_Ars_R2')
 
+## Loop through each bed file and make snoRNA specific reads table:
+## Reads are normalized by depth and per-million.
+## Again, there's probably more smart way to do this......
 for (file in ID) {
   bedFile = read_delim(paste0(bedBase, '/', file, '.sorted.collapsed.bed'), show_col_types = F, col_names = F)
   colnames(bedFile) = c('chr', 'start', 'end', 'name', 'score', 'strand')
@@ -106,9 +111,11 @@ for (file in ID) {
   
   snoRNA = cbind(snoRNA, read_per_snoRNA)
 }
+####################################################################################################################
 
-# write_csv(snoRNA, '~/Desktop/Genomics/CoCLIP/snoRNA_reads.csv', quote = 'none', col_names = T)
-
+## Go through each data (conditions/locations) to create summed normalized read counts column:
+## This isn't pretty but it gets the job done.
+####################################################################################################################
 snoRNA = snoRNA %>% mutate(Mock_Nuclear_Fraction = 
                              (JL0380_Fraction_Nuc_Fraction_Mock_1 + 
                              JL0380_Fraction_Nuc_Fraction_Mock_2 +
@@ -191,18 +198,19 @@ snoRNA = snoRNA %>% mutate(Stress_G3BP_Enrich =
                              JL1024_Pool_G3BP_E_Ars_R1 +
                              JL1024_Pool_G3BP_E_Ars_R2))
 
-
+## Make final dataframe for snoRNA normalized reads per sample:
 snoRNA_filtered = snoRNA[, c('seqnames', 'start', 'end', 'width', 'strand', 'gene_id', 'gene_name', 'transcript_name', colnames(snoRNA)[86:97])]
+####################################################################################################################
 
-
-
+## Mock Sample Comparison BoxPlots (supplement figure):
+####################################################################################################################
 snoRNA_filtered_Mock = snoRNA_filtered[, c('Mock_Total_Input', 'Mock_Nuclear_Fraction', 'Mock_Cytoplasm_Fraction', 'Mock_NLS_Enrich', 'Mock_NES_Enrich', 'Mock_G3BP_Enrich')]
 colnames(snoRNA_filtered_Mock) = c("Input", "Nuclear", "Cytoplasm", "NLS", "NES", "G3BP")
 rownames(snoRNA_filtered_Mock) = NULL
 
 Group_Order = colnames(snoRNA_filtered_Mock)
 
-
+## Transform to long-format for boxplot:
 snoRNA_filtered_Mock_long = snoRNA_filtered_Mock %>%
   pivot_longer(
     cols = everything(),
@@ -229,16 +237,14 @@ ggplot(snoRNA_filtered_Mock_long, aes(x = Group, y = Value)) +
         axis.title = element_text(size=14, face = 'bold'), 
         legend.text = element_text(size=14))
 
-
+## Perform pairwise tests and store p-values:
 Mock_pValMatrix = matrix(nrow = ncol(snoRNA_filtered_Mock), ncol = ncol(snoRNA_filtered_Mock))
 rownames(Mock_pValMatrix) = colnames(Mock_pValMatrix) = names(snoRNA_filtered_Mock)
 
-# Perform pairwise tests and store p-values
 for (i in 1:(ncol(Mock_pValMatrix) - 1)) {
   for (j in (i + 1):ncol(Mock_pValMatrix)) {
     i_vector = as.vector(unlist(snoRNA_filtered_Mock[, i]))[!is.na(as.vector(unlist(snoRNA_filtered_Mock[, i])))]
     j_vector = as.vector(unlist(snoRNA_filtered_Mock[, j]))[!is.na(as.vector(unlist(snoRNA_filtered_Mock[, j])))]
-    # result = ks.test(i_vector, j_vector)
     result = wilcox.test(i_vector, j_vector)
     
     Mock_pValMatrix[i, j] = result$p.value
@@ -246,18 +252,21 @@ for (i in 1:(ncol(Mock_pValMatrix) - 1)) {
   }
 }
 
+## FDR correction:
 Mock_pValMatrix_FDR = matrix(p.adjust(Mock_pValMatrix, method = 'fdr'), nrow = 6, ncol = 6)
 colnames(Mock_pValMatrix_FDR) = colnames(Mock_pValMatrix)
 rownames(Mock_pValMatrix_FDR) = rownames(Mock_pValMatrix)
+####################################################################################################################
 
-
+## Arsenite Sample Comparison BoxPlots (supplement figure):
+####################################################################################################################
 snoRNA_filtered_Stress = snoRNA_filtered[, c('Stress_Total_Input', 'Stress_Nuclear_Fraction', 'Stress_Cytoplasm_Fraction', 'Stress_NLS_Enrich', 'Stress_NES_Enrich', 'Stress_G3BP_Enrich')]
 colnames(snoRNA_filtered_Stress) = c("Input", "Nuclear", "Cytoplasm", "NLS", "NES", "G3BP")
 rownames(snoRNA_filtered_Stress) = NULL
 
 Group_Order = colnames(snoRNA_filtered_Stress)
 
-
+## Transform to long-format for boxplot:
 snoRNA_filtered_Stress_long = snoRNA_filtered_Stress %>%
   pivot_longer(
     cols = everything(),
@@ -285,15 +294,14 @@ ggplot(snoRNA_filtered_Stress_long, aes(x = Group, y = Value)) +
         legend.text = element_text(size=14))
 
 
+## Perform pairwise tests and store p-values:
 Stress_pValMatrix = matrix(nrow = ncol(snoRNA_filtered_Stress), ncol = ncol(snoRNA_filtered_Stress))
 rownames(Stress_pValMatrix) = colnames(Stress_pValMatrix) = names(snoRNA_filtered_Stress)
 
-# Perform pairwise tests and store p-values
 for (i in 1:(ncol(Stress_pValMatrix) - 1)) {
   for (j in (i + 1):ncol(Stress_pValMatrix)) {
     i_vector = as.vector(unlist(snoRNA_filtered_Stress[, i]))[!is.na(as.vector(unlist(snoRNA_filtered_Stress[, i])))]
     j_vector = as.vector(unlist(snoRNA_filtered_Stress[, j]))[!is.na(as.vector(unlist(snoRNA_filtered_Stress[, j])))]
-    # result = ks.test(i_vector, j_vector)
     result = wilcox.test(i_vector, j_vector)
     
     Stress_pValMatrix[i, j] = result$p.value
@@ -301,9 +309,10 @@ for (i in 1:(ncol(Stress_pValMatrix) - 1)) {
   }
 }
 
+## FDR correction:
 Stress_pValMatrix_FDR = matrix(p.adjust(Stress_pValMatrix, method = 'fdr'), nrow = 6, ncol = 6)
 colnames(Stress_pValMatrix_FDR) = colnames(Stress_pValMatrix)
 rownames(Stress_pValMatrix_FDR) = rownames(Stress_pValMatrix)
-
+####################################################################################################################
 
 
