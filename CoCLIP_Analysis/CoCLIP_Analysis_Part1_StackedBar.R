@@ -10,65 +10,6 @@ library(tidyr)
 library(dplyr)
 library(data.table)
 
-## Load peak matrix and clean up:
-####################################################################################################################
-peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
-peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
-
-peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
-peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'unannotated', 'UnAn', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'unannotated', 'UnAn', grouped_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'downstream 10K', 'DS10K', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
-
-## further consolidate ncRNA:
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
-
-## Column organization:
-inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
-                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count", "TOTAL_TagCount")
-BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
-               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
-               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
-               "TOTAL_BC")
-
-Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
-Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
-Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
-Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
-
-NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
-NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
-G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
-
-NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
-NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
-G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
-
-NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
-NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
-NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
-NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
-G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
-G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
-
-# ## Add row sum columns for further filtering:
-# peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
-# peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
-# peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
-# rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
-
-## Add pseudocount:
-pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
-peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
-
-####################################################################################################################
-
 ## Custom Functions 
 ####################################################################################################################
 ## Filter peaks based on the designated criteria:
@@ -151,6 +92,59 @@ plotStackedBar = function(annotation_counts, sample_list, sample_label, title, y
 }
 ####################################################################################################################
 
+## Load peak matrix and clean up:
+####################################################################################################################
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
+
+peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
+peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'unannotated', 'UnAn', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'unannotated', 'UnAn', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'downstream 10K', 'DS10K', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
+
+## further consolidate ncRNA:
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
+
+## Column organization:
+inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
+                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count", "TOTAL_TagCount")
+BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
+               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
+               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
+               "TOTAL_BC")
+
+Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
+Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
+Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
+Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
+
+NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
+NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
+G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
+
+NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
+NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
+G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
+
+NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
+NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
+NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
+NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
+G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
+G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
+
+## Add pseudocount:
+pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
+peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
+
+####################################################################################################################
+
 ## Filter Criteria:
 ####################################################################################################################
 BC_Threshold_F = 2
@@ -192,7 +186,7 @@ mRNA_List = c("5'UTR", "CDS", "3'UTR", "intron", 'CDS_RI')
 ncRNA_List = c('rRNA', 'lncRNA', 'tRNA', 'snRNA', 'snoRNA', 'TE', 'Other')
 ####################################################################################################################
 
-## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP Peaks:
+## FIGURE1 Mock vs Stress Stacked Bar Plots For CoCLIP Peaks:
 ####################################################################################################################
 ## Peak Counts Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M, 'grouped_annotation', 'Co_M_Input', 'UnAn')
@@ -214,11 +208,6 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = All_Annotation_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution', y_lim = c(0, 30000), y_tick = 5000)
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock All Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite All Peak Distribution', y_lim = c(0, 30000), y_tick = 5000) 
 
@@ -242,18 +231,13 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = All_Annotation_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock Peak Distribution By Fraction') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock Peak Distribution By Fraction') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite Peak Distribution By Fraction') 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock All Peak Distribution By Fraction')
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite All Peak Distribution By Fraction') 
 
 
 ####################################################################################################################
 
-## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP mRNA Peaks:
+## FIGURE1 Mock vs Stress Stacked Bar Plots For CoCLIP mRNA Peaks:
 ####################################################################################################################
 ## Filter to mRNA Peaks
 Peak_Co_Input_M_mRNA = filterPeaksByAnnotation(Peak_Co_Input_M, finalized_annotation, mRNA_List)
@@ -285,15 +269,8 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = mRNA_List)
 
-## break 2000 up to 10K
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 10000), y_tick = 2000) 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution', y_lim = c(0, 25000), y_tick = 5000) 
-
 
 ## Fraction Distribution Stacked Bar Graph
 PeakDistribution_Co_Input_M = countAnnotation(Peak_Co_Input_M_mRNA, 'finalized_annotation', 'Co_M_Input', 'UnAn', fraction = T)
@@ -315,17 +292,12 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = mRNA_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution by Fraction') 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock mRNA Peak Distribution by Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite mRNA Peak Distribution by Fraction') 
 
 ####################################################################################################################
 
-## FIGURE1/5 Mock vs Stress Stacked Bar Plots For CoCLIP ncRNA Peaks:
+## FIGURE1 Mock vs Stress Stacked Bar Plots For CoCLIP ncRNA Peaks:
 ####################################################################################################################
 ## Filter to ncRNA Peaks
 Peak_Co_Input_M_ncRNA = filterPeaksByAnnotation(Peak_Co_Input_M, finalized_annotation, ncRNA_List)
@@ -366,11 +338,6 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = ncRNA_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock ncRNA Peak Distribution')
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution', y_lim = c(0, 6000), y_tick = 2000) 
 
@@ -404,11 +371,6 @@ PeakDistribution_Co_combined = PeakDistribution_Co_combined %>% gather(key = "So
 PeakDistribution_Co_combined$Source = factor(PeakDistribution_Co_combined$Source, levels = CoCLIP_List)
 PeakDistribution_Co_combined$Annotation = factor(PeakDistribution_Co_combined$Annotation, levels = ncRNA_List)
 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES'), c('Input', 'NLS', 'NES'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction')
-plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_G3BP'), c('Input', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction') 
-plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_G3BP'), c('Input', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution by Fraction') 
-
-## For New Figure:
 plotStackedBar(PeakDistribution_Co_combined, c('Co_M_Input', 'Co_M_NLS', 'Co_M_NES', 'Co_M_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Mock ncRNA Peak Distribution by Fraction') 
 plotStackedBar(PeakDistribution_Co_combined, c('Co_S_Input', 'Co_S_NLS', 'Co_S_NES', 'Co_S_G3BP'), c('Input', 'NLS', 'NES', 'G3BP'), 'CoCLIP Arsenite ncRNA Peak Distribution by Fraction') 
 ####################################################################################################################
