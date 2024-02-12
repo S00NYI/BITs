@@ -5,7 +5,6 @@
 ## Last edit: 2023-08-24
 
 ## Load necessary libraries
-## diffloop is deprecated in higher version of bioconductor, so will need to install from sources, including some of the dependencies.
 library(stringr)
 library(dplyr)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
@@ -15,6 +14,8 @@ library(GenomicRanges)
 library(biomaRt)
 library(data.table)
 library(rtracklayer)
+
+## diffloop is deprecated in higher version of bioconductor, so will need to install from sources, including some of the dependencies.
 # BiocManager::install(c('foreach', 'readr', 'pbapply', 'statmod', 'zoo'))
 # install.packages('https://www.bioconductor.org/packages/3.8/bioc/src/contrib/Sushi_1.20.0.tar.gz', repos=NULL, type="source")
 # install.packages('https://bioconductor.riken.jp/packages/3.8/bioc/src/contrib/diffloop_1.10.0.tar.gz', repos=NULL, type="source")
@@ -23,14 +24,8 @@ library(diffloop)
 ## Set working directory and name of GTF file to be used for annotation.
 ## Import and make a dataframe out of the GTF:
 setwd("~/Desktop/Genomics/Annotations")
-# gtfFile = 'gencode.v44.primary_assembly.annotation.gtf'
 gtfFile = 'Homo_sapiens.GRCh38.110.gtf'
 gtf = import(gtfFile)
-
-# gtf = subset(gtf, transcript_support_level == "1")
-# gtfFile_filtered = str_replace(gtfFile, '.gtf', '.TSL1.gtf')
-# export(gtf, gtfFile_filtered)
-
 gtf_df = as.data.frame(gtf)
 
 ## Subset the data_frame by gene/transcript types:
@@ -42,7 +37,6 @@ snoRNA = subset(gtf_df, transcript_biotype == "snoRNA" & type == "transcript")
 scaRNA = subset(gtf_df, transcript_biotype == "scaRNA" & type == "transcript")
 snRNA = subset(gtf_df, transcript_biotype == "snRNA" & type == "transcript")
 miscRNA = subset(gtf_df, transcript_biotype == "misc_RNA" & type == "transcript")
-# anti = subset(gtf_df, transcript_biotype == "antisense" & type == "transcript")
 Prot_retained_int = subset(gtf_df, transcript_biotype == "retained_intron" & gene_biotype == "protein_coding" & type == "transcript")
 nc_retained_int = subset(gtf_df, transcript_biotype == "retained_intron" & gene_biotype != "protein_coding" & type == "transcript")
 
@@ -54,7 +48,6 @@ snoRNA.gr = GRanges(seqnames=snoRNA$seqnames, ranges=IRanges(start=snoRNA$start,
 scaRNA.gr = GRanges(seqnames=scaRNA$seqnames, ranges=IRanges(start=scaRNA$start, end=scaRNA$end, names=scaRNA$gene_name), strand=scaRNA$strand)
 snRNA.gr = GRanges(seqnames=snRNA$seqnames, ranges=IRanges(start=snRNA$start, end=snRNA$end, names=snRNA$gene_name), strand=snRNA$strand)
 miscRNA.gr = GRanges(seqnames=miscRNA$seqnames, ranges=IRanges(start=miscRNA$start, end=miscRNA$end, names=miscRNA$gene_name), strand=miscRNA$strand)
-# anti.gr  GRanges(seqnames=anti$seqnames, ranges=IRanges(start=anti$start, end=anti$end, names=anti$gene_name), strand=anti$strand)
 Prot_retained_int.gr = GRanges(seqnames=Prot_retained_int$seqnames, ranges=IRanges(start=Prot_retained_int$start, end=Prot_retained_int$end, names=Prot_retained_int$gene_name), strand=Prot_retained_int$strand)
 nc_retained_int.gr = GRanges(seqnames=nc_retained_int$seqnames, ranges=IRanges(start=nc_retained_int$start, end=nc_retained_int$end, names=nc_retained_int$gene_name), strand=nc_retained_int$strand)
 
@@ -149,7 +142,6 @@ genes.ext.gr = GRanges(seqnames=genes.bed.ext$chr, ranges=IRanges(start=genes.be
 ## Load peak file:
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
 peaksMatrix_FILE = 'Combined_peakCoverage_groomed.txt'
-# peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized.txt'
 peaksMatrix = read.delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), header = TRUE, sep = "\t")
 peaksMatrix = peaksMatrix %>% mutate(chr = ifelse(chr == "chrM", "chrMT", chr))
 names(peaksMatrix)[names(peaksMatrix) == 'chr'] = 'chrom'
@@ -184,7 +176,6 @@ snoRNA.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subj
 scaRNA.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=scaRNA.gr,  minoverlap=1, select="first"))
 snRNA.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=snRNA.gr,  minoverlap=1, select="first"))
 miscRNA.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=miscRNA.gr,  minoverlap=1, select="first"))
-# anti.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=anti.gr,  minoverlap=1, select="first"))
 Prot_retained_int.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=Prot_retained_int.gr,  minoverlap=1, select="first"))
 nc_retained_int.CombinedCoCLIP = as.data.frame(findOverlaps(query=gr.CombinedCoCLIP, subject=nc_retained_int.gr,  minoverlap=1, select="first"))
 
@@ -228,8 +219,6 @@ peaksMatrix$snRNA = snRNA[snRNA.CombinedCoCLIP[,1], "gene_name"]
 peaksMatrix$snRNA1 = snRNA.CombinedCoCLIP[,1]
 peaksMatrix$miscRNA = miscRNA[miscRNA.CombinedCoCLIP[,1], "gene_name"]
 peaksMatrix$miscRNA1 = miscRNA.CombinedCoCLIP[,1]
-# peaksMatrix$anti = anti[anti.CombinedCoCLIP[,1], "gene_name"]
-# peaksMatrix$anti1 = anti.CombinedCoCLIP[,1]
 peaksMatrix$Prot_retained_int = Prot_retained_int[Prot_retained_int.CombinedCoCLIP[,1], "transcript_name"]
 peaksMatrix$Prot_retained_int1 = Prot_retained_int.CombinedCoCLIP[,1]
 peaksMatrix$nc_retained_int = nc_retained_int[nc_retained_int.CombinedCoCLIP[,1], "transcript_name"]
@@ -258,7 +247,6 @@ peaksMatrix$snoRNA1 = ifelse(is.na(peaksMatrix$snoRNA1), NA, "snoRNA")
 peaksMatrix$scaRNA1 = ifelse(is.na(peaksMatrix$scaRNA1 ), NA, "scaRNA")
 peaksMatrix$snRNA1 = ifelse(is.na(peaksMatrix$snRNA1), NA, "snRNA")
 peaksMatrix$miscRNA1 = ifelse(is.na(peaksMatrix$miscRNA1 ), NA, "Other")
-# peaksMatrix$anti1 = ifelse(is.na(peaksMatrix$anti1), NA, "antisense")
 peaksMatrix$Prot_retained_int1  = ifelse(is.na(peaksMatrix$Prot_retained_int1), NA, "CDS_Retained_intron")
 peaksMatrix$nc_retained_int1  = ifelse(is.na(peaksMatrix$nc_retained_int1), NA, "ncRNA_Retained_intron")
 
@@ -269,7 +257,6 @@ peaksMatrix$DNS10K = apply(peaksMatrix, 1, function(i) ifelse(is.na(i["DNS10K"])
 
 ## Collapse info into a single column giving region annotation of peak.  Note this uses a customized application of the paste function within an apply loop.
 peaksMatrix$annotation = apply(peaksMatrix, 1, function(i) paste(i[c("fiveUTRs","threeUTRs","CDS","DNS10K","introns","tRNA1","LTR1","LINE1","SINE1", "Satellite1","LC_SR1","intergenic", "miR1", "lncRNA1", "rRNA1", "snoRNA1", "scaRNA1", "snRNA1", "miscRNA1", "Prot_retained_int1", "nc_retained_int1")][which(!is.na(c(i["fiveUTRs"], i["threeUTRs"], i["CDS"], i["DNS10K"], i["introns"], i["tRNA1"], i["LTR1"], i["LINE1"], i["SINE1"],  i["Satellite1"], i["LC_SR1"], i["intergenic"], i["miR1"], i["lncRNA1"], i["rRNA1"], i["snoRNA1"], i["scaRNA1"], i["snRNA1"], i["miscRNA1"], i["Prot_retained_int1"], i["nc_retained_int1"])))], collapse="|"))
-# peaksMatrix$annotation = apply(x, 1, function(i) paste(i[c("fiveUTRs", "threeUTRs", "CDS", "DNS10K", "introns", "intergenic", "miR1", "lncRNA1", "rRNA1", "snoRNA1", "scaRNA1", "snRNA1", "miscRNA1", "Prot_retained_int1", "nc_retained_int1")][which(!is.na(c(i["fiveUTRs"], i["threeUTRs"], i["CDS"], i["DNS10K"], i["introns"], i["intergenic"], i["miR1"], i["lncRNA1"], i["rRNA1"], i["snoRNA1"], i["scaRNA1"], i["snRNA1"], i["miscRNA1"], i["Prot_retained_int1"], i["nc_retained_int1"])))], collapse="|"))
 
 
 #########################################################################################################
@@ -310,7 +297,6 @@ peaksMatrix$peak_names = row.names(peaksMatrix)
 
 ## Use biomaRt to import ensembl necessary attributes:
 mart.hs = useMart("ensembl", host = "https://useast.ensembl.org", dataset="hsapiens_gene_ensembl")
-# mart.hs = useMart("ensembl", dataset="hsapiens_gene_ensembl")
 gene_names = getBM(attributes = c("ensembl_gene_id", "external_gene_name"),
                     filters = "ensembl_gene_id",
                     values = peaksMatrix$gene,
