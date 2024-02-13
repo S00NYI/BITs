@@ -16,6 +16,47 @@ library(fgsea)
 library(pheatmap)
 library(RColorBrewer)
 
+## Custom Functions 
+####################################################################################################################
+## Filter peaks based on the designated criteria:
+filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
+  temp = peak_matrix[, c(info_columns, sample_list)]
+  
+  if (!is.null(rowSum_criteria)) {
+    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
+    temp$rowAvg = NULL
+  } else {
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
+  }
+  
+  return(temp)
+}
+
+## Plot Stacked bar:
+plotStackedBar = function(annotation_counts, sample_list, sample_label, title, y_lim = NULL, y_tick = NULL) {
+  plot = ggplot(annotation_counts %>% filter(Source %in% sample_list), aes(fill = Annotation, y=Freq, x=Source)) + 
+    geom_bar(position='stack', stat='identity') +
+    scale_x_discrete(labels = sample_label) +
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_fill_brewer(palette = "Set3") +
+    theme_bw() + 
+    theme(axis.text = element_text(size=14), 
+          axis.title = element_text(size=14, face = 'bold'), 
+          legend.text = element_text(size=14))
+  
+  if(!is.null(y_lim)) {
+    plot = plot + ylim(y_lim)
+  }
+  
+  if (!is.null(y_tick)) {
+    plot = plot + scale_y_continuous(breaks = seq(0, y_lim[2], by=y_tick), limits=c(0, y_lim[2]))
+  }
+  
+  return(plot)
+}
+####################################################################################################################
 
 ## Load peak matrix and clean up:
 ####################################################################################################################
@@ -70,48 +111,6 @@ rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
 peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
 
-####################################################################################################################
-
-## Custom Functions 
-####################################################################################################################
-## Filter peaks based on the designated criteria:
-filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
-  temp = peak_matrix[, c(info_columns, sample_list)]
-  
-  if (!is.null(rowSum_criteria)) {
-    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
-    temp$rowAvg = NULL
-  } else {
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
-  }
-  
-  return(temp)
-}
-
-## Plot Stacked bar:
-plotStackedBar = function(annotation_counts, sample_list, sample_label, title, y_lim = NULL, y_tick = NULL) {
-  plot = ggplot(annotation_counts %>% filter(Source %in% sample_list), aes(fill = Annotation, y=Freq, x=Source)) + 
-    geom_bar(position='stack', stat='identity') +
-    scale_x_discrete(labels = sample_label) +
-    ggtitle(title) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_fill_brewer(palette = "Set3") +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.text = element_text(size=14))
-  
-  if(!is.null(y_lim)) {
-    plot = plot + ylim(y_lim)
-  }
-  
-  if (!is.null(y_tick)) {
-    plot = plot + scale_y_continuous(breaks = seq(0, y_lim[2], by=y_tick), limits=c(0, y_lim[2]))
-  }
-  
-  return(plot)
-}
 ####################################################################################################################
 
 ## Filter Criteria:
@@ -931,25 +930,6 @@ denovo_AnnoCounts = denovo_AnnoCounts %>% gather(key = "Source", value = "Freq",
 denovo_AnnoCounts$Source = factor(denovo_AnnoCounts$Source, levels = c('Nuclear', 'Cytoplasm', 'SGranule'))
 denovo_AnnoCounts$Annotation = factor(denovo_AnnoCounts$Annotation, levels = Annotations[1:9])
 plotStackedBar(denovo_AnnoCounts, c('Nuclear', 'Cytoplasm', 'SGranule'), c('NLS', 'NES', 'G3BP'), y_lim = c(0, 1), 'CoCLIP Stress De Novo Binding') 
-
-denovo_AnnoCounts = data.frame(Annotation = Annotations[1:5])
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(Nuclear = colSums(Anno_Nuclear_S_denovo[, Annotations[1:5]]))
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(Cytoplasm = colSums(Anno_Cytoplasm_S_denovo[, Annotations[1:5]]))
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(SGranule = colSums(Anno_SGranule_S_denovo[, Annotations[1:5]]))
-denovo_AnnoCounts = denovo_AnnoCounts %>% gather(key = "Source", value = "Freq", c('Nuclear', 'Cytoplasm', 'SGranule')) 
-denovo_AnnoCounts$Source = factor(denovo_AnnoCounts$Source, levels = c('Nuclear', 'Cytoplasm', 'SGranule'))
-denovo_AnnoCounts$Annotation = factor(denovo_AnnoCounts$Annotation, levels = Annotations[1:9])
-plotStackedBar(denovo_AnnoCounts, c('Nuclear', 'Cytoplasm', 'SGranule'), c('NLS', 'NES', 'G3BP'), y_lim = c(0, 1000), 'CoCLIP Stress De Novo Binding') 
-
-denovo_AnnoCounts = data.frame(Annotation = Annotations[1:5])
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(Nuclear = colSums(Anno_Nuclear_S_denovo[, Annotations[1:5]])/sum(colSums(Anno_Nuclear_S_denovo[, Annotations[1:5]])))
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(Cytoplasm = colSums(Anno_Cytoplasm_S_denovo[, Annotations[1:5]])/sum(colSums(Anno_Cytoplasm_S_denovo[, Annotations[1:5]])))
-denovo_AnnoCounts = denovo_AnnoCounts %>% mutate(SGranule = colSums(Anno_SGranule_S_denovo[, Annotations[1:5]])/sum(colSums(Anno_SGranule_S_denovo[, Annotations[1:5]])))
-denovo_AnnoCounts = denovo_AnnoCounts %>% gather(key = "Source", value = "Freq", c('Nuclear', 'Cytoplasm', 'SGranule')) 
-denovo_AnnoCounts$Source = factor(denovo_AnnoCounts$Source, levels = c('Nuclear', 'Cytoplasm', 'SGranule'))
-denovo_AnnoCounts$Annotation = factor(denovo_AnnoCounts$Annotation, levels = Annotations[1:9])
-plotStackedBar(denovo_AnnoCounts, c('Nuclear', 'Cytoplasm', 'SGranule'), c('NLS', 'NES', 'G3BP'), y_lim = c(0, 1), 'CoCLIP Stress De Novo Binding') 
-
 ####################################################################################################################
 
 
