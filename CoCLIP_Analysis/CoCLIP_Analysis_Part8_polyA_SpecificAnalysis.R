@@ -16,6 +16,24 @@ library(BSgenome)
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(Biostrings)
 
+## Custom Functions 
+####################################################################################################################
+## Filter peaks based on the designated criteria:
+filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
+  temp = peak_matrix[, c(info_columns, sample_list)]
+  
+  if (!is.null(rowSum_criteria)) {
+    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
+    temp$rowAvg = NULL
+  } else {
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
+  }
+  
+  return(temp)
+}
+####################################################################################################################
+
 ## Load peak matrix and clean up:
 ####################################################################################################################
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
@@ -74,105 +92,6 @@ rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
 peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
 
-####################################################################################################################
-
-## Custom Functions 
-####################################################################################################################
-## Filter peaks based on the designated criteria:
-filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
-  temp = peak_matrix[, c(info_columns, sample_list)]
-  
-  if (!is.null(rowSum_criteria)) {
-    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
-    temp$rowAvg = NULL
-  } else {
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
-  }
-  
-  return(temp)
-}
-
-## Plot Scatter:
-plotScatter = function(peak_matrix, annotation_level, 
-                       x_axis, y_axis, 
-                       x_label = NULL, y_label = NULL, 
-                       x_lim = NULL, y_lim = NULL, 
-                       x_cnt_lim = NULL, y_cnt_lim = NULL, 
-                       title = NULL, diag = FALSE) {
-  
-  plot = ggplot(peak_matrix, aes(x = ({{x_axis}}), y = ({{y_axis}}), color = {{annotation_level}})) +
-    geom_point(pch = 16, size = 3, alpha = 0.5) +
-    scale_fill_brewer(palette = "Set3") +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.text = element_text(size=14))
-  
-  if (!is.null(title)) {
-    plot = plot + ggtitle(title)
-  }
-  if (!is.null(x_label)) {
-    plot = plot + labs(x = x_label)
-  }
-  if (!is.null(y_label)) {
-    plot = plot + labs(y = y_label)
-  }
-  if (!is.null(x_lim)) {
-    plot = plot + xlim(x_lim)
-  }
-  if (!is.null(y_lim)) {
-    plot = plot + ylim(y_lim)
-  }
-  if (diag == TRUE) {
-    plot = plot + geom_abline(linetype = 'dotted') 
-  }
-  # Stacked density plot for x-axis
-  x_densities = ggplot(peak_matrix, aes(x = {{x_axis}}, fill = {{annotation_level}})) +
-    geom_density(aes(y = ..count..), alpha = 0.7) +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.position = 'none') +
-    xlim(x_lim)
-  
-  if (!is.null(x_cnt_lim)) {
-    x_densities = x_densities + ylim(x_cnt_lim)
-  } else {
-    x_densities = x_densities + ylim(c(0, NA))
-  }
-  
-  # Stacked density plot for y-axis
-  y_densities = ggplot(peak_matrix, aes(x = {{y_axis}}, fill = {{annotation_level}})) +
-    geom_density(aes(y = ..count..), alpha = 0.7) +
-    theme_bw() + 
-    theme(axis.text = element_text(size=14), 
-          axis.title = element_text(size=14, face = 'bold'), 
-          legend.position = 'none') +
-    coord_flip() +
-    xlim(x_lim)
-  
-  if (!is.null(y_cnt_lim)) {
-    y_densities = y_densities + ylim(y_cnt_lim)
-  } else {
-    y_densities = y_densities + ylim(c(0, NA))
-  }
-  
-  
-  empty_plot = ggplot() + theme_void()
-  
-  # Arrange the plots
-  plot = gridExtra::grid.arrange(
-    x_densities, empty_plot,
-    plot, y_densities,
-    ncol = 2,
-    nrow = 2,
-    widths = c(4, 1),
-    heights = c(1, 4)
-  )
-  
-  return(plot)
-}
 ####################################################################################################################
 
 ## Filter Criteria:
@@ -249,34 +168,6 @@ colnames(UTR3_gene_list) = c('gene')
 
 # write_csv(UTR3_gene_list, './list.csv')
 
-shared = data.frame(gene = 
-                      unique(PolyA_Peak_DF_NES$external_gene_name)[unique(PolyA_Peak_DF_NES$external_gene_name) %in% unique(PolyA_Peak_DF_G3BP$external_gene_name)])
-
-
 table(PolyA_Peak_DF$grouped_annotation)
-
-####################################################################################################################
-
-## :
-####################################################################################################################
-####################################################################################################################
-
-## :
-####################################################################################################################
-####################################################################################################################
-
-## :
-####################################################################################################################
-####################################################################################################################
-
-## :
-####################################################################################################################
-####################################################################################################################
-
-
-
-####################################################################################################################
-
-
 
 ####################################################################################################################
