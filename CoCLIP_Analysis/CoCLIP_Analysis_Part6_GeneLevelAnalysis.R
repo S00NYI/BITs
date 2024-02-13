@@ -17,6 +17,24 @@ library(pheatmap)
 library(RColorBrewer)
 library(rlang)
 
+## Custom Functions 
+####################################################################################################################
+## Filter peaks based on the designated criteria:
+filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
+  temp = peak_matrix[, c(info_columns, sample_list)]
+  
+  if (!is.null(rowSum_criteria)) {
+    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
+    temp$rowAvg = NULL
+  } else {
+    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
+  }
+  
+  return(temp)
+}
+####################################################################################################################
+
 ## Load peak matrix and clean up:
 ####################################################################################################################
 peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
@@ -60,7 +78,6 @@ G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5
 G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
 
 ## Add row sum columns for further filtering:
-# peaksMatrix = peaksMatrix %>% mutate_at(c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S, NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S, NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S), as.double)
 peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
 peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
 peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
@@ -69,25 +86,6 @@ rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
 ## Add pseudocount:
 pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
 peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
-
-####################################################################################################################
-
-## Custom Functions 
-####################################################################################################################
-## Filter peaks based on the designated criteria:
-filterPeakMatrix = function(peak_matrix, sample_list, info_columns, BC_criteria, rowSum_criteria = NULL) {
-  temp = peak_matrix[, c(info_columns, sample_list)]
-  
-  if (!is.null(rowSum_criteria)) {
-    temp$rowAvg = rowSums(temp[, sample_list]) / length(sample_list)
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria) & (temp$rowAvg > (median(temp$rowAvg) * rowSum_criteria)), ]
-    temp$rowAvg = NULL
-  } else {
-    temp = temp[(rowSums(temp[, paste0(unique(sub("_[0-9]+$", "", sample_list)), '_BC')]) >= BC_criteria), ]
-  }
-  
-  return(temp)
-}
 ####################################################################################################################
 
 ## Filter Criteria:
@@ -160,8 +158,6 @@ peakRowSum = peakRowSum %>% mutate(G3BP_E_M = rowSums(peaksMatrix[, G3BP_E_M])/l
 peakRowSum = peakRowSum %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, G3BP_E_S])/length(G3BP_E_S) * 1e6)
 
 peakRowSum = cbind(peakRowSum, peaksMatrix[, BC_columns])
-
-# write.table(peakRowSum, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_rowSum.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
 ####################################################################################################################
 
 ## Make Enrichment Table:
@@ -190,12 +186,7 @@ peakEnrichment = peakEnrichment %>% mutate(NES_SvM = peakRowSum$NES_E_S / peakRo
 peakEnrichment = peakEnrichment %>% mutate(G3BP_SvM = peakRowSum$G3BP_E_S / peakRowSum$G3BP_E_M)
 
 peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]])
-
-# write.table(peakEnrichment, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_Enrichment.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
 ####################################################################################################################
-
-
-# mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
 ## Gene Level Fold Change: Nuclear Fraction Mock vs Arsenite
 ####################################################################################################################
@@ -240,7 +231,6 @@ Gene_Fr_Nuc_SvM = Gene_Fr_Nuc_SvM %>% mutate(log2FoldChange = log2(Gene_Fr_Nuc_S
 
 ## Gene Level Fold Change: Cyto Fraction Mock vs Arsenite
 ####################################################################################################################
-
 Gene_Fr_Cyto_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 Gene_Fr_Cyto_M = Gene_Fr_Cyto_M %>% filter(peak_names %in% Peak_F_Cyt_M$peak_names) %>% filter(!is.na(gene))
 Gene_Fr_Cyto_M$peak_names = NULL
@@ -280,8 +270,6 @@ Gene_Fr_Cyto_SvM = Gene_Fr_Cyto_SvM %>% mutate(log2FoldChange = log2(Gene_Fr_Cyt
 
 ## Gene Level Fold Change: Nuclear Mock vs Arsenite
 ####################################################################################################################
-# mart.hs = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-
 Gene_Co_NLS_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 Gene_Co_NLS_M = Gene_Co_NLS_M %>% filter(peak_names %in% Peak_Co_NLS_M$peak_names) %>% filter(!is.na(gene))
 Gene_Co_NLS_M$peak_names = NULL
@@ -321,7 +309,6 @@ Gene_Co_NLS_SvM = Gene_Co_NLS_SvM %>% mutate(log2FoldChange = log2(Gene_Co_NLS_S
 
 ## Gene Level Fold Change: Cytoplasm Mock vs Arsenite
 ####################################################################################################################
-
 Gene_Co_NES_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 Gene_Co_NES_M = Gene_Co_NES_M %>% filter(peak_names %in% Peak_Co_NES_M$peak_names) %>% filter(!is.na(gene))
 Gene_Co_NES_M$peak_names = NULL
@@ -356,12 +343,10 @@ Gene_Co_NES_S_OL = Gene_Co_NES_S %>% filter(gene %in% geneOverlap) %>% arrange(g
 
 Gene_Co_NES_SvM = Gene_Co_NES_M_OL[, c('gene', 'external_gene_name')]
 Gene_Co_NES_SvM = Gene_Co_NES_SvM %>% mutate(log2FoldChange = log2(Gene_Co_NES_S_OL$NES_E_S/Gene_Co_NES_M_OL$NES_E_M))
-
 ####################################################################################################################
 
 ## Gene Level Fold Change: SGranule Mock vs Arsenite
 ####################################################################################################################
-
 Gene_Co_G3BP_M = peakRowSum[, c('gene', 'external_gene_name', 'peak_names', colnames(peakRowSum)[17:34], BC_columns, rowSum_columns)]
 Gene_Co_G3BP_M = Gene_Co_G3BP_M %>% filter(peak_names %in% Peak_Co_G3BP_M$peak_names) %>% filter(!is.na(gene))
 Gene_Co_G3BP_M$peak_names = NULL
@@ -396,7 +381,6 @@ Gene_Co_G3BP_S_OL = Gene_Co_G3BP_S %>% filter(gene %in% geneOverlap) %>% arrange
 
 Gene_Co_G3BP_SvM = Gene_Co_G3BP_M_OL[, c('gene', 'external_gene_name')]
 Gene_Co_G3BP_SvM = Gene_Co_G3BP_SvM %>% mutate(log2FoldChange = log2(Gene_Co_G3BP_S_OL$G3BP_E_S/Gene_Co_G3BP_M_OL$G3BP_E_M))
-
 ####################################################################################################################
 
 ## Gene Level Fold Change: Other Comparisons
@@ -448,7 +432,7 @@ Gene_Co_G3BP_SvNES_S = Gene_Co_G3BP_SvNES_S %>% mutate(log2FoldChange = log2(Gen
 ## RNASeq Fold Changes:
 ####################################################################################################################
 ## Read in DESeq results:
-RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCelllines/V43/'
+RNASeq_PATH = '/Users/soonyi/Desktop/Genomics/RNASeq/RNASeq_APEXCellLines/V43/'
 RNASeq_FILE_All = 'All_DESeq.tsv'
 RNASeq_FILE_Nuclear = 'Nuclear_DESeq.tsv'
 RNASeq_FILE_Cytoplasm = 'Cytoplasm_DESeq.tsv'
@@ -570,8 +554,6 @@ ggplot(plotData, aes(x = RNASeq, y = CoCLIP)) +
   xlim(c(-4, 4)) +
   ylim(c(-8, 8))
 ####################################################################################################################
-
-
 
 ## Supplement: RNASeq Internal Comparison
 ####################################################################################################################
@@ -712,7 +694,6 @@ cor((RNASeq_Pairwise %>% filter(Cytoplasm_Arse > median(Cytoplasm_Arse) & SG_Ars
 
 ####################################################################################################################
 
-
 ## Localization Specific Genes
 ####################################################################################################################
 Gene_Input_M = distinct(data.frame(ENSEMBL = Peak_Co_Input_M$gene, SYMBOL = Peak_Co_Input_M$external_gene_name))
@@ -780,15 +761,8 @@ for (group in groups) {
                      values = arse_Data$ENSEMBL,
                      mart = mart.hs)
   
-  ## filter by biotype
-  # mock_Length = mock_Length %>% filter(gene_biotype == 'protein_coding')
-  # arse_Length = arse_Length %>% filter(gene_biotype == 'protein_coding')
-  
   mock_Length$transcript_tsl = as.integer(str_extract(mock_Length$transcript_tsl, "(?<=tsl)\\d+"))
   arse_Length$transcript_tsl = as.integer(str_extract(arse_Length$transcript_tsl, "(?<=tsl)\\d+"))
-  
-  # mock_Length = mock_Length %>% filter(transcript_tsl != "" & transcript_tsl != 'tslNA')
-  # arse_Length = arse_Length %>% filter(transcript_tsl != "" & transcript_tsl != 'tslNA')
   
   mock_Length = mock_Length %>% filter(transcript_tsl != "")
   arse_Length = arse_Length %>% filter(transcript_tsl != "")
@@ -850,10 +824,6 @@ ggplot(plotData, aes(x = factor(sample_source, levels = plotSelections), y = tra
               map_signif_level = TRUE,
               textsize = 5, y_position = 9000, tip_length = 0)
   
-ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Input', ]$transcript_lengths)$p.value
-ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Nuclear', ]$transcript_lengths)$p.value
-ks.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Cytoplasm', ]$transcript_lengths)$p.value
-
 wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Input', ]$transcript_lengths)$p.value
 wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Nuclear', ]$transcript_lengths)$p.value
 wilcox.test(plotData[plotData$sample_source == 'M_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'M_Cytoplasm', ]$transcript_lengths)$p.value
@@ -897,15 +867,12 @@ ggplot(plotData, aes(x = factor(sample_source, levels = plotSelections), y = tra
               textsize = 5, y_position = 9000, tip_length = 0)
 
 
-ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Input', ]$transcript_lengths)$p.value
-ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Nuclear', ]$transcript_lengths)$p.value
-ks.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Cytoplasm', ]$transcript_lengths)$p.value
-
 wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Input', ]$transcript_lengths)$p.value
 wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Nuclear', ]$transcript_lengths)$p.value
 wilcox.test(plotData[plotData$sample_source == 'S_SGranule', ]$transcript_lengths, plotData[plotData$sample_source == 'S_Cytoplasm', ]$transcript_lengths)$p.value
 
 ####################################################################################################################
+
 
 
 
@@ -1005,17 +972,6 @@ fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% mutate(newScore = NES * -log10(padj))
 fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% mutate(newScore = NES * -log10(padj))
 
-# ## write to table:
-# cols_to_write = c("pathway", "pval", "padj", "log2err", "ES", "NES")
-# write.table(fgsea_Gene_INP_M[, ..cols_to_write], 'fgsea_Gene_INP_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_INP_S[, ..cols_to_write], 'fgsea_Gene_INP_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_NLS_M[, ..cols_to_write], 'fgsea_Gene_NLS_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_NLS_S[, ..cols_to_write], 'fgsea_Gene_NLS_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_NES_M[, ..cols_to_write], 'fgsea_Gene_NES_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_NES_S[, ..cols_to_write], 'fgsea_Gene_NES_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_G3BP_M[, ..cols_to_write], 'fgsea_Gene_G3BP_M.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-# write.table(fgsea_Gene_G3BP_S[, ..cols_to_write], 'fgsea_Gene_G3BP_S.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-
 fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% arrange(pathway)
 fgsea_Gene_INP_S = fgsea_Gene_INP_S %>% arrange(pathway)
 fgsea_Gene_NLS_M = fgsea_Gene_NLS_M %>% arrange(pathway)
@@ -1024,18 +980,6 @@ fgsea_Gene_NES_M = fgsea_Gene_NES_M %>% arrange(pathway)
 fgsea_Gene_NES_S = fgsea_Gene_NES_S %>% arrange(pathway)
 fgsea_Gene_G3BP_M = fgsea_Gene_G3BP_M %>% arrange(pathway)
 fgsea_Gene_G3BP_S = fgsea_Gene_G3BP_S %>% arrange(pathway)
-
-# temp = data.frame(pathway = fgsea_Gene_INP_M[, 'pathway'],
-#                   INP_M = fgsea_Gene_INP_M[, 'padj'],
-#                   INP_S = fgsea_Gene_INP_S[, 'padj'],
-#                   NLS_M = fgsea_Gene_NLS_M[, 'padj'],
-#                   NLS_S = fgsea_Gene_NLS_S[, 'padj'],
-#                   NES_M = fgsea_Gene_NES_M[, 'padj'],
-#                   NES_S = fgsea_Gene_NES_S[, 'padj'],
-#                   G3BP_M = fgsea_Gene_G3BP_M[, 'padj'],
-#                   G3BP_S = fgsea_Gene_G3BP_S[, 'padj'])
-# colnames(temp) = c('pathway', ' INP_M', 'INP_S', 'NLS_M', 'NLS_S', 'NES_M', 'NES_S', 'G3BP_M', 'G3BP_S')
-# write.table(temp, 'fgsea_Gene_all.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
 
 ## Filter by Go Terms:
 fgsea_Gene_INP_M = fgsea_Gene_INP_M %>% mutate(ontology = unlist(lapply(str_split(fgsea_Gene_INP_M$pathway, '_'), function(x) (str_sub(x[1], 1, 2)))))  %>% filter(ontology == 'GO')
@@ -1087,7 +1031,7 @@ fgsea_Gene_G3BP_S_GO_CC = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'CC')
 fgsea_Gene_G3BP_S_GO_MF = fgsea_Gene_G3BP_S %>% filter(GO_Subset == 'MF')
 
 ## Set Threshold for p-value and normalized enrichment score:
-padj_T = 0.0001
+padj_T = 0.00001
 NES_T = 2
 
 ## All GO terms: Filter to statistically significant results:
@@ -1154,96 +1098,8 @@ for (sample in fgsea_heatmap_colnames[2:9]) {
   Enriched_GO_ALL[, sample] = temp[match(Enriched_GO_ALL$pathway, temp$pathway), ..colSelection]
 }
 
-## GO_BP terms: Create matrix for heatmap
-Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_BP_sig, fgsea_Gene_INP_S_GO_BP_sig, 
-                       fgsea_Gene_NLS_M_GO_BP_sig, fgsea_Gene_NLS_S_GO_BP_sig, 
-                       fgsea_Gene_NES_M_GO_BP_sig, fgsea_Gene_NES_S_GO_BP_sig, 
-                       fgsea_Gene_G3BP_M_GO_BP_sig, fgsea_Gene_G3BP_S_GO_BP_sig)
-Enriched_Terms = unique(Enriched_Terms$pathway)
-
-Enriched_GO_BP = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
-colnames(Enriched_GO_BP) = fgsea_heatmap_colnames
-Enriched_GO_BP = Enriched_GO_BP %>% mutate(pathway = Enriched_Terms)
-
-for (sample in fgsea_heatmap_colnames[2:9]) {
-  temp = get(paste0('fgsea_Gene_', sample, '_GO_BP_sig'))
-  Enriched_GO_BP[, sample] = temp[match(Enriched_GO_BP$pathway, temp$pathway), ..colSelection]
-}
-
-## GO_CC terms: Create matrix for heatmap
-Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_CC_sig, fgsea_Gene_INP_S_GO_CC_sig, 
-                       fgsea_Gene_NLS_M_GO_CC_sig, fgsea_Gene_NLS_S_GO_CC_sig, 
-                       fgsea_Gene_NES_M_GO_CC_sig, fgsea_Gene_NES_S_GO_CC_sig, 
-                       fgsea_Gene_G3BP_M_GO_CC_sig, fgsea_Gene_G3BP_S_GO_CC_sig)
-Enriched_Terms = unique(Enriched_Terms$pathway)
-
-Enriched_GO_CC = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
-colnames(Enriched_GO_CC) = fgsea_heatmap_colnames
-Enriched_GO_CC = Enriched_GO_CC %>% mutate(pathway = Enriched_Terms)
-
-for (sample in fgsea_heatmap_colnames[2:9]) {
-  temp = get(paste0('fgsea_Gene_', sample, '_GO_CC_sig'))
-  Enriched_GO_CC[, sample] = temp[match(Enriched_GO_CC$pathway, temp$pathway), ..colSelection]
-}
-
-## GO_BP terms: Create matrix for heatmap
-Enriched_Terms = rbind(fgsea_Gene_INP_M_GO_MF_sig, fgsea_Gene_INP_S_GO_MF_sig, 
-                       fgsea_Gene_NLS_M_GO_MF_sig, fgsea_Gene_NLS_S_GO_MF_sig, 
-                       fgsea_Gene_NES_M_GO_MF_sig, fgsea_Gene_NES_S_GO_MF_sig, 
-                       fgsea_Gene_G3BP_M_GO_MF_sig, fgsea_Gene_G3BP_S_GO_MF_sig)
-Enriched_Terms = unique(Enriched_Terms$pathway)
-
-Enriched_GO_MF = data.frame(matrix(NA, nrow = length(Enriched_Terms), ncol = 9))
-colnames(Enriched_GO_MF) = fgsea_heatmap_colnames
-Enriched_GO_MF = Enriched_GO_MF %>% mutate(pathway = Enriched_Terms)
-
-for (sample in fgsea_heatmap_colnames[2:9]) {
-  temp = get(paste0('fgsea_Gene_', sample, '_GO_MF_sig'))
-  Enriched_GO_MF[, sample] = temp[match(Enriched_GO_MF$pathway, temp$pathway), ..colSelection]
-}
-
-# ## write to table:
-# write.table(Enriched_GO_ALL, 'fgsea_Gene_allSig.tsv', row.names = F, col.names = T, quote = F, sep = '\t')
-
-
-## Make Pheatmap:
-row_cluster = F
-col_cluster = F
-order_by = 'INP_M'
+## Make Dot Plot for GO Terms:
 samplesOrder = fgsea_heatmap_colnames[2:9]
-# samplesOrder = fgsea_heatmap_colnames[c(2:5)]
-# order_by = 'INP_S'
-# samplesOrder = fgsea_heatmap_colnames[c(6:9)]
-# order_by = 'NLS_M'
-# samplesOrder = fgsea_heatmap_colnames[c(3:5, 7:9)]
-
-GO_heatmap = pheatmap(Enriched_GO_ALL[, samplesOrder] %>% arrange(!!sym(order_by)), 
-                      cluster_rows = row_cluster, 
-                      cluster_cols = col_cluster,
-                      color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)),
-                      # breaks = seq(1e-4, 1e-6, length.out = 101),
-                      labels_row = (Enriched_GO_ALL %>% arrange(!!sym(order_by)))$pathway)
-
-BP_heatmap = pheatmap(Enriched_GO_BP[, samplesOrder] %>% arrange(!!sym(order_by)),
-                      cluster_rows = row_cluster,
-                      cluster_cols = col_cluster,
-                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
-                      labels_row = (Enriched_GO_BP %>% arrange(!!sym(order_by)))$pathway,
-                      breaks = seq(1e-4, 1e-6, length.out = 101))
-
-CC_heatmap = pheatmap(Enriched_GO_CC[, samplesOrder] %>% arrange(!!sym(order_by)),
-                      cluster_rows = row_cluster,
-                      cluster_cols = col_cluster,
-                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
-                      labels_row = (Enriched_GO_CC %>% arrange(!!sym(order_by)))$pathway,
-                      breaks = seq(1e-4, 1e-6, length.out = 101))
-
-MF_heatmap = pheatmap(Enriched_GO_MF[, samplesOrder] %>% arrange(!!sym(order_by)),
-                      cluster_rows = row_cluster,
-                      cluster_cols = col_cluster,
-                      color = (colorRampPalette(brewer.pal(9, "GnBu"))(100)),
-                      labels_row = (Enriched_GO_MF %>% arrange(!!sym(order_by)))$pathway,
-                      breaks = seq(1e-4, 1e-6, length.out = 101))
 
 long_data = pivot_longer(Enriched_GO_ALL, cols = -everything('pathway'), names_to = "Type", values_to = "Value")
 long_data$Type = factor(long_data$Type, levels = samplesOrder)
@@ -1260,7 +1116,6 @@ ggplot(long_data, aes(x = Type, y = pathway, size = -log(Value), color = Value))
                         limits = c(1e-7, 1e-4), 
                         oob = oob_squish) +
   scale_size(range = c(3, 6)) 
-
 
 ####################################################################################################################
 
