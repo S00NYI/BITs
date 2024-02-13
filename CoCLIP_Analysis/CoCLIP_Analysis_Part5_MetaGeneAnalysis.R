@@ -323,10 +323,6 @@ colnames(INTRONs) = c('transcript_id', 'start', 'end', 'seqid', 'strand', 'intro
 peakFile = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/Combined_peakCoverage_groomed_annotated.txt'
 peaks_org = read.delim(peakFile, header=TRUE, sep="\t")
 
-# Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
-# Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
-# Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
-# Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
 NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
 NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
 G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
@@ -370,62 +366,34 @@ rowSum_Multiplier_E = 1
 ## Filter for Input Mock
 I_M_peaks = peaks_org %>% filter(NLS_I_M_BC + NES_I_M_BC + G3BP_I_M_BC >= BC_Threshold_I)
 # I_M_peaks = I_M_peaks %>% filter(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) >= median(rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)]) * rowSum_Multiplier_I))
-# I_M_peaks = I_M_peaks %>% mutate(selectRowSum = rowSums(I_M_peaks[, c(NLS_I_M, NES_I_M, G3BP_I_M)])) %>% uncount(selectRowSum)
 
 ## Filter for Input Stress
 I_S_peaks = peaks_org %>% filter(NLS_I_S_BC + NES_I_S_BC + G3BP_I_S_BC >= BC_Threshold_I)
 # I_S_peaks = I_S_peaks %>% filter(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) >= median(rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)]) * rowSum_Multiplier_I))
-# I_S_peaks = I_S_peaks %>% mutate(selectRowSum = rowSums(I_S_peaks[, c(NLS_I_S, NES_I_S, G3BP_I_S)])) %>% uncount(selectRowSum)
 
 ## Filter for NLS Mock
 NLS_M_peaks = peaks_org %>% filter(NLS_E_M_BC >= BC_Threshold_E)
 # NLS_M_peaks = NLS_M_peaks %>% filter(rowSums(NLS_M_peaks[, c(NLS_E_M)]) >= median(rowSums(NLS_M_peaks[, c(NLS_E_M)])) * rowSum_Multiplier_E)
-# NLS_M_peaks = NLS_M_peaks %>% mutate(selectRowSum = rowSums(NLS_M_peaks[, c(NLS_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for NLS Stress
 NLS_S_peaks = peaks_org %>% filter(NLS_E_S_BC >= BC_Threshold_E)
 # NLS_S_peaks = NLS_S_peaks %>% filter(rowSums(NLS_S_peaks[, c(NLS_E_S)]) >= median(rowSums(NLS_S_peaks[, c(NLS_E_S)])) * rowSum_Multiplier_E)
-# NLS_S_peaks = NLS_S_peaks %>% mutate(selectRowSum = rowSums(NLS_S_peaks[, c(NLS_E_S)])) %>% uncount(selectRowSum)
 
 ## Filter for NES Mock
 NES_M_peaks = peaks_org %>% filter(NES_E_M_BC >= BC_Threshold_E)
 # NES_M_peaks = NES_M_peaks %>% filter(rowSums(NES_M_peaks[, c(NES_E_M)]) >= median(rowSums(NES_M_peaks[, c(NES_E_M)])) * rowSum_Multiplier_E)
-# NES_M_peaks = NES_M_peaks %>% mutate(selectRowSum = rowSums(NES_M_peaks[, c(NES_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for NES Stress
 NES_S_peaks = peaks_org %>% filter(NES_E_S_BC >= BC_Threshold_E)
 # NES_S_peaks = NES_S_peaks %>% filter(rowSums(NES_S_peaks[, c(NES_E_S)]) >= median(rowSums(NES_S_peaks[, c(NES_E_S)])) * rowSum_Multiplier_E)
-# NES_S_peaks = NES_S_peaks %>% mutate(selectRowSum = rowSums(NES_S_peaks[, c(NES_E_S)])) %>% uncount(selectRowSum)
 
 ## Filter for G3BP Mock
 G3BP_M_peaks = peaks_org %>% filter(G3BP_E_M_BC >= BC_Threshold_E_SG)
 # G3BP_M_peaks = G3BP_M_peaks %>% filter(rowSums(G3BP_M_peaks[, c(G3BP_E_M)]) >= median(rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) * rowSum_Multiplier_E)
-# G3BP_M_peaks = G3BP_M_peaks %>% mutate(selectRowSum = rowSums(G3BP_M_peaks[, c(G3BP_E_M)])) %>% uncount(selectRowSum)
 
 ## Filter for G3BP Stress
 G3BP_S_peaks = peaks_org %>% filter(G3BP_E_S_BC >= BC_Threshold_E_SG)
 # G3BP_S_peaks = G3BP_S_peaks %>% filter(rowSums(G3BP_S_peaks[, c(G3BP_E_S)]) >= median(rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) * rowSum_Multiplier_E)
-# G3BP_S_peaks = G3BP_S_peaks %>% mutate(selectRowSum = rowSums(G3BP_S_peaks[, c(G3BP_E_S)])) %>% uncount(selectRowSum)
-
-# ## Filter for Nuclear Fraction Mock
-# Nuc_M_peaks = peaks_org %>% filter(Nuc_F_M_BC >= BC_Threshold_F)
-# Nuc_M_peaks = Nuc_M_peaks %>% filter(rowSums(Nuc_M_peaks[, c(Nuc_F_M)]) >= median(rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) * rowSum_Multiplier_F)
-# Nuc_M_peaks = Nuc_M_peaks %>% mutate(selectRowSum = rowSums(Nuc_M_peaks[, c(Nuc_F_M)])) %>% uncount(selectRowSum)
-# 
-# ## Filter for Nuclear Fraction Stress
-# Nuc_S_peaks = peaks_org %>% filter(Nuc_F_S_BC >= BC_Threshold_F)
-# Nuc_S_peaks = Nuc_S_peaks %>% filter(rowSums(Nuc_S_peaks[, c(Nuc_F_S)]) >= median(rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) * rowSum_Multiplier_F)
-# Nuc_S_peaks = Nuc_S_peaks %>% mutate(selectRowSum = rowSums(Nuc_S_peaks[, c(Nuc_F_S)])) %>% uncount(selectRowSum)
-# 
-# ## Filter for Cytoplasm Fraction Mock
-# Cyto_M_peaks = peaks_org %>% filter(Cyto_F_M_BC >= BC_Threshold_F)
-# Cyto_M_peaks = Cyto_M_peaks %>% filter(rowSums(Cyto_M_peaks[, c(Cyto_F_M)]) >= median(rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) * rowSum_Multiplier_F)
-# Cyto_M_peaks = Cyto_M_peaks %>% mutate(selectRowSum = rowSums(Cyto_M_peaks[, c(Cyto_F_M)])) %>% uncount(selectRowSum)
-# 
-# ## Filter for Cytoplasm Fraction Stress
-# Cyto_S_peaks = peaks_org %>% filter(Cyto_F_S_BC >= BC_Threshold_F)
-# Cyto_S_peaks = Cyto_S_peaks %>% filter(rowSums(Cyto_S_peaks[, c(Cyto_F_S)]) >= median(rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) * rowSum_Multiplier_F)
-# Cyto_S_peaks = Cyto_S_peaks %>% mutate(selectRowSum = rowSums(Cyto_S_peaks[, c(Cyto_F_S)])) %>% uncount(selectRowSum)
 ####################################################################################################################
 
 search_space = 1000
@@ -478,8 +446,6 @@ CDS_densities = data.frame(position = NLS_M_metaDensity$midpoint,
 
 ## 5' Splice Site (SS5):
 #########################################################################################################################
-# INTRONs_noLast = INTRONs %>% group_by(transcript_id) %>% filter(intron_number != max(intron_number)) %>% ungroup()
-
 I_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = I_M_peaks, feature_center = 'start', window_definition = search_space)
 NLS_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NLS_M_peaks, feature_center = 'start', window_definition = search_space)
 NES_M_metaDensity = metaDensity(feature_df = INTRONs, peaks_df = NES_M_peaks, feature_center = 'start', window_definition = search_space)
@@ -673,12 +639,12 @@ for (set in colnames(TSS_densities)[2:9]) {
 
 #########################################################################################################################
 
-smoothing = 0.2
-y_lim = c(-0.0025, 0.025)
-x_lim = NULL
-
 ## Mocks
 #########################################################################################################################
+smoothing = 0.2
+y_lim = c(-0.0025, 0.04)
+x_lim = NULL
+
 plot_Density(density_data = TSS_densities_norm,
              columns_list = c('G3BP_M', 'NES_M', 'NLS_M', 'I_M'),
              custom_colors = c('salmon', 'darkseagreen2', 'skyblue','grey'),
@@ -808,11 +774,9 @@ plot_Density(density_data = TTS_densities_norm,
 
 #########################################################################################################################
 
-## Mocks: Use y_lim = c(0, 0.05) and smoothing = 0.2 for figures
+## Raw Counts Mocks
 #########################################################################################################################
-y_lim = NULL
-y_lim = c(0, 250)
-# x_lim = c(-250, 250)
+y_lim = c(0, 200)
 x_lim = NULL
 smoothing = NULL
 
@@ -877,7 +841,7 @@ plot_Density(density_data = TTS_densities,
              sampleName = 'Mocks')
 #########################################################################################################################
 
-## Arsenites
+## Raw Counts Arsenites
 #########################################################################################################################
 
 plot_Density(density_data = TSS_densities,
@@ -941,69 +905,6 @@ plot_Density(density_data = TTS_densities,
              sampleName = 'Arsenite')
 
 #########################################################################################################################
-
-## Inputs 
-#########################################################################################################################
-y_lim = c(0, 0.1)
-smoothing = 0.2
-
-plot_Density(density_data = TSS_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-
-plot_Density(density_data = CDS_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Start Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-
-plot_Density(density_data = SS5_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "5' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-
-plot_Density(density_data = SS3_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "3' Splice Site",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-
-plot_Density(density_data = TLS_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Translation Stop Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-
-plot_Density(density_data = TTS_densities,
-             columns_list = c('I_S', 'I_M'),
-             custom_colors = c('grey3', 'grey'),
-             densityType = 'feature_metagene',
-             featureName = "Transcription Termination Sites",
-             yaxis_lims = y_lim,
-             smoothing = smoothing,
-             sampleName = 'Input Mocks and Stress')
-#########################################################################################################################
-
-
-
 
 
 
