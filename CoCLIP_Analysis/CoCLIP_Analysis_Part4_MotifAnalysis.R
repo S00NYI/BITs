@@ -272,10 +272,7 @@ Peak_Co_G3BP_S = filterPeakMatrix(peaksMatrix, G3BP_E_S, c(inert_columns, BC_col
 
 ## Build peak sequence table and motif enrichment ranks based on peaksMatrix:
 ####################################################################################################################
-## (extension + 10nt)*2 centered at peak
-# extension = 15
 extension = 65
-# extension = 0
 
 peaksGR = peaksMatrix[, c('chrom', 'start', 'end', 'strand', 'peak_names')]
 peaksGR = peaksGR %>% mutate(chrom = ifelse(chrom == "chrMT", "chrM", chrom))
@@ -346,8 +343,10 @@ for (sample in Samples) {
   colnames(motif_rank) = sample
   motif_ranks = cbind(motif_ranks, motif_rank)
 }
+####################################################################################################################
 
-
+## Do the same for eCLIP peaks:
+####################################################################################################################
 eCLIP = read.delim('/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/eCLIP_bed/ELAVL1_eCLIP_ENCFF566LNK.bed', header = F)
 eCLIP = eCLIP[, c('V1', 'V2', 'V3', 'V4', 'V6')]
 colnames(eCLIP) = c('chrom', 'start', 'end', 'name', 'strand')
@@ -393,8 +392,9 @@ motif_ranks = cbind(motifs, motif_ranks)
 
 ####################################################################################################################
 
-## FIGURE4 Make heatmap:
+## FIGURE4 Make heatmaps:
 ####################################################################################################################
+# Sample Correlation Matrix:
 col_selection = c('ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
                   'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
 
@@ -405,6 +405,7 @@ rownames(CorrMatrix) = col_selection
 
 pheatmap(CorrMatrix, cluster_rows=F, cluster_cols=F, color = colorRampPalette(brewer.pal(9, "GnBu"))(100))
 
+# Motif Ranking:
 col_selection = c('PAR_CLIP', 'eCLIP', 
                   'ALL_M', 'I_M', 'NUC_M', 'CYT_M', 'NLS_M', 'NES_M', 'G3BP_M', 
                   'ALL_S', 'I_S', 'NUC_S', 'CYT_S', 'NLS_S', 'NES_S', 'G3BP_S')
@@ -413,8 +414,7 @@ col_selection = c('PAR_CLIP', 'eCLIP',
 pheatmap(motif_ranks[, col_selection], cluster_rows=F, cluster_cols=F, color = rev(colorRampPalette(brewer.pal(9, "GnBu"))(100)))
 ####################################################################################################################
 
-## Read motif density calculations:
-## motif density calculated using Homer (see Homer_calls.sh)
+## FIGURE4 Read motif density calculations:
 ################################################################################
 baseDir = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/motifEnrichment/motifs/density'
 setwd(baseDir)
@@ -422,17 +422,6 @@ setwd(baseDir)
 densityFiles = list.files(paste0(baseDir))
 densityFiles_CoCLIP = densityFiles[grep("^CoCLIP", densityFiles)]
 densityFiles_FracCLIP  = densityFiles[grep("FracCLIP", densityFiles)]
-################################################################################
-
-## Metagene Plot from All Libraries for Top Motifs UUUUU AAAAA 
-################################################################################
-## Mock
-densityFile = return_Density(densityFiles[2], strand = '+', normalize = T)
-plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06), densityType = 'motif_density', sampleName = 'All Mocks')
-
-## Arsenite
-densityFile = return_Density(densityFiles[1], strand = '+', normalize = T)
-plot_Density(densityFile, c('UUUUU', 'AAAAA'), yaxis_lims = c(0, 0.06), densityType = 'motif_density', sampleName = 'All Mocks')
 ################################################################################
 
 ## FIGURE4 Metagene Plot from Input vs CoCLIP for Top Motifs UUUUU AAAAA 
