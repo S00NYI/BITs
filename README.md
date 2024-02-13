@@ -3,12 +3,12 @@ Collection of custom <ins>**B**</ins>io<ins>**I**</ins>nformatics <ins>**T**</in
 
 Mostly for Post-CLIPittyClip pipeline analysis, but not always. 
 
-Last Update: 2024-01-06
+Last Update: 2024-02-13
 
 ----
-## CoCLIP_Analysis
-CoCLIP_Analysis scripts contain many custom functions. See *CoCLIP_BITs.R* for more details.<br>
-All CoCLIP_Analysis scripts except for the part 0 uses annotated peak matrix as input.
+## CLIPittyCLIP BITs
+- Scripts associated with CLIPittyClip but not necessarily with CoCLIP Analysis.
 
-## CLIPittyCLIP_BITs
-Scripts associated with CLIPittyClip but not necessarily with CoCLIP Analysis.
+## CoCLIP Analysis
+CoCLIP analysis scripts have been moved to standalone repo:
+- https://github.com/S00NYI/CoCLIP_BITs
