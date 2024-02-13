@@ -10,66 +10,7 @@ library(tidyr)
 library(dplyr)
 library(data.table)
 library(scales)
-
-## Load peak matrix and clean up:
-####################################################################################################################
-peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
-peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
-
-peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
-peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'unannotated', 'UnAn', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'unannotated', 'UnAn', grouped_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'downstream 10K', 'DS10K', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
-
-## further consolidate ncRNA:
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
-peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_RI', 'intron', finalized_annotation))
-
-## Column organization:
-inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
-                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count", "TOTAL_TagCount")
-BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
-               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
-               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
-               "TOTAL_BC")
-
-Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
-Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
-Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
-Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
-
-NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
-NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
-G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
-
-NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
-NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
-G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
-
-NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
-NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
-NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
-NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
-G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
-G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
-
-## Add row sum columns for further filtering:
-peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
-peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
-peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
-rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
-
-## Add pseudocount:
-pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
-peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
-
-####################################################################################################################
+library(VennDiagram)
 
 ## Custom Functions 
 ####################################################################################################################
@@ -170,6 +111,67 @@ plotScatter = function(peak_matrix, annotation_level,
 }
 ####################################################################################################################
 
+
+## Load peak matrix and clean up:
+####################################################################################################################
+peaksMatrix_PATH = '/Users/soonyi/Desktop/Genomics/CoCLIP/Analysis/'
+peaksMatrix_FILE = 'Combined_peakCoverage_groomed_normalized_annotated.txt'
+
+peaksMatrix = read_delim(paste0(peaksMatrix_PATH, peaksMatrix_FILE), show_col_types = FALSE)
+peaksMatrix = peaksMatrix %>% mutate_at('TOTAL_BC', as.numeric)
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'unannotated', 'UnAn', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'unannotated', 'UnAn', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'downstream 10K', 'DS10K', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(grouped_annotation = ifelse(grouped_annotation == 'downstream 10K', 'DS10K', grouped_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'ncRNA_Retained_intron', 'nC_RI', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_Retained_intron', 'CDS_RI', finalized_annotation))
+
+## further consolidate ncRNA:
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'miRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'scaRNA', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'nC_RI', 'Other', finalized_annotation))
+peaksMatrix = peaksMatrix %>% mutate(finalized_annotation = ifelse(finalized_annotation == 'CDS_RI', 'intron', finalized_annotation))
+
+## Column organization:
+inert_columns = c('chrom', 'start', 'end', 'peak_names', 'score', 'strand', 
+                  "gene", "external_gene_name", "annotation", "finalized_annotation", "grouped_annotation", "annotation_count", "TOTAL_TagCount")
+BC_columns = c("Nuc_F_M_BC", "Nuc_F_S_BC", "Cyto_F_M_BC", "Cyto_F_S_BC", 
+               "NLS_I_M_BC", "NLS_I_S_BC", "NES_I_M_BC", "NES_I_S_BC", "G3BP_I_M_BC", "G3BP_I_S_BC",
+               "NLS_E_M_BC", "NLS_E_S_BC", "NES_E_M_BC", "NES_E_S_BC", "G3BP_E_M_BC", "G3BP_E_S_BC",
+               "TOTAL_BC")
+
+Nuc_F_M = c('Nuc_F_M_1', 'Nuc_F_M_2', 'Nuc_F_M_3')
+Nuc_F_S = c('Nuc_F_S_1', 'Nuc_F_S_2', 'Nuc_F_S_3')
+Cyto_F_M = c('Cyto_F_M_1', 'Cyto_F_M_2', 'Cyto_F_M_3')
+Cyto_F_S = c('Cyto_F_S_1', 'Cyto_F_S_2', 'Cyto_F_S_3')
+
+NLS_I_M = c('NLS_I_M_1', 'NLS_I_M_2')
+NES_I_M = c('NES_I_M_1', 'NES_I_M_2')
+G3BP_I_M = c('G3BP_I_M_1', 'G3BP_I_M_2', 'G3BP_I_M_3', 'G3BP_I_M_4')
+
+NLS_I_S = c('NLS_I_S_1', 'NLS_I_S_2')
+NES_I_S = c('NES_I_S_1', 'NES_I_S_2')
+G3BP_I_S = c('G3BP_I_S_1', 'G3BP_I_S_2', 'G3BP_I_S_3', 'G3BP_I_S_4', 'G3BP_I_S_5')
+
+NLS_E_M = c('NLS_E_M_1', 'NLS_E_M_2', 'NLS_E_M_3', 'NLS_E_M_4')
+NLS_E_S = c('NLS_E_S_1', 'NLS_E_S_2', 'NLS_E_S_3', 'NLS_E_S_4')
+NES_E_M = c('NES_E_M_1', 'NES_E_M_2', 'NES_E_M_3', 'NES_E_M_4')
+NES_E_S = c('NES_E_S_1', 'NES_E_S_2', 'NES_E_S_3', 'NES_E_S_4')
+G3BP_E_M = c('G3BP_E_M_1', 'G3BP_E_M_2', 'G3BP_E_M_3', 'G3BP_E_M_4', 'G3BP_E_M_5', 'G3BP_E_M_6')
+G3BP_E_S = c('G3BP_E_S_1', 'G3BP_E_S_2', 'G3BP_E_S_3', 'G3BP_E_S_4', 'G3BP_E_S_5', 'G3BP_E_S_6', 'G3BP_E_S_7')
+
+## Add row sum columns for further filtering:
+peaksMatrix$F_rowSum = rowSums(peaksMatrix[, c(Nuc_F_M, Nuc_F_S, Cyto_F_M, Cyto_F_S)])
+peaksMatrix$I_rowSum = rowSums(peaksMatrix[, c(NLS_I_M, NLS_I_S, NES_I_M, NES_I_S, G3BP_I_M, G3BP_I_S)])
+peaksMatrix$E_rowSum = rowSums(peaksMatrix[, c(NLS_E_M, NLS_E_S, NES_E_M, NES_E_S, G3BP_E_M, G3BP_E_S)])
+rowSum_columns = c('F_rowSum', 'I_rowSum', 'E_rowSum')
+
+## Add pseudocount:
+pseudoCount = min(peaksMatrix[, colnames(peaksMatrix)[6:63]][peaksMatrix[, colnames(peaksMatrix)[6:63]] != 0], na.rm = TRUE)
+peaksMatrix[, colnames(peaksMatrix)[6:63]] = peaksMatrix[, colnames(peaksMatrix)[6:63]] + pseudoCount
+
+####################################################################################################################
+
 ## Filter Criteria:
 ####################################################################################################################
 BC_Threshold_F = 2
@@ -241,8 +243,6 @@ peakRowSum = peakRowSum %>% mutate(G3BP_E_S = rowSums(peaksMatrix[, G3BP_E_S])/l
 
 peakRowSum = cbind(peakRowSum, peaksMatrix[, BC_columns])
 
-# write.table(peakRowSum, paste0(peaksMatrix_PATH, str_replace(peaksMatrix_FILE, ".txt", "_rowSum.txt")), quote = FALSE, col.names = TRUE, row.names = FALSE, sep = '\t', na = "")
-
 peakEnrichment = peaksMatrix[, c(inert_columns, BC_columns, rowSum_columns)]
 
 peakEnrichment = peakEnrichment %>% mutate(NLS_EvI_M = peakRowSum$NLS_E_M / peakRowSum$I_M)
@@ -274,7 +274,7 @@ peakEnrichment = cbind(peakEnrichment, peakRowSum[, colnames(peakRowSum)[17:34]]
 x_lim = c(-6, 6)
 y_lim = x_lim
 
-## FIGURE3 Mock G3BP E/I vs Mock Nucleus E/I 
+## FIGURE3/S5 Mock G3BP E/I vs Mock Nucleus E/I 
 ####################################################################################################################
 Peak_G3BP_Nuc_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                    (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
@@ -284,11 +284,6 @@ Peak_G3BP_Nuc_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
 
 Peak_G3BP_Nuc_M_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_M_EvI$grouped_annotation, levels = All_Annotation_List)
 
-# plotScatter(Peak_G3BP_Nuc_M_EvI, grouped_annotation,
-#             log2(NLS_EvI_M), log2(G3BP_EvI_M),
-#             x_label = 'log2(CoCLIP Mock Nuclear/Input)', 'log2(CoCLIP Mock SG/Input)',
-#             x_lim, y_lim,
-#             title = paste0('HuR Peaks: Mock SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_M_EvI), ' peaks)'))
 
 Peak_G3BP_Nuc_M_EvI_mRNA = Peak_G3BP_Nuc_M_EvI %>% filter((finalized_annotation == "5'UTR" | 
                                                                finalized_annotation == "3'UTR" | 
@@ -322,7 +317,7 @@ plotScatter(Peak_G3BP_Nuc_M_EvI_ncRNA, finalized_annotation,
             paste0('HuR ncRNA Peaks: Mock SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_M_EvI_ncRNA), ' peaks)'))
 #################################################################################################################### 
 
-## FIGURE3 Stress G3BP E/I vs Stress Nucleus E/I 
+## FIGURE3/S5 Stress G3BP E/I vs Stress Nucleus E/I 
 ####################################################################################################################
 Peak_G3BP_Nuc_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                    (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
@@ -331,12 +326,6 @@ Peak_G3BP_Nuc_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                          (NLS_I_S_BC >= BC_Threshold_E & NLS_I_S > median(NLS_I_S) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Nuc_S_EvI$grouped_annotation = factor(Peak_G3BP_Nuc_S_EvI$grouped_annotation, levels = All_Annotation_List)
-
-# plotScatter(Peak_G3BP_Nuc_S_EvI, grouped_annotation,
-#             log2(NLS_EvI_S), log2(G3BP_EvI_S),
-#             x_label = 'log2(CoCLIP Stress Nuclear/Input)', 'log2(CoCLIP Stress SG/Input)',
-#             x_lim, y_lim,
-#             title = paste0('HuR Peaks: Stress SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_S_EvI), ' peaks)'))
 
 Peak_G3BP_Nuc_S_EvI_mRNA = Peak_G3BP_Nuc_S_EvI %>% filter((finalized_annotation == "5'UTR" | 
                                                                finalized_annotation == "3'UTR" | 
@@ -370,7 +359,7 @@ plotScatter(Peak_G3BP_Nuc_S_EvI_ncRNA, finalized_annotation,
             paste0('HuR ncRNA Peaks: Stress SG vs Nuclear Enriched over Input (',  nrow(Peak_G3BP_Nuc_S_EvI_ncRNA), ' peaks)'))
 ####################################################################################################################
 
-## FIGURE3 Mock G3BP E/I vs Mock Cyto E/I 
+## FIGURE3/S5 Mock G3BP E/I vs Mock Cyto E/I 
 ####################################################################################################################
 Peak_G3BP_Cyto_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                                  (((G3BP_E_M_BC >= BC_Threshold_E_SG & G3BP_E_M > median(G3BP_E_M) * rowSum_Multiplier_E) & 
@@ -379,12 +368,6 @@ Peak_G3BP_Cyto_M_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') 
                                                        (NES_I_M_BC >= BC_Threshold_E & NES_I_M > median(NES_I_M) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Cyto_M_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_M_EvI$grouped_annotation, levels = All_Annotation_List)
-
-# plotScatter(Peak_G3BP_Cyto_M_EvI, grouped_annotation,
-#             log2(NES_EvI_M), log2(G3BP_EvI_M),
-#             x_label = 'log2(CoCLIP Mock Cytoplasm/Input)', 'log2(CoCLIP Mock SG/Input)',
-#             x_lim, y_lim,
-#             title = paste0('HuR Peaks: Mock SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_M_EvI), ' peaks)'))
 
 Peak_G3BP_Cyto_M_EvI_mRNA = Peak_G3BP_Cyto_M_EvI %>% filter((finalized_annotation == "5'UTR" | 
                                                            finalized_annotation == "3'UTR" | 
@@ -418,7 +401,7 @@ plotScatter(Peak_G3BP_Cyto_M_EvI_ncRNA, finalized_annotation,
             paste0('HuR ncRNA Peaks: Mock SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_M_EvI_ncRNA), ' peaks)'))
 #################################################################################################################### 
 
-## FIGURE3 Stress G3BP E/I vs Stress Cyto E/I 
+## FIGURE3/S5 Stress G3BP E/I vs Stress Cyto E/I 
 ####################################################################################################################
 Peak_G3BP_Cyto_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') &
                                              (((G3BP_E_S_BC >= BC_Threshold_E_SG & G3BP_E_S > median(G3BP_E_S) * rowSum_Multiplier_E) & 
@@ -427,12 +410,6 @@ Peak_G3BP_Cyto_S_EvI = peakEnrichment %>% filter((grouped_annotation != 'UnAn') 
                                                    (NES_I_S_BC >= BC_Threshold_E & NES_I_S > median(NES_I_S) * rowSum_Multiplier_I))))
 
 Peak_G3BP_Cyto_S_EvI$grouped_annotation = factor(Peak_G3BP_Cyto_S_EvI$grouped_annotation, levels = All_Annotation_List)
-
-# plotScatter(Peak_G3BP_Cyto_S_EvI, grouped_annotation,
-#             log2(NES_EvI_S), log2(G3BP_EvI_S),
-#             x_label = 'log2(CoCLIP Stress Cytoplasm/Input)', 'log2(CoCLIP Stress SG/Input)',
-#             x_lim, y_lim,
-#             title = paste0('HuR Peaks: Stress SG vs Cytoplasm Enriched over Input (',  nrow(Peak_G3BP_Cyto_S_EvI), ' peaks)'))
 
 Peak_G3BP_Cyto_S_EvI_mRNA = Peak_G3BP_Cyto_S_EvI %>% filter((finalized_annotation == "5'UTR" | 
                                                    finalized_annotation == "3'UTR" | 
@@ -468,7 +445,7 @@ plotScatter(Peak_G3BP_Cyto_S_EvI_ncRNA, finalized_annotation,
 
 ## New Venn Diagram
 ####################################################################################################################
-
+## Mock comparison between all coCLIPs
 NLS_M_Filtered = Peak_Co_NLS_M %>% filter(peak_names %in% c(Peak_G3BP_Nuc_M_EvI$peak_names))
 NES_M_Filtered = Peak_Co_NES_M %>% filter(peak_names %in% c(Peak_G3BP_Cyto_M_EvI$peak_names))
 G3BP_M_Filtered = Peak_Co_G3BP_M %>% filter(peak_names %in% c(Peak_G3BP_Nuc_M_EvI$peak_names, Peak_G3BP_Cyto_M_EvI$peak_names))
@@ -481,17 +458,11 @@ CoCLIP_M_Filtered = unique(c(NLS_M_Filtered, NES_M_Filtered, G3BP_M_Filtered))
 Input_M_Filtered = Peak_Co_Input_M %>% filter(peak_names %in% c(Peak_G3BP_Nuc_M_EvI$peak_names, Peak_G3BP_Cyto_M_EvI$peak_names))
 Input_M_Filtered = Input_M_Filtered$peak_names
 
-# Mock = list(Mock_Input = Peak_Co_Input_M$peak_names, Mock_CoCLIP = CoCLIP_M_Filtered)
-# Mock_Venn = venn.diagram(x = Mock, filename = NULL, category.names = c("Mock_Input", "Mock_CoCLIP"))
-# grid.newpage(); grid.draw(Mock_Venn)
-
 Mock2 = list(NLS = NLS_M_Filtered, NES = NES_M_Filtered, G3BP = G3BP_M_Filtered)
 Mock_Venn2 = venn.diagram(x = Mock2, filename = NULL, category.names = c("NLS", "NES", "G3BP1"))
 grid.newpage(); grid.draw(Mock_Venn2)
 
-
-
-
+## Stress comparison between all coCLIPs
 NLS_S_Filtered = Peak_Co_NLS_S %>% filter(peak_names %in% c(Peak_G3BP_Nuc_S_EvI$peak_names))
 NES_S_Filtered = Peak_Co_NES_S %>% filter(peak_names %in% c(Peak_G3BP_Cyto_S_EvI$peak_names))
 G3BP_S_Filtered = Peak_Co_G3BP_S %>% filter(peak_names %in% c(Peak_G3BP_Nuc_S_EvI$peak_names, Peak_G3BP_Cyto_S_EvI$peak_names))
@@ -503,10 +474,6 @@ CoCLIP_S_Filtered = unique(c(NLS_S_Filtered, NES_S_Filtered, G3BP_S_Filtered))
 
 Input_S_Filtered = Peak_Co_Input_S %>% filter(peak_names %in% c(Peak_G3BP_Nuc_S_EvI$peak_names, Peak_G3BP_Cyto_S_EvI$peak_names))
 Input_S_Filtered = Input_S_Filtered$peak_names
-
-# Stress = list(Stress_Input = Peak_Co_Input_S$peak_names, Stress_CoCLIP = CoCLIP_S_Filtered)
-# Stress_Venn = venn.diagram(x = Stress, filename = NULL, category.names = c("Stress_Input", "StressCoCLIP"))
-# grid.newpage(); grid.draw(Stress_Venn)
 
 Stress2 = list(NLS = NLS_S_Filtered, NES = NES_S_Filtered, G3BP = G3BP_S_Filtered)
 Stress_Venn2 = venn.diagram(x = Stress2, filename = NULL, category.names = c("NLS", "NES", "G3BP1"), scaled = T)
