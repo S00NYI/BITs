@@ -1,4 +1,4 @@
-Last Update: 2024-01-06
+Last Update: 2025-05-07
 
 ## CLIPittyCLIP_BITs
     
