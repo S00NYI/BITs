@@ -18,4 +18,8 @@ Last Update: 2024-01-06
 #### fastx_barcode_splitter_custom.pl
   - Modified version of fastx_barcode_splitter.pl for demultiplexing.
   - This script was used to generate GEO submitted demultiplexed fastq.gz files.
+  - Usage example (for generating demultiplexed fastq.gz files):
+      - cat Specificity_Pool.fastq | perl fastx_barcode_splitter_custom.pl --bcfile Specificity_Pool_BC.txt --prefix ~/Specificity/Sequencing/GEO/demux/demux_ --suffix ".fastq" --bol --mismatches 2
+      - gzip *.fastq
+
 
